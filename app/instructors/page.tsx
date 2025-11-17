@@ -17,7 +17,7 @@ export default function InstructorsPage() {
           const courses = getCoursesByInstructor(instructor.id);
           return (
             <Link key={instructor.id} href={`/instructors/${instructor.id}`}>
-              <Card className="transition-all hover:shadow-lg">
+              <Card className="transition-all hover:scale-105 hover:shadow-lg">
                 <CardContent className="p-6">
                   <div className="mb-4 flex items-center gap-4">
                     <Image
@@ -26,6 +26,7 @@ export default function InstructorsPage() {
                       width={64}
                       height={64}
                       className="rounded-full"
+                      unoptimized
                     />
                     <div>
                       <h3 className="text-xl font-semibold">

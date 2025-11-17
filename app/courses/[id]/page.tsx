@@ -60,6 +60,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
                 width={48}
                 height={48}
                 className="rounded-full"
+                unoptimized
               />
               <div>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -136,6 +137,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
                     width={80}
                     height={80}
                     className="rounded-full"
+                    unoptimized
                   />
                   <div className="flex-1">
                     <h3 className="mb-2 text-xl font-semibold">

@@ -11,7 +11,7 @@ export function Footer() {
               Master modern development with expert-led courses.
             </p>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-4 text-right">
             <h4 className="text-sm font-semibold">Learn</h4>
             <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
               <li>
@@ -26,7 +26,7 @@ export function Footer() {
               </li>
             </ul>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-4 text-right">
             <h4 className="text-sm font-semibold">Company</h4>
             <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
               <li>
@@ -41,7 +41,7 @@ export function Footer() {
               </li>
             </ul>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-4 text-right">
             <h4 className="text-sm font-semibold">Legal</h4>
             <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
               <li>
