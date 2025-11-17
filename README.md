@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Obelisk Learning Platform
+
+A modern learning and courses platform built with Next.js 14, TailwindCSS, and Supabase-ready architecture.
+
+## Features
+
+- 🎓 **Course Management**: Browse courses with module and lesson structure
+- 👨‍🏫 **Instructor Profiles**: View instructor profiles with social links
+- 📚 **Markdown Lessons**: Rich markdown content rendering
+- 🎥 **Video Support**: Embedded video player for lessons
+- 📊 **Progress Tracking**: Placeholder for Supabase integration
+- 🌙 **Dark Mode**: Automatic dark mode support
+- 📱 **Responsive Design**: Mobile-first responsive layout
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Styling**: TailwindCSS 4
+- **UI Components**: Custom components (Shadcn-inspired)
+- **Markdown**: react-markdown with remark-gfm
+- **Video**: react-player
+- **TypeScript**: Full type safety
+- **Database**: Supabase-ready (placeholders included)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+ 
+- npm, yarn, pnpm, or bun
+
+### Installation
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+obelisk-learning/
+├── app/                    # Next.js App Router pages
+│   ├── courses/           # Course pages
+│   ├── instructors/       # Instructor pages
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Landing page
+├── components/            # React components
+│   ├── ui/               # UI primitives (Button, Card, etc.)
+│   ├── course-card.tsx   # Course card component
+│   ├── header.tsx        # Site header
+│   ├── footer.tsx        # Site footer
+│   ├── lesson-sidebar.tsx # Lesson navigation sidebar
+│   ├── markdown-content.tsx # Markdown renderer
+│   └── video-player.tsx  # Video player component
+├── lib/                  # Utilities and data
+│   ├── mock-data.ts      # Mock course/instructor data
+│   ├── utils.ts          # Utility functions
+│   └── supabase-placeholder.ts # Supabase integration placeholders
+└── types/                # TypeScript type definitions
+    └── index.ts          # Course, Lesson, Instructor types
+```
 
-## Learn More
+## Routes
 
-To learn more about Next.js, take a look at the following resources:
+- `/` - Landing page with featured courses
+- `/courses` - All courses listing
+- `/courses/[id]` - Course overview page
+- `/courses/[id]/[moduleId]/[lessonId]` - Individual lesson page
+- `/instructors` - All instructors listing
+- `/instructors/[id]` - Instructor profile page
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Features in Development
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The following features have placeholders ready for implementation:
 
-## Deploy on Vercel
+- ✅ Quiz component (placeholder)
+- ✅ Progress tracking (Supabase-ready)
+- ✅ User enrollment
+- ✅ Authentication (Supabase Auth ready)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Supabase Integration
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+To connect Supabase:
+
+1. Create a Supabase project
+2. Set up environment variables:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+3. Replace placeholder functions in `lib/supabase-placeholder.ts` with actual Supabase client calls
+4. Set up database schema for courses, lessons, progress, and enrollments
+
+## Customization
+
+### Styling
+
+The project uses TailwindCSS with custom theme variables defined in `app/globals.css`. The color scheme follows the Obelisk ecosystem design with dark mode support.
+
+### Adding Courses
+
+Currently, courses are defined in `lib/mock-data.ts`. To add new courses, extend the `mockCourses` array with your course data.
+
+## License
+
+MIT
