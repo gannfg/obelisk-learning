@@ -75,30 +75,43 @@ export async function initializeAuthClient() {
 // Function to sync Clerk user to Supabase
 export async function syncUserToSupabase(clerkUser?: any) {
   try {
-    if (!isInitialized || !supabaseInitialized) {
-      console.warn('Auth client or Supabase not initialized');
-      return false;
-    }
-
-    // If Clerk user is provided, try manual sync first (more reliable with Clerk OAuth)
+    // If Clerk user is provided, try manual sync first (works independently of auth client init)
     if (clerkUser) {
-      // Try manual sync first since it works directly with Clerk user data
+      // Manual sync works directly with Supabase, doesn't need auth client to be fully initialized
       const manualSyncResult = await syncClerkUserManually(clerkUser);
       if (manualSyncResult) {
         return true;
       }
       
-      // Fallback: Try using the auth client's method (library might get user from session)
-      try {
-        if (typeof authClient.connectClerkUserToSupabase === 'function') {
-          await authClient.connectClerkUserToSupabase('users');
-          console.log('✅ User synced to lantaidua-universal-auth Supabase (via authClient)');
-          return true;
+      // Try to ensure initialization if not done yet
+      if (!isInitialized || !supabaseInitialized) {
+        console.log('🔄 Initializing auth client before sync...');
+        try {
+          await initializeAuthClient();
+        } catch (initError) {
+          console.warn('⚠️ Initialization failed, but manual sync already attempted:', initError);
         }
-      } catch (error) {
-        console.warn('⚠️ authClient sync method failed, manual sync already attempted');
       }
       
+      // Fallback: Try using the auth client's method (library might get user from session)
+      if (isInitialized && supabaseInitialized) {
+        try {
+          if (typeof authClient.connectClerkUserToSupabase === 'function') {
+            await authClient.connectClerkUserToSupabase('users');
+            console.log('✅ User synced to lantaidua-universal-auth Supabase (via authClient)');
+            return true;
+          }
+        } catch (error) {
+          console.warn('⚠️ authClient sync method failed, manual sync already attempted');
+        }
+      }
+      
+      return false;
+    }
+
+    // If no user provided, check initialization
+    if (!isInitialized || !supabaseInitialized) {
+      console.warn('Auth client or Supabase not initialized, and no user data provided');
       return false;
     }
 
@@ -124,56 +137,33 @@ export async function syncUserToSupabase(clerkUser?: any) {
 }
 
 // Manual sync function as fallback - directly inserts user into Supabase
+// This works independently and doesn't require auth client to be initialized
 export async function syncClerkUserManually(clerkUser: any) {
   try {
-    if (!supabaseInitialized) {
-      console.warn('Supabase not initialized for manual sync');
+    // Check if we have Supabase credentials
+    if (!LANTAIDUA_SUPABASE_URL || !LANTAIDUA_SUPABASE_ANON_KEY) {
+      console.error('❌ Supabase credentials not configured for manual sync');
       return false;
     }
 
-    // Get the Supabase client from authClient
-    const supabase = (authClient as any).getSupabaseClient?.() || (authClient as any).supabase;
-    if (!supabase) {
-      console.error('Supabase client not available from authClient');
-      // Try creating a direct client as last resort
-      const { createClient } = await import('@supabase/supabase-js');
-      const directClient = createClient(
-        LANTAIDUA_SUPABASE_URL,
-        LANTAIDUA_SUPABASE_ANON_KEY
-      );
-      
-      const email = clerkUser.emailAddresses?.[0]?.emailAddress || 
-                    clerkUser.primaryEmailAddress?.emailAddress || 
-                    '';
-      
-      const { error } = await directClient
-        .from('users')
-        .upsert({
-          id: clerkUser.id,
-          email: email,
-          first_name: clerkUser.firstName || null,
-          last_name: clerkUser.lastName || null,
-          image_url: clerkUser.imageUrl || null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'id'
-        });
-
-      if (error) {
-        console.error('❌ Failed to sync user manually:', error);
-        return false;
-      }
-
-      console.log('✅ User synced to Supabase manually (direct client)');
-      return true;
-    }
-
+    // Always use direct Supabase client for manual sync (more reliable)
+    // This ensures it works even if authClient isn't fully initialized
+    const { createClient } = await import('@supabase/supabase-js');
+    const directClient = createClient(
+      LANTAIDUA_SUPABASE_URL,
+      LANTAIDUA_SUPABASE_ANON_KEY
+    );
+    
     const email = clerkUser.emailAddresses?.[0]?.emailAddress || 
                   clerkUser.primaryEmailAddress?.emailAddress || 
                   '';
+    
+    if (!email) {
+      console.error('❌ No email found in Clerk user data');
+      return false;
+    }
 
-    const { error } = await supabase
+    const { data, error } = await directClient
       .from('users')
       .upsert({
         id: clerkUser.id,
@@ -189,13 +179,23 @@ export async function syncClerkUserManually(clerkUser: any) {
 
     if (error) {
       console.error('❌ Failed to sync user manually:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
       return false;
     }
 
-    console.log('✅ User synced to Supabase manually');
+    console.log('✅ User synced to Supabase manually (direct client)', {
+      userId: clerkUser.id,
+      email: email
+    });
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Manual sync error:', error);
+    console.error('Error stack:', error?.stack);
     return false;
   }
 }

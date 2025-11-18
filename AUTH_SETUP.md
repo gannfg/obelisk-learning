@@ -164,6 +164,46 @@ const env = getAuthEnvironment(); // 'dev' | 'staging' | 'prod'
 - Review the auth client methods in `lib/auth/client.ts`
 - Check browser console for errors
 
+### Sync Not Working on Another PC
+
+If user sync works on one PC but not another, check the following:
+
+1. **Environment Variables**: Make sure `.env.local` exists and contains all required variables:
+   ```env
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+   CLERK_SECRET_KEY=sk_test_...
+   NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL=https://...
+   NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY=eyJ...
+   ```
+   - Copy `.env.local` from the working PC to the other PC
+   - Or manually add the environment variables
+   - **Important**: Restart the dev server after adding/updating `.env.local`
+
+2. **Supabase Schema**: Ensure the `users` table exists in your auth Supabase project:
+   - Go to your lantaidua-universal-auth Supabase project
+   - Run the SQL from `supabase/auth-schema.sql` in the SQL Editor
+   - Verify the table exists in the Table Editor
+
+3. **RLS Policies**: Check that Row Level Security policies allow inserts/updates:
+   - The `users` table should have a policy that allows `ALL` operations
+   - This is needed because Clerk handles auth, not Supabase Auth
+
+4. **Browser Console**: Check for specific error messages:
+   - `❌ Supabase credentials not configured` → Missing env vars
+   - `❌ No email found in Clerk user data` → Clerk user data issue
+   - `❌ Failed to sync user manually` → Check Supabase connection and schema
+   - `✅ User synced to Supabase manually` → Success!
+
+5. **Network Issues**: If on a different network, check:
+   - Supabase project is accessible
+   - No firewall blocking Supabase API calls
+   - CORS settings in Supabase (should allow all origins for anon key)
+
+6. **Google OAuth Sync**: The manual sync function handles Google OAuth users. If it's not working:
+   - Check that the user object has email data (`user.emailAddresses` or `user.primaryEmailAddress`)
+   - Verify the Supabase `users` table schema matches the sync data structure
+   - Check browser console for detailed error messages
+
 ## Customization
 
 ### Changing Redirect URLs

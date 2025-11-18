@@ -13,14 +13,21 @@ export function UserSync() {
     const initAndSync = async () => {
       if (!isLoaded) return;
 
-      try {
-        // Initialize auth client (includes Supabase)
-        await initializeAuthClient();
+      // If user is logged in, sync to Supabase with Clerk user data
+      if (user) {
+        setSyncing(true);
+        
+        try {
+          // Try to initialize auth client (but don't block on it)
+          // Manual sync will work even if initialization fails
+          try {
+            await initializeAuthClient();
+          } catch (initError) {
+            console.warn('⚠️ Auth client initialization warning (sync will still attempt):', initError);
+          }
 
-        // If user is logged in, sync to Supabase with Clerk user data
-        if (user) {
-          setSyncing(true);
           // Pass Clerk user data directly to sync function
+          // This will use manual sync which works independently
           const success = await syncUserToSupabase(user);
           setSynced(success);
           setSyncing(false);
@@ -30,10 +37,10 @@ export function UserSync() {
           } else {
             console.warn('⚠️ User sync failed - check console for details');
           }
+        } catch (error) {
+          console.error('❌ Sync error:', error);
+          setSyncing(false);
         }
-      } catch (error) {
-        console.error('❌ Sync error:', error);
-        setSyncing(false);
       }
     };
 

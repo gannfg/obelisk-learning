@@ -17,18 +17,26 @@ export default function Dashboard() {
     const initAndSync = async () => {
       if (!isLoaded || !user) return;
 
+      setSyncing(true);
+      
       try {
-        // Initialize auth client (includes Supabase)
-        await initializeAuthClient();
+        // Try to initialize auth client (but don't block on it)
+        // Manual sync will work even if initialization fails
+        try {
+          await initializeAuthClient();
+        } catch (initError) {
+          console.warn('⚠️ Auth client initialization warning (sync will still attempt):', initError);
+        }
 
         // Sync user to Supabase with Clerk user data
-        setSyncing(true);
+        // This will use manual sync which works independently
         const success = await syncUserToSupabase(user);
         setSynced(success);
         setSyncing(false);
         
         if (!success) {
           console.warn('⚠️ User sync failed - check console for details');
+          console.warn('💡 Make sure NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL and NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY are set in .env.local');
         }
       } catch (error) {
         console.error('❌ Sync error:', error);
