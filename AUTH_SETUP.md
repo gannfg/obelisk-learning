@@ -75,16 +75,31 @@ The auth client is configured with the following URLs:
 
 Make sure these routes exist in your application. You can customize these in `lib/auth/client.ts`.
 
-## Step 5: Test the Setup
+## Step 5: Set Up Auth Supabase Database Schema
+
+1. In your **lantaidua-universal-auth Supabase** project dashboard, go to **SQL Editor**
+2. Open the file `supabase/auth-schema.sql` from this project
+3. Copy the entire contents and paste it into the SQL Editor
+4. Click "Run" to execute the schema
+
+This will create:
+- `users` table - For storing Clerk-synced user accounts
+- Indexes and triggers for automatic `updated_at` updates
+- Row Level Security (RLS) policies
+
+> **Note**: You may need to adjust RLS policies depending on how `lantaidua-universal-auth` handles authentication. If sync fails, you might need to temporarily disable RLS or adjust the policies.
+
+## Step 6: Test the Setup
 
 1. Start your development server:
    ```bash
    npm run dev
    ```
 
-2. Navigate to `http://localhost:3000/auth/sign-up`
-3. Try creating a new account
-4. Check your Clerk dashboard → Users to see the new user
+2. Sign in with Google OAuth (or create an account)
+3. Check your browser console for sync status messages
+4. Check your **lantaidua-universal-auth Supabase** dashboard → Table Editor → `users` to see the synced user
+5. If sync fails, check the console for error messages
 
 ## How It Works
 

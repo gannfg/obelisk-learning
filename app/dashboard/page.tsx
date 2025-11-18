@@ -21,11 +21,15 @@ export default function Dashboard() {
         // Initialize auth client (includes Supabase)
         await initializeAuthClient();
 
-        // Sync user to Supabase
+        // Sync user to Supabase with Clerk user data
         setSyncing(true);
-        const success = await syncUserToSupabase();
+        const success = await syncUserToSupabase(user);
         setSynced(success);
         setSyncing(false);
+        
+        if (!success) {
+          console.warn('⚠️ User sync failed - check console for details');
+        }
       } catch (error) {
         console.error('❌ Sync error:', error);
         setSyncing(false);

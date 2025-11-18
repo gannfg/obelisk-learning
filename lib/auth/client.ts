@@ -73,26 +73,129 @@ export async function initializeAuthClient() {
 }
 
 // Function to sync Clerk user to Supabase
-export async function syncUserToSupabase() {
+export async function syncUserToSupabase(clerkUser?: any) {
   try {
     if (!isInitialized || !supabaseInitialized) {
       console.warn('Auth client or Supabase not initialized');
       return false;
     }
 
-    // Check if user has a session
-    const hasSession = await authClient.checkSSOSession?.();
-    
-    if (hasSession) {
-      // Sync user to lantaidua-universal-auth Supabase 'users' table
-      await authClient.connectClerkUserToSupabase?.('users');
-      console.log('✅ User synced to lantaidua-universal-auth Supabase');
-      return true;
+    // If Clerk user is provided, try manual sync first (more reliable with Clerk OAuth)
+    if (clerkUser) {
+      // Try manual sync first since it works directly with Clerk user data
+      const manualSyncResult = await syncClerkUserManually(clerkUser);
+      if (manualSyncResult) {
+        return true;
+      }
+      
+      // Fallback: Try using the auth client's method (library might get user from session)
+      try {
+        if (typeof authClient.connectClerkUserToSupabase === 'function') {
+          await authClient.connectClerkUserToSupabase('users');
+          console.log('✅ User synced to lantaidua-universal-auth Supabase (via authClient)');
+          return true;
+        }
+      } catch (error) {
+        console.warn('⚠️ authClient sync method failed, manual sync already attempted');
+      }
+      
+      return false;
+    }
+
+    // Fallback: Check if user has a session via lantaidua-universal-auth
+    try {
+      const hasSession = await authClient.checkSSOSession?.();
+      
+      if (hasSession) {
+        // Sync user to lantaidua-universal-auth Supabase 'users' table
+        await authClient.connectClerkUserToSupabase?.('users');
+        console.log('✅ User synced to lantaidua-universal-auth Supabase (via session)');
+        return true;
+      }
+    } catch (sessionError) {
+      console.warn('⚠️ Session check failed:', sessionError);
     }
     
     return false;
   } catch (error) {
     console.error('❌ Failed to sync user to Supabase:', error);
+    return false;
+  }
+}
+
+// Manual sync function as fallback - directly inserts user into Supabase
+export async function syncClerkUserManually(clerkUser: any) {
+  try {
+    if (!supabaseInitialized) {
+      console.warn('Supabase not initialized for manual sync');
+      return false;
+    }
+
+    // Get the Supabase client from authClient
+    const supabase = (authClient as any).getSupabaseClient?.() || (authClient as any).supabase;
+    if (!supabase) {
+      console.error('Supabase client not available from authClient');
+      // Try creating a direct client as last resort
+      const { createClient } = await import('@supabase/supabase-js');
+      const directClient = createClient(
+        LANTAIDUA_SUPABASE_URL,
+        LANTAIDUA_SUPABASE_ANON_KEY
+      );
+      
+      const email = clerkUser.emailAddresses?.[0]?.emailAddress || 
+                    clerkUser.primaryEmailAddress?.emailAddress || 
+                    '';
+      
+      const { error } = await directClient
+        .from('users')
+        .upsert({
+          id: clerkUser.id,
+          email: email,
+          first_name: clerkUser.firstName || null,
+          last_name: clerkUser.lastName || null,
+          image_url: clerkUser.imageUrl || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'id'
+        });
+
+      if (error) {
+        console.error('❌ Failed to sync user manually:', error);
+        return false;
+      }
+
+      console.log('✅ User synced to Supabase manually (direct client)');
+      return true;
+    }
+
+    const email = clerkUser.emailAddresses?.[0]?.emailAddress || 
+                  clerkUser.primaryEmailAddress?.emailAddress || 
+                  '';
+
+    const { error } = await supabase
+      .from('users')
+      .upsert({
+        id: clerkUser.id,
+        email: email,
+        first_name: clerkUser.firstName || null,
+        last_name: clerkUser.lastName || null,
+        image_url: clerkUser.imageUrl || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'id'
+      });
+
+    if (error) {
+      console.error('❌ Failed to sync user manually:', error);
+      return false;
+    }
+
+    console.log('✅ User synced to Supabase manually');
+    return true;
+  } catch (error) {
+    console.error('❌ Manual sync error:', error);
     return false;
   }
 }

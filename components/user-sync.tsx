@@ -17,15 +17,18 @@ export function UserSync() {
         // Initialize auth client (includes Supabase)
         await initializeAuthClient();
 
-        // If user is logged in, sync to Supabase
+        // If user is logged in, sync to Supabase with Clerk user data
         if (user) {
           setSyncing(true);
-          const success = await syncUserToSupabase();
+          // Pass Clerk user data directly to sync function
+          const success = await syncUserToSupabase(user);
           setSynced(success);
           setSyncing(false);
           
           if (success) {
             console.log('✅ User synced to Supabase');
+          } else {
+            console.warn('⚠️ User sync failed - check console for details');
           }
         }
       } catch (error) {
