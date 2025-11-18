@@ -83,9 +83,12 @@ Make sure these routes exist in your application. You can customize these in `li
 4. Click "Run" to execute the schema
 
 This will create:
-- `users` table - For storing Clerk-synced user accounts
-- Indexes and triggers for automatic `updated_at` updates
+- `users` table - For storing Clerk-synced user accounts (id, email, username, first_name, last_name, image_url)
+- Indexes on email and username for faster lookups
+- Triggers for automatic `updated_at` updates
 - Row Level Security (RLS) policies
+
+> **Note**: If you already have the `users` table, run `supabase/auth-schema-migration-username.sql` to add the username column.
 
 > **Note**: You may need to adjust RLS policies depending on how `lantaidua-universal-auth` handles authentication. If sync fails, you might need to temporarily disable RLS or adjust the policies.
 
