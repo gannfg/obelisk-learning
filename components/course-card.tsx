@@ -14,7 +14,7 @@ export function CourseCard({ course, priority }: CourseCardProps) {
 
   return (
     <Link href={`/courses/${course.id}`}>
-      <Card className="group overflow-hidden transition-all hover:scale-105 hover:shadow-lg">
+      <Card className="group overflow-hidden transition-all hover:scale-105">
         <div className="relative h-48 w-full overflow-hidden">
           <Image
             src={course.thumbnail}
@@ -27,16 +27,16 @@ export function CourseCard({ course, priority }: CourseCardProps) {
         </div>
         <CardContent className="p-6">
           <div className="mb-2 flex items-center justify-between">
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+            <span className="rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
               {course.category}
             </span>
           </div>
           <h3 className="mb-2 text-xl font-semibold">{course.title}</h3>
-          <p className="mb-4 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">
             {course.description}
           </p>
           {instructor && (
-            <p className="text-sm text-zinc-500 dark:text-zinc-500">
+            <p className="text-sm text-muted-foreground">
               By {instructor.name}
             </p>
           )}
