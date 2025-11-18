@@ -5,6 +5,7 @@
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY, -- Clerk user ID
   email TEXT UNIQUE NOT NULL,
+  username TEXT,
   first_name TEXT,
   last_name TEXT,
   image_url TEXT,
@@ -14,6 +15,9 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Create index on email for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+-- Create index on username for faster lookups (if username is set)
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
 
 -- Create updated_at trigger
 CREATE OR REPLACE FUNCTION update_updated_at_column()

@@ -38,6 +38,7 @@ async function syncUserToSupabase(clerkUser: any) {
       .upsert({
         id: clerkUser.id,
         email: email,
+        username: clerkUser.username || null,
         first_name: clerkUser.first_name || null,
         last_name: clerkUser.last_name || null,
         image_url: clerkUser.image_url || null,
@@ -54,7 +55,8 @@ async function syncUserToSupabase(clerkUser: any) {
 
     console.log('✅ User synced to Supabase via webhook', {
       userId: clerkUser.id,
-      email: email
+      email: email,
+      username: clerkUser.username || 'N/A'
     });
     return true;
   } catch (error) {

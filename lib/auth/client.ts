@@ -171,6 +171,7 @@ export async function syncClerkUserManually(clerkUser: any) {
       .upsert({
         id: clerkUser.id,
         email: email,
+        username: clerkUser.username || null,
         first_name: clerkUser.firstName || null,
         last_name: clerkUser.lastName || null,
         image_url: clerkUser.imageUrl || null,
@@ -193,7 +194,8 @@ export async function syncClerkUserManually(clerkUser: any) {
 
     console.log('✅ User synced to Supabase manually (direct client)', {
       userId: clerkUser.id,
-      email: email
+      email: email,
+      username: clerkUser.username || 'N/A'
     });
     return true;
   } catch (error: any) {
