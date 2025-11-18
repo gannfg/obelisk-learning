@@ -26,8 +26,12 @@ const optionalVars = [
   'NEXT_PUBLIC_CLERK_DOMAIN',
   'NEXT_PUBLIC_CLERK_IS_SATELLITE',
   'NEXT_PUBLIC_APP_ENV',
-  'NEXT_PUBLIC_SUPABASE_URL',
-  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+  // Auth Supabase (lantaidua-universal-auth)
+  'NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL',
+  'NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY',
+  // Learning Supabase (obelisk-learning)
+  'NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL',
+  'NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_ANON_KEY',
 ];
 
 const foundVars = new Set();
@@ -72,12 +76,21 @@ optionalVars.forEach(varName => {
 });
 
 // Check for Supabase variables
-const supabaseVars = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY'];
-const hasSupabase = supabaseVars.every(v => foundVars.has(v));
+const authSupabaseVars = [
+  'NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL',
+  'NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY'
+];
+const learningSupabaseVars = [
+  'NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL',
+  'NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_ANON_KEY'
+];
+const hasAuthSupabase = authSupabaseVars.every(v => foundVars.has(v));
+const hasLearningSupabase = learningSupabaseVars.every(v => foundVars.has(v));
 
 console.log('\n📊 Summary:');
 console.log(`  Clerk Auth: ${foundVars.has('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY') ? '✅ Configured' : '❌ Not configured'}`);
-console.log(`  Supabase: ${hasSupabase ? '✅ Configured' : '○ Not configured'}`);
+console.log(`  Auth Supabase (lantaidua-universal-auth): ${hasAuthSupabase ? '✅ Configured' : '○ Not configured'}`);
+console.log(`  Learning Supabase (obelisk-learning): ${hasLearningSupabase ? '✅ Configured' : '○ Not configured'}`);
 
 console.log('\n' + '='.repeat(50));
 if (hasErrors) {

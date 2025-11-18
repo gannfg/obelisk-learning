@@ -40,6 +40,14 @@ NEXT_PUBLIC_CLERK_DOMAIN=your-custom-domain.com
 # Optional: Satellite application flag
 NEXT_PUBLIC_CLERK_IS_SATELLITE=false
 
+# Auth Supabase (lantaidua-universal-auth) - For Clerk user sync
+NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL=your_auth_supabase_url
+NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY=your_auth_supabase_anon_key
+
+# Learning Supabase (obelisk-learning) - For platform data
+NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL=your_learning_supabase_url
+NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_ANON_KEY=your_learning_supabase_anon_key
+
 # Environment Detection (optional)
 # The auth client will detect environment using:
 # - NEXT_PUBLIC_APP_ENV (if set): 'dev' | 'staging' | 'prod'
@@ -52,6 +60,9 @@ NEXT_PUBLIC_APP_ENV=dev
 - Never commit `.env.local` to version control
 - The `NEXT_PUBLIC_` prefix makes variables available in the browser
 - `CLERK_SECRET_KEY` is server-only (no `NEXT_PUBLIC_` prefix) - keep it secret!
+- **Two Separate Supabase Databases**: 
+  - `lantaidua-universal-auth` Supabase: Used for Clerk user synchronization
+  - `obelisk-learning` Supabase: Used for platform data (courses, lessons, progress, etc.)
 - Environment detection uses `NEXT_PUBLIC_APP_ENV` or `NODE_ENV` from `.env.local`
 
 ## Step 4: Configure Clerk URLs

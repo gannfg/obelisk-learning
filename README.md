@@ -92,14 +92,24 @@ The following features have placeholders ready for implementation:
 
 To connect Supabase:
 
-1. Create a Supabase project
+1. Create **two Supabase projects**:
+   - **Auth Supabase** (for lantaidua-universal-auth): See `AUTH_SETUP.md`
+   - **Learning Supabase** (for platform data): See `SUPABASE_SETUP.md`
+
 2. Set up environment variables:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```env
+   # Auth Supabase (lantaidua-universal-auth)
+   NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL=your_auth_supabase_url
+   NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY=your_auth_anon_key
+   
+   # Learning Supabase (obelisk-learning)
+   NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL=your_learning_supabase_url
+   NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_ANON_KEY=your_learning_anon_key
    ```
 3. Replace placeholder functions in `lib/supabase-placeholder.ts` with actual Supabase client calls
-4. Set up database schema for courses, lessons, progress, and enrollments
+4. Set up database schema for courses, lessons, progress, and enrollments in the **learning Supabase** project
+
+See `DATABASE_ARCHITECTURE.md` for more details on the two-database setup.
 
 ## Customization
 

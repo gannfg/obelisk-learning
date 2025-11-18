@@ -7,6 +7,7 @@ import { useSignUp } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import { syncUserToSupabase, initializeAuthClient } from "@/lib/auth/client";
 
 export function SignUpForm() {
   const router = useRouter();
@@ -46,6 +47,16 @@ export function SignUpForm() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
+        
+        // Sync user to Supabase after successful sign-up
+        try {
+          await initializeAuthClient();
+          await syncUserToSupabase();
+        } catch (syncError) {
+          console.error('Failed to sync user to Supabase:', syncError);
+          // Don't block the sign-up flow if sync fails
+        }
+        
         router.push("/dashboard");
         router.refresh();
       } else {

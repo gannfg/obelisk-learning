@@ -1,6 +1,10 @@
 # Supabase Setup Guide
 
-This guide will help you set up Supabase authentication and database for Obelisk Learning.
+This guide will help you set up Supabase databases for Obelisk Learning.
+
+> **Note**: This project uses **two separate Supabase databases**:
+> - **lantaidua-universal-auth Supabase**: For Clerk user synchronization (see `AUTH_SETUP.md`)
+> - **obelisk-learning Supabase**: For platform data (this guide)
 
 ## Prerequisites
 
@@ -8,7 +12,7 @@ This guide will help you set up Supabase authentication and database for Obelisk
 2. Node.js 18+ installed
 3. Your project dependencies installed (`npm install`)
 
-## Step 1: Create a Supabase Project
+## Step 1: Create the Learning Supabase Project
 
 1. Go to [Supabase Dashboard](https://app.supabase.com)
 2. Click "New Project"
@@ -17,6 +21,8 @@ This guide will help you set up Supabase authentication and database for Obelisk
    - **Database Password**: Choose a strong password (save it securely)
    - **Region**: Choose the closest region to your users
 4. Click "Create new project" and wait for it to initialize
+
+> **Important**: This is the **learning database**. You'll need a **separate Supabase project** for authentication (see `AUTH_SETUP.md`).
 
 ## Step 2: Get Your Supabase Credentials
 
@@ -29,13 +35,16 @@ This guide will help you set up Supabase authentication and database for Obelisk
 ## Step 3: Set Up Environment Variables
 
 1. Create a `.env.local` file in the root of your project (if it doesn't exist)
-2. Add the following variables:
+2. Add the following variables for the **learning database**:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your_project_url_here
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+# Learning Supabase (obelisk-learning) - For platform data
+NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL=your_learning_project_url_here
+NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_ANON_KEY=your_learning_anon_key_here
+OBELISK_LEARNING_SUPABASE_SERVICE_ROLE_KEY=your_learning_service_role_key_here
 ```
+
+> **Note**: You'll also need to set up the auth Supabase variables. See `AUTH_SETUP.md` for details.
 
 **Important**: 
 - Never commit `.env.local` to version control

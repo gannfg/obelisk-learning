@@ -4,9 +4,13 @@ import { authClient } from 'lantaidua-universal-auth';
 const CLERK_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '';
 const CLERK_DOMAIN = process.env.NEXT_PUBLIC_CLERK_DOMAIN;
 const CLERK_IS_SATELLITE = process.env.NEXT_PUBLIC_CLERK_IS_SATELLITE === 'true';
+// Use lantaidua-universal-auth Supabase for user sync
+const LANTAIDUA_SUPABASE_URL = process.env.NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL || '';
+const LANTAIDUA_SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY || '';
 
 // Initialize the auth client (v1.1.0)
 let isInitialized = false;
+let supabaseInitialized = false;
 
 export async function initializeAuthClient() {
   // Check if already initialized using the latest API
@@ -20,7 +24,7 @@ export async function initializeAuthClient() {
   }
 
   try {
-    // v1.1.0 API - createAuthClient with options
+    // 1. Initialize Clerk FIRST
     const options: {
       domain?: string;
       isSatellite?: boolean;
@@ -28,11 +32,13 @@ export async function initializeAuthClient() {
       signUpUrl?: string;
       afterSignInUrl?: string;
       afterSignUpUrl?: string;
+      ssoEnabled?: boolean;
     } = {
       signInUrl: '/auth/sign-in',
       signUpUrl: '/auth/sign-up',
       afterSignInUrl: '/dashboard',
       afterSignUpUrl: '/dashboard',
+      ssoEnabled: true,
     };
 
     // Add optional domain if set
@@ -45,13 +51,49 @@ export async function initializeAuthClient() {
       options.isSatellite = true;
     }
 
-    // Initialize using v1.1.0 API
+    // Initialize Clerk using v1.1.0 API
     await authClient.createAuthClient(CLERK_PUBLISHABLE_KEY, options);
+    
+    // 2. Initialize lantaidua-universal-auth Supabase SECOND (for user sync)
+    if (LANTAIDUA_SUPABASE_URL && LANTAIDUA_SUPABASE_ANON_KEY && !supabaseInitialized) {
+      try {
+        authClient.createSupabaseClient(LANTAIDUA_SUPABASE_URL, LANTAIDUA_SUPABASE_ANON_KEY);
+        supabaseInitialized = true;
+        console.log('✅ lantaidua-universal-auth Supabase client initialized');
+      } catch (supabaseError) {
+        console.warn('⚠️ Failed to initialize lantaidua-universal-auth Supabase client:', supabaseError);
+      }
+    }
     
     isInitialized = true;
   } catch (error) {
     console.error('Failed to initialize auth client:', error);
     throw error;
+  }
+}
+
+// Function to sync Clerk user to Supabase
+export async function syncUserToSupabase() {
+  try {
+    if (!isInitialized || !supabaseInitialized) {
+      console.warn('Auth client or Supabase not initialized');
+      return false;
+    }
+
+    // Check if user has a session
+    const hasSession = await authClient.checkSSOSession?.();
+    
+    if (hasSession) {
+      // Sync user to lantaidua-universal-auth Supabase 'users' table
+      await authClient.connectClerkUserToSupabase?.('users');
+      console.log('✅ User synced to lantaidua-universal-auth Supabase');
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('❌ Failed to sync user to Supabase:', error);
+    return false;
   }
 }
 
