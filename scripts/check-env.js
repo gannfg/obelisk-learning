@@ -26,6 +26,7 @@ const optionalVars = [
   'NEXT_PUBLIC_CLERK_DOMAIN',
   'NEXT_PUBLIC_CLERK_IS_SATELLITE',
   'NEXT_PUBLIC_APP_ENV',
+  'CLERK_WEBHOOK_SECRET', // Recommended for automatic user sync
   // Auth Supabase (lantaidua-universal-auth)
   'NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL',
   'NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY',
@@ -89,6 +90,7 @@ const hasLearningSupabase = learningSupabaseVars.every(v => foundVars.has(v));
 
 console.log('\n📊 Summary:');
 console.log(`  Clerk Auth: ${foundVars.has('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY') ? '✅ Configured' : '❌ Not configured'}`);
+console.log(`  Clerk Webhooks: ${foundVars.has('CLERK_WEBHOOK_SECRET') ? '✅ Configured' : '○ Not configured (optional but recommended)'}`);
 console.log(`  Auth Supabase (lantaidua-universal-auth): ${hasAuthSupabase ? '✅ Configured' : '○ Not configured'}`);
 console.log(`  Learning Supabase (obelisk-learning): ${hasLearningSupabase ? '✅ Configured' : '○ Not configured'}`);
 

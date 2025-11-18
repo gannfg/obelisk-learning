@@ -89,7 +89,55 @@ This will create:
 
 > **Note**: You may need to adjust RLS policies depending on how `lantaidua-universal-auth` handles authentication. If sync fails, you might need to temporarily disable RLS or adjust the policies.
 
-## Step 6: Test the Setup
+## Step 6: Set Up Clerk Webhooks (Recommended)
+
+Webhooks provide automatic, server-side syncing of Clerk users to Supabase. This is more reliable than client-side syncing.
+
+### 6.1: Get Your Webhook Secret
+
+1. In your Clerk Dashboard, go to **Webhooks**
+2. Click **Add Endpoint**
+3. Enter your webhook URL:
+   - **Development**: `https://your-domain.ngrok.io/api/webhooks/clerk` (use ngrok for local testing)
+   - **Production**: `https://your-domain.com/api/webhooks/clerk`
+4. Select the events to listen to:
+   - ✅ `user.created`
+   - ✅ `user.updated`
+   - ✅ `user.deleted` (optional)
+5. Click **Create**
+6. Copy the **Signing Secret** (starts with `whsec_`)
+
+### 6.2: Add Webhook Secret to Environment Variables
+
+Add to your `.env.local`:
+```env
+CLERK_WEBHOOK_SECRET=whsec_...
+```
+
+**For Vercel deployment:**
+1. Go to your Vercel project settings
+2. Navigate to **Environment Variables**
+3. Add `CLERK_WEBHOOK_SECRET` with your webhook secret
+
+### 6.3: Test Webhooks Locally (Optional)
+
+For local development, use ngrok to expose your local server:
+
+1. Install ngrok: `npm install -g ngrok` or download from [ngrok.com](https://ngrok.com)
+2. Start your dev server: `npm run dev`
+3. In another terminal, run: `ngrok http 3000`
+4. Copy the ngrok URL (e.g., `https://abc123.ngrok.io`)
+5. In Clerk Dashboard → Webhooks, add endpoint: `https://abc123.ngrok.io/api/webhooks/clerk`
+6. Test by creating/updating a user in Clerk
+
+### 6.4: How Webhooks Work
+
+- **Automatic Sync**: When a user signs up or updates their profile in Clerk, the webhook automatically syncs them to Supabase
+- **Server-Side**: Webhooks run on the server, so they're more reliable than client-side sync
+- **Real-Time**: Users are synced immediately when events occur
+- **Fallback**: Client-side sync (in `UserSync` component) still works as a backup
+
+## Step 7: Test the Setup
 
 1. Start your development server:
    ```bash
@@ -99,7 +147,8 @@ This will create:
 2. Sign in with Google OAuth (or create an account)
 3. Check your browser console for sync status messages
 4. Check your **lantaidua-universal-auth Supabase** dashboard → Table Editor → `users` to see the synced user
-5. If sync fails, check the console for error messages
+5. If using webhooks, check your server logs for webhook events
+6. If sync fails, check the console for error messages
 
 ## How It Works
 
