@@ -77,19 +77,35 @@ export async function syncUserToSupabase(clerkUser?: any) {
   try {
     // If Clerk user is provided, try manual sync first (works independently of auth client init)
     if (clerkUser) {
+      console.log('🔄 Attempting to sync user to Supabase...', {
+        userId: clerkUser.id,
+        email: clerkUser.emailAddresses?.[0]?.emailAddress || clerkUser.primaryEmailAddress?.emailAddress
+      });
+      
       // Manual sync works directly with Supabase, doesn't need auth client to be fully initialized
       const manualSyncResult = await syncClerkUserManually(clerkUser);
       if (manualSyncResult) {
         return true;
       }
       
-      // Try to ensure initialization if not done yet
+      // Manual sync failed - log why and try fallback
+      console.warn('⚠️ Manual sync failed. Checking environment variables and Supabase connection...');
+      
+      // Check if env vars are set
+      if (!LANTAIDUA_SUPABASE_URL || !LANTAIDUA_SUPABASE_ANON_KEY) {
+        console.error('❌ Missing Supabase environment variables:');
+        console.error('   - NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL:', LANTAIDUA_SUPABASE_URL ? '✅ Set' : '❌ Missing');
+        console.error('   - NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY:', LANTAIDUA_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing');
+        return false;
+      }
+      
+      // Try to ensure initialization if not done yet (for fallback method)
       if (!isInitialized || !supabaseInitialized) {
-        console.log('🔄 Initializing auth client before sync...');
+        console.log('🔄 Attempting to initialize auth client as fallback...');
         try {
           await initializeAuthClient();
         } catch (initError) {
-          console.warn('⚠️ Initialization failed, but manual sync already attempted:', initError);
+          console.warn('⚠️ Auth client initialization failed (this is okay, manual sync was already attempted):', initError);
         }
       }
       
@@ -98,37 +114,24 @@ export async function syncUserToSupabase(clerkUser?: any) {
         try {
           if (typeof authClient.connectClerkUserToSupabase === 'function') {
             await authClient.connectClerkUserToSupabase('users');
-            console.log('✅ User synced to lantaidua-universal-auth Supabase (via authClient)');
+            console.log('✅ User synced to lantaidua-universal-auth Supabase (via authClient fallback)');
             return true;
           }
         } catch (error) {
-          console.warn('⚠️ authClient sync method failed, manual sync already attempted');
+          console.warn('⚠️ authClient sync method also failed');
         }
       }
       
+      console.error('❌ All sync methods failed. Please check:');
+      console.error('   1. Supabase environment variables are set in .env.local');
+      console.error('   2. Supabase users table exists and has correct schema');
+      console.error('   3. RLS policies allow inserts/updates');
+      console.error('   4. Browser console for detailed error messages above');
       return false;
     }
 
-    // If no user provided, check initialization
-    if (!isInitialized || !supabaseInitialized) {
-      console.warn('Auth client or Supabase not initialized, and no user data provided');
-      return false;
-    }
-
-    // Fallback: Check if user has a session via lantaidua-universal-auth
-    try {
-      const hasSession = await authClient.checkSSOSession?.();
-      
-      if (hasSession) {
-        // Sync user to lantaidua-universal-auth Supabase 'users' table
-        await authClient.connectClerkUserToSupabase?.('users');
-        console.log('✅ User synced to lantaidua-universal-auth Supabase (via session)');
-        return true;
-      }
-    } catch (sessionError) {
-      console.warn('⚠️ Session check failed:', sessionError);
-    }
-    
+    // If no user provided, we can't sync
+    console.warn('⚠️ No user data provided for sync');
     return false;
   } catch (error) {
     console.error('❌ Failed to sync user to Supabase:', error);
