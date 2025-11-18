@@ -59,6 +59,8 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Allow public inserts/updates for user sync (since we're using Clerk, not Supabase Auth)
 -- This allows the anon key to insert/update users during sync operations
+-- Drop policy if it exists, then create it
+DROP POLICY IF EXISTS "Allow user sync operations" ON users;
 CREATE POLICY "Allow user sync operations"
   ON users
   FOR ALL
