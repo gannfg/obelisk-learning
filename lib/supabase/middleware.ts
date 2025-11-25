@@ -1,14 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// Use Auth Supabase for authentication
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {

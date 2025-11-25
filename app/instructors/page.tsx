@@ -16,8 +16,12 @@ export default function InstructorsPage() {
         {mockInstructors.map((instructor) => {
           const courses = getCoursesByInstructor(instructor.id);
           return (
-            <Link key={instructor.id} href={`/instructors/${instructor.id}`}>
-              <Card className="transition-all hover:scale-105 hover:shadow-lg">
+            <Link 
+              key={instructor.id} 
+              href={`/instructors/${instructor.id}`}
+              className="block w-full"
+            >
+              <Card className="transition-all duration-300 ease-out hover:scale-110 hover:-translate-y-2 hover:shadow-2xl active:scale-105 w-full cursor-pointer">
                 <CardContent className="p-6">
                   <div className="mb-4 flex items-center gap-4">
                     <Image

@@ -16,23 +16,23 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     : mockCourses;
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="mb-8">
-        <h1 className="mb-4 text-4xl font-bold">All Courses</h1>
-        <p className="text-lg text-zinc-600 dark:text-zinc-400">
+    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="mb-2 sm:mb-4 text-3xl sm:text-4xl font-bold">All Courses</h1>
+        <p className="text-base sm:text-lg text-muted-foreground">
           Explore our comprehensive collection of development courses.
         </p>
       </div>
       <CategoryFilter />
       {filteredCourses.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 mt-6 sm:mt-8">
           {filteredCourses.map((course) => (
             <CourseCard key={course.id} course={course} />
           ))}
         </div>
       ) : (
-        <div className="py-12 text-center">
-          <p className="text-lg text-zinc-600 dark:text-zinc-400">
+        <div className="py-8 sm:py-12 text-center">
+          <p className="text-base sm:text-lg text-muted-foreground">
             No courses found in this category.
           </p>
         </div>

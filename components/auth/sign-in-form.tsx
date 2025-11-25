@@ -3,15 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useSignIn } from "@clerk/nextjs";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
-import { syncUserToSupabase, initializeAuthClient } from "@/lib/auth/client";
 
 export function SignInForm() {
   const router = useRouter();
-  const { isLoaded, signIn, setActive } = useSignIn();
+  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -20,40 +19,26 @@ export function SignInForm() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
-    if (!isLoaded) {
-      setError("Authentication is not ready. Please wait...");
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const result = await signIn.create({
-        identifier: email,
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
         password,
       });
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        
-        // Sync user to Supabase after successful sign-in
-        try {
-          await initializeAuthClient();
-          await syncUserToSupabase();
-        } catch (syncError) {
-          console.error('Failed to sync user to Supabase:', syncError);
-          // Don't block the sign-in flow if sync fails
-        }
-        
+      if (signInError) {
+        setError(signInError.message || "Invalid email or password");
+        setLoading(false);
+        return;
+      }
+
+      if (data.user) {
         router.push("/dashboard");
         router.refresh();
-      } else {
-        setError("Sign in incomplete. Please try again.");
-        setLoading(false);
       }
     } catch (err: any) {
-      setError(err?.errors?.[0]?.message || err?.message || "An unexpected error occurred");
+      setError(err?.message || "An unexpected error occurred");
       setLoading(false);
     }
   };

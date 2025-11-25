@@ -1,53 +1,42 @@
 "use client";
 
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/lib/hooks/use-auth';
 import { useEffect, useState } from 'react';
-import { syncUserToSupabase, initializeAuthClient } from '@/lib/auth/client';
+import { getUserProfile, UserProfile } from '@/lib/profile';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, CheckCircle2, Clock } from 'lucide-react';
+import { ProfileCard } from '@/components/profile-card';
+import { BookOpen } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Dashboard() {
-  const { user, isLoaded } = useUser();
-  const [synced, setSynced] = useState(false);
-  const [syncing, setSyncing] = useState(false);
+  const { user, loading } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
+  // Load profile data
   useEffect(() => {
-    const initAndSync = async () => {
-      if (!isLoaded || !user) return;
+    const loadProfile = async () => {
+      if (loading || !user) {
+        setLoadingProfile(false);
+        return;
+      }
 
-      setSyncing(true);
-      
+      setLoadingProfile(true);
       try {
-        // Try to initialize auth client (but don't block on it)
-        // Manual sync will work even if initialization fails
-        try {
-          await initializeAuthClient();
-        } catch (initError) {
-          console.warn('⚠️ Auth client initialization warning (sync will still attempt):', initError);
-        }
-
-        // Sync user to Supabase with Clerk user data
-        // This will use manual sync which works independently
-        const success = await syncUserToSupabase(user);
-        setSynced(success);
-        setSyncing(false);
-        
-        if (!success) {
-          console.warn('⚠️ User sync failed - check console for details');
-          console.warn('💡 Make sure NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL and NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY are set in .env.local');
-        }
+        const userProfile = await getUserProfile(user.id, user.email || undefined);
+        setProfile(userProfile);
       } catch (error) {
-        console.error('❌ Sync error:', error);
-        setSyncing(false);
+        console.error('Error loading profile:', error);
+      } finally {
+        setLoadingProfile(false);
       }
     };
 
-    initAndSync();
-  }, [user, isLoaded]);
+    loadProfile();
+  }, [user, loading]);
 
-  if (!isLoaded) {
+  if (loading) {
     return (
       <div className="container mx-auto px-6 py-12">
         <div className="flex items-center justify-center">
@@ -79,37 +68,30 @@ export default function Dashboard() {
     <div className="container mx-auto px-6 py-12">
       <div className="mb-8">
         <h1 className="text-3xl font-medium mb-2">
-          Welcome, {user.firstName || user.emailAddresses[0]?.emailAddress}!
+          Welcome, {profile?.first_name || user.email?.split('@')[0] || 'User'}!
         </h1>
         <p className="text-muted-foreground">
           Manage your courses and track your learning progress.
         </p>
       </div>
 
-      {/* Sync Status */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Account Status</CardTitle>
-          <CardDescription>Supabase synchronization status</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {syncing ? (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Clock className="h-4 w-4 animate-spin" />
-              <span>Syncing to Supabase...</span>
-            </div>
-          ) : synced ? (
-            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-              <CheckCircle2 className="h-4 w-4" />
-              <span>✅ Synced to Supabase</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span>⏳ Not synced</span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Profile Card */}
+      {!loadingProfile && (profile || user) && (
+        <div className="mb-8">
+          <ProfileCard
+            profile={
+              profile || {
+                id: user.id,
+                email: user.email || '',
+                username: user.user_metadata?.username || null,
+                first_name: user.user_metadata?.first_name || user.user_metadata?.full_name?.split(' ')[0] || null,
+                last_name: user.user_metadata?.last_name || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null,
+                image_url: user.user_metadata?.avatar_url || null,
+              }
+            }
+          />
+        </div>
+      )}
 
       {/* My Courses */}
       <Card>

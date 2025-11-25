@@ -32,6 +32,36 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
+/* Ensure hover states work properly */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Force hover to work on all interactive elements */
+button:hover,
+a:hover {
+  transition-property: transform, box-shadow, background-color, border-color, opacity;
+}
+
+/* Safe area insets for mobile devices */
+@supports (padding: max(0px)) {
+  .safe-area-inset-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  
+  .safe-area-inset-top {
+    padding-top: max(0px, env(safe-area-inset-top));
+  }
+  
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  
+  .pt-safe {
+    padding-top: max(0px, env(safe-area-inset-top));
+  }
+}
+
 /* Prose styles for markdown content */
 .prose {
   color: var(--foreground);

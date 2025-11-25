@@ -1,51 +1,41 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { syncUserToSupabase, initializeAuthClient } from '@/lib/auth/client';
+import { useEffect } from 'react';
+import { useAuth } from '@/lib/hooks/use-auth';
+import { updateUserProfile } from '@/lib/profile';
+import { createClient } from '@/lib/supabase/client';
 
 export function UserSync() {
-  const { user, isLoaded } = useUser();
-  const [synced, setSynced] = useState(false);
-  const [syncing, setSyncing] = useState(false);
+  const { user, loading } = useAuth();
+  const supabase = createClient();
 
   useEffect(() => {
-    const initAndSync = async () => {
-      if (!isLoaded) return;
+    const syncUser = async () => {
+      if (loading || !user) return;
 
-      // If user is logged in, sync to Supabase with Clerk user data
-      if (user) {
-        setSyncing(true);
-        
-        try {
-          // Try to initialize auth client (but don't block on it)
-          // Manual sync will work even if initialization fails
-          try {
-            await initializeAuthClient();
-          } catch (initError) {
-            console.warn('⚠️ Auth client initialization warning (sync will still attempt):', initError);
-          }
+      try {
+        // Sync Supabase Auth user to users table
+        const email = user.email || '';
+        const success = await updateUserProfile(user.id, {
+          email: email,
+          username: user.user_metadata?.username || null,
+          first_name: user.user_metadata?.first_name || user.user_metadata?.full_name?.split(' ')[0] || null,
+          last_name: user.user_metadata?.last_name || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null,
+          image_url: user.user_metadata?.avatar_url || null,
+        }, email);
 
-          // Pass Clerk user data directly to sync function
-          // This will use manual sync which works independently
-          const success = await syncUserToSupabase(user);
-          setSynced(success);
-          setSyncing(false);
-          
-          if (success) {
-            console.log('✅ User synced to Supabase');
-          } else {
-            console.warn('⚠️ User sync failed - check console for details');
-          }
-        } catch (error) {
-          console.error('❌ Sync error:', error);
-          setSyncing(false);
+        if (success) {
+          console.log('✅ User synced to Supabase users table');
+        } else {
+          console.warn('⚠️ User sync failed - check console for details');
         }
+      } catch (error) {
+        console.error('❌ Sync error:', error);
       }
     };
 
-    initAndSync();
-  }, [user, isLoaded]);
+    syncUser();
+  }, [user, loading, supabase]);
 
   // This component doesn't render anything, it just handles syncing
   return null;

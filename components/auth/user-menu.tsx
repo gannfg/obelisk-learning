@@ -1,9 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,15 +9,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/lib/auth/client-side";
-import { User, LogOut, BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { User, LogOut } from "lucide-react";
+import { useAuth } from "@/lib/hooks/use-auth";
+import Image from "next/image";
 
 export function UserMenu() {
   const router = useRouter();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
+  const supabase = createClient();
 
   const handleSignOut = async () => {
-    await signOut();
+    await supabase.auth.signOut();
     router.push("/");
     router.refresh();
   };
@@ -29,53 +30,52 @@ export function UserMenu() {
   }
 
   if (!user) {
-    return (
-      <>
-        <Button variant="ghost" size="sm" className="hidden sm:flex" asChild>
-          <Link href="/auth/sign-in">Sign In</Link>
-        </Button>
-        <Button size="sm" className="hidden sm:flex" asChild>
-          <Link href="/auth/sign-up">Get Started</Link>
-        </Button>
-      </>
-    );
+    return null;
   }
 
-  const email = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || '';
-  const firstName = user?.firstName || '';
-  const lastName = user?.lastName || '';
-  const fullName = user?.fullName || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || email?.split("@")[0] || 'User');
-  const avatarUrl = user?.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`;
+  const userEmail = user.email || "";
+  const userInitials = userEmail ? userEmail.charAt(0).toUpperCase() : "U";
+  const userAvatar = user.user_metadata?.avatar_url || null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="flex items-center gap-2">
-          <Image
-            src={avatarUrl}
-            alt={fullName}
-            width={24}
-            height={24}
-            className="rounded-full"
-            unoptimized
-          />
-          <span className="hidden md:inline">{email?.split("@")[0] || fullName}</span>
+        <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0">
+          {userAvatar ? (
+            <div className="relative h-8 w-8 rounded-full overflow-hidden">
+              <Image
+                src={userAvatar}
+                alt={userEmail}
+                fill
+                className="object-cover"
+              />
+            </div>
+          ) : (
+            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
+              {userInitials}
+            </div>
+          )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <div className="px-2 py-1.5">
-          <p className="text-sm font-medium">{fullName}</p>
-          {email && <p className="text-xs text-muted-foreground">{email}</p>}
+      <DropdownMenuContent align="end" className="w-48">
+        <div className="px-2 py-1.5 text-sm">
+          <p className="font-medium">{userEmail}</p>
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/dashboard" className="flex items-center">
-            <BookOpen className="mr-2 h-4 w-4" />
-            My Courses
-          </Link>
+          <a href="/dashboard">
+            <User className="mr-2 h-4 w-4" />
+            Dashboard
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href="/profile">
+            <User className="mr-2 h-4 w-4" />
+            Profile
+          </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut} className="text-red-600 dark:text-red-400">
+        <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
           Sign Out
         </DropdownMenuItem>
@@ -83,4 +83,3 @@ export function UserMenu() {
     </DropdownMenu>
   );
 }
-

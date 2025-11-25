@@ -11,13 +11,19 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", asChild, children, ...props }, ref) => {
     const baseClasses = cn(
-      "inline-flex items-center justify-center rounded-md font-medium transition-all focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40",
+      "inline-flex items-center justify-center rounded-md font-medium",
+      "transition-all duration-300 ease-out",
+      "focus-visible:outline-none",
+      "disabled:pointer-events-none disabled:opacity-40",
+      "cursor-pointer",
+      "hover:scale-110 hover:-translate-y-0.5",
+      "active:scale-95",
       {
-        "bg-foreground text-background hover:opacity-90":
+        "bg-foreground text-background hover:opacity-90 hover:shadow-xl":
           variant === "default",
-        "border border-border bg-transparent hover:bg-muted":
+        "border border-border bg-transparent hover:bg-muted hover:shadow-lg hover:border-foreground/20":
           variant === "outline",
-        "hover:bg-muted": variant === "ghost",
+        "hover:bg-muted hover:shadow-md": variant === "ghost",
         "h-10 px-6": size === "default",
         "h-9 px-4 text-sm": size === "sm",
         "h-12 px-8 text-base": size === "lg",

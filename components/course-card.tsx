@@ -13,8 +13,11 @@ export function CourseCard({ course, priority }: CourseCardProps) {
   const instructor = getInstructorById(course.instructorId);
 
   return (
-    <Link href={`/courses/${course.id}`}>
-      <Card className="group overflow-hidden transition-all hover:scale-105">
+    <Link 
+      href={`/courses/${course.id}`}
+      className="block w-full group"
+    >
+      <Card className="overflow-hidden w-full transition-all duration-300 ease-out hover:scale-110 hover:-translate-y-2 hover:shadow-2xl active:scale-105">
         <div className="relative h-48 w-full overflow-hidden">
           <Image
             src={course.thumbnail}

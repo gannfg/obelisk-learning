@@ -12,7 +12,7 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="container mx-auto px-6 py-32 text-center">
+      <section className="container mx-auto px-4 sm:px-6 py-16 sm:py-24 md:py-32 text-center">
         <h1 className="mb-6 text-5xl font-medium tracking-tight md:text-6xl lg:text-7xl">
           Learn without limits
         </h1>
@@ -32,8 +32,8 @@ export default function Home() {
       </section>
 
       {/* Career Paths */}
-      <section className="border-t border-border py-24">
-        <div className="container mx-auto px-6">
+      <section className="border-t border-border py-12 sm:py-16 md:py-24">
+        <div className="container mx-auto px-4 sm:px-6">
           <h2 className="mb-16 text-center text-3xl font-medium md:text-4xl">
             Start, switch, or advance your career
           </h2>
@@ -79,7 +79,7 @@ export default function Home() {
             <Link
               key={instructor.id}
               href={`/instructors/${instructor.id}`}
-              className="group rounded-lg border border-border bg-background p-6 transition-all hover:scale-105 hover:shadow-md"
+              className="block rounded-lg border border-border bg-background p-6 transition-all duration-300 ease-out hover:scale-110 hover:shadow-2xl hover:-translate-y-2 active:scale-105 cursor-pointer"
             >
               <div className="flex items-center gap-4">
                 <Image
@@ -144,7 +144,7 @@ export default function Home() {
               <Link
                 key={category}
                 href={`/courses?category=${encodeURIComponent(category)}`}
-                className="group rounded-lg border border-border bg-background p-6 text-center transition-all hover:scale-105 hover:shadow-md"
+                className="block rounded-lg border border-border bg-background p-6 text-center transition-all duration-300 ease-out hover:scale-110 hover:shadow-2xl hover:-translate-y-2 active:scale-105 cursor-pointer"
               >
                 <h3 className="mb-2 text-sm font-medium">
                   {category}
@@ -160,8 +160,8 @@ export default function Home() {
       </section>
 
       {/* Why Choose Obelisk Learning */}
-      <section className="border-t border-border py-24">
-        <div className="container mx-auto px-6">
+      <section className="border-t border-border py-12 sm:py-16 md:py-24">
+        <div className="container mx-auto px-4 sm:px-6">
           <h2 className="mb-16 text-center text-3xl font-medium md:text-4xl">
             Why people choose Obelisk Learning
           </h2>

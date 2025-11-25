@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { MobileNav } from "@/components/mobile-nav";
 import { ThemeProvider } from "@/components/theme-provider";
 import { UserSync } from "@/components/user-sync";
 
@@ -49,16 +49,15 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ClerkProvider>
-          <ThemeProvider>
-            <UserSync />
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1">{children}</main>
-              <Footer />
-            </div>
-          </ThemeProvider>
-        </ClerkProvider>
+        <ThemeProvider>
+          <UserSync />
+          <div className="flex min-h-screen flex-col">
+            <Header />
+            <main className="flex-1 pt-14 sm:pt-16 pb-20 md:pb-0">{children}</main>
+            <Footer />
+            <MobileNav />
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );

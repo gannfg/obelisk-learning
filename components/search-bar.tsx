@@ -112,7 +112,7 @@ export function SearchBar() {
                         e.preventDefault();
                       }}
                       className={cn(
-                        "w-full rounded-md border border-transparent p-3 text-left transition-colors hover:bg-muted hover:border-border"
+                        "w-full rounded-md border border-transparent p-3 text-left transition-all duration-200 hover:bg-muted hover:border-border hover:scale-[1.02] active:scale-[0.98]"
                       )}
                     >
                       <div className="flex items-start gap-3">

@@ -9,35 +9,32 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  SignedIn,
-  SignedOut,
-  UserButton,
-  SignInButton,
-  SignUpButton,
-} from "@clerk/nextjs";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { UserMenu } from "@/components/auth/user-menu";
 import { SearchBar } from "@/components/search-bar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Menu, User } from "lucide-react";
 
 export function Header() {
+  const { user, loading } = useAuth();
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm">
-      <div className="container mx-auto flex h-16 items-center gap-6 px-6 relative">
-        <div className="flex items-center gap-6 shrink-0">
-          <Link href="/" className="text-lg font-medium">
+    <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm safe-area-inset-top">
+      <div className="container mx-auto flex h-14 sm:h-16 items-center gap-4 sm:gap-6 px-4 sm:px-6 relative">
+        <div className="flex items-center gap-3 sm:gap-6 shrink-0">
+          <Link href="/" className="text-base sm:text-lg font-medium truncate transition-all duration-200 hover:scale-105 active:scale-95">
             Obelisk Learning
           </Link>
           <div className="hidden md:flex items-center gap-6">
             <Link
               href="/courses"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="text-sm text-muted-foreground transition-all duration-200 hover:text-foreground hover:scale-105 active:scale-95"
             >
               Courses
             </Link>
             <Link
               href="/instructors"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="text-sm text-muted-foreground transition-all duration-200 hover:text-foreground hover:scale-105 active:scale-95"
             >
               Instructors
             </Link>
@@ -46,35 +43,27 @@ export function Header() {
         <div className="absolute left-1/2 -translate-x-1/2 hidden md:block w-full max-w-md">
           <SearchBar />
         </div>
-        <div className="flex items-center gap-3 shrink-0 ml-auto">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
           <div className="md:hidden">
             <SearchBar />
           </div>
           <ThemeToggle />
-          <SignedOut>
-            <div className="hidden sm:flex items-center gap-2">
-              <SignInButton mode="modal">
-                <Button variant="ghost" size="sm">
-                  Sign In
-                </Button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <Button size="sm">
-                  Get Started
-                </Button>
-              </SignUpButton>
-            </div>
-          </SignedOut>
-          <SignedIn>
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: "h-8 w-8",
-                  userButtonPopoverCard: "shadow-lg",
-                },
-              }}
-            />
-          </SignedIn>
+          {!loading && (
+            <>
+              {!user ? (
+                <div className="hidden sm:flex items-center gap-2">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/auth/sign-in">Sign In</Link>
+                  </Button>
+                  <Button size="sm" asChild>
+                    <Link href="/auth/sign-up">Get Started</Link>
+                  </Button>
+                </div>
+              ) : (
+                <UserMenu />
+              )}
+            </>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="sm:hidden">
@@ -90,27 +79,34 @@ export function Header() {
                 <Link href="/instructors">Instructors</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <SignedOut>
-                <SignInButton mode="modal">
-                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                    <User className="mr-2 h-4 w-4" />
-                    Sign In
+              {!user ? (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/auth/sign-in">
+                      <User className="mr-2 h-4 w-4" />
+                      Sign In
+                    </Link>
                   </DropdownMenuItem>
-                </SignInButton>
-                <SignUpButton mode="modal">
-                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                    Get Started
+                  <DropdownMenuItem asChild>
+                    <Link href="/auth/sign-up">Get Started</Link>
                   </DropdownMenuItem>
-                </SignUpButton>
-              </SignedOut>
-              <SignedIn>
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard">
-                    <User className="mr-2 h-4 w-4" />
-                    Dashboard
-                  </Link>
-                </DropdownMenuItem>
-              </SignedIn>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard">
+                      <User className="mr-2 h-4 w-4" />
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

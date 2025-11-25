@@ -3,15 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useSignUp } from "@clerk/nextjs";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
-import { syncUserToSupabase, initializeAuthClient } from "@/lib/auth/client";
 
 export function SignUpForm() {
   const router = useRouter();
-  const { isLoaded, signUp, setActive } = useSignUp();
+  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -32,40 +31,37 @@ export function SignUpForm() {
       return;
     }
 
-    if (!isLoaded) {
-      setError("Authentication is not ready. Please wait...");
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const result = await signUp.create({
-        emailAddress: email,
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        
-        // Sync user to Supabase after successful sign-up
-        try {
-          await initializeAuthClient();
-          await syncUserToSupabase();
-        } catch (syncError) {
-          console.error('Failed to sync user to Supabase:', syncError);
-          // Don't block the sign-up flow if sync fails
-        }
-        
-        router.push("/dashboard");
-        router.refresh();
-      } else {
-        // Handle email verification or other incomplete statuses
-        setError("Please check your email to verify your account.");
+      if (signUpError) {
+        setError(signUpError.message || "Failed to create account");
         setLoading(false);
+        return;
+      }
+
+      if (data.user) {
+        // Check if email confirmation is required
+        if (data.user.email_confirmed_at) {
+          // Email already confirmed, redirect to dashboard
+          router.push("/dashboard");
+          router.refresh();
+        } else {
+          // Email confirmation required
+          setError("Please check your email to verify your account before signing in.");
+          setLoading(false);
+        }
       }
     } catch (err: any) {
-      setError(err?.errors?.[0]?.message || err?.message || "An unexpected error occurred");
+      setError(err?.message || "An unexpected error occurred");
       setLoading(false);
     }
   };

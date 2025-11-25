@@ -21,7 +21,7 @@ export function CategoryFilter() {
       <Link
         href="/courses"
         className={cn(
-          "text-sm font-medium transition-opacity hover:opacity-70",
+          "text-sm font-medium transition-all duration-200 hover:opacity-70 hover:scale-105 active:scale-95",
           !selectedCategory
             ? "text-foreground"
             : "text-muted-foreground"
@@ -36,7 +36,7 @@ export function CategoryFilter() {
             key={category}
             href={`/courses?category=${encodeURIComponent(category)}`}
             className={cn(
-              "text-sm font-medium transition-opacity hover:opacity-70",
+              "text-sm font-medium transition-all duration-200 hover:opacity-70 hover:scale-105 active:scale-95",
               isActive
                 ? "text-foreground"
                 : "text-muted-foreground"
