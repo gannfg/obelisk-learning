@@ -92,17 +92,17 @@ The following features have placeholders ready for implementation:
 
 To connect Supabase:
 
-1. Create **two Supabase projects**:
-   - **Auth Supabase** (for lantaidua-universal-auth): See `AUTH_SETUP.md`
-   - **Learning Supabase** (for platform data): See `SUPABASE_SETUP.md`
+1. Create **Supabase project**:
+   - **Obelisk Learning Auth Supabase**: See `supabase/auth-setup-guide.md`
+   - **Learning Supabase** (optional, for platform data): See `SUPABASE_SETUP.md`
 
 2. Set up environment variables:
    ```env
-   # Auth Supabase (lantaidua-universal-auth)
-   NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL=your_auth_supabase_url
-   NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY=your_auth_anon_key
+   # Obelisk Learning Auth Supabase (for authentication)
+   NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL=your_auth_supabase_url
+   NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY=your_auth_anon_key
    
-   # Learning Supabase (obelisk-learning)
+   # Learning Supabase (optional, for platform data)
    NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL=your_learning_supabase_url
    NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_ANON_KEY=your_learning_anon_key
    ```

@@ -8,7 +8,26 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    await supabase.auth.exchangeCodeForSession(code);
+    const { data: { user }, error: authError } = await supabase.auth.exchangeCodeForSession(code);
+    
+    // Create user profile if it doesn't exist
+    if (user && !authError) {
+      try {
+        await supabase
+          .from("users")
+          .upsert({
+            id: user.id,
+            email: user.email,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: "id"
+          });
+      } catch (profileError) {
+        console.error("Profile creation error in callback:", profileError);
+        // Don't fail the callback if profile creation fails
+      }
+    }
   }
 
   return NextResponse.redirect(`${origin}/dashboard`);

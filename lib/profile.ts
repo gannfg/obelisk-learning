@@ -2,8 +2,10 @@
  * Profile utilities for fetching and updating user profiles from Supabase
  */
 
-const LANTAIDUA_SUPABASE_URL = process.env.NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL || '';
-const LANTAIDUA_SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY || '';
+const OBELISK_LEARNING_AUTH_SUPABASE_URL =
+  process.env.NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL || '';
+const OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY || '';
 
 export interface UserProfile {
   id: string;
@@ -22,14 +24,14 @@ export interface UserProfile {
  * Get user profile from Supabase by Supabase Auth user ID or email
  */
 export async function getUserProfile(userId: string, email?: string): Promise<UserProfile | null> {
-  if (!LANTAIDUA_SUPABASE_URL || !LANTAIDUA_SUPABASE_ANON_KEY) {
+  if (!OBELISK_LEARNING_AUTH_SUPABASE_URL || !OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY) {
     console.warn('Supabase credentials not configured');
     return null;
   }
 
   try {
     const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(LANTAIDUA_SUPABASE_URL, LANTAIDUA_SUPABASE_ANON_KEY);
+    const supabase = createClient(OBELISK_LEARNING_AUTH_SUPABASE_URL, OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY);
 
     // Try to get by id first (Supabase Auth user ID)
     let { data, error } = await supabase
@@ -72,14 +74,17 @@ export async function updateUserProfile(
   updates: Partial<Omit<UserProfile, 'id' | 'clerk_user_id' | 'created_at'>>,
   email?: string
 ): Promise<boolean> {
-  if (!LANTAIDUA_SUPABASE_URL || !LANTAIDUA_SUPABASE_ANON_KEY) {
+  if (!OBELISK_LEARNING_AUTH_SUPABASE_URL || !OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY) {
     console.warn('Supabase credentials not configured');
     return false;
   }
 
   try {
     const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(LANTAIDUA_SUPABASE_URL, LANTAIDUA_SUPABASE_ANON_KEY);
+    const supabase = createClient(
+      OBELISK_LEARNING_AUTH_SUPABASE_URL,
+      OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY
+    );
 
     const updateData = {
       ...updates,

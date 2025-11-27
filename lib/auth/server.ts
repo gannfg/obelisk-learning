@@ -1,16 +1,15 @@
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { createClient } from '@/lib/supabase/server';
 
-// Server-side auth utilities using Clerk
+// Server-side auth utilities using Supabase
 export async function getCurrentUser() {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user) {
       return null;
     }
     
-    // Get full user object from Clerk
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
     return user;
   } catch (error) {
     console.error('Failed to get current user:', error);
@@ -20,9 +19,8 @@ export async function getCurrentUser() {
 
 export async function signOut() {
   try {
-    // Clerk handles sign-out through the UserButton component
-    // This function is kept for compatibility
-    return;
+    const supabase = await createClient();
+    await supabase.auth.signOut();
   } catch (error) {
     console.error('Failed to sign out:', error);
   }

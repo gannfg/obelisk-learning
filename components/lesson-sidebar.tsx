@@ -31,7 +31,7 @@ export function LessonSidebar({ course }: LessonSidebarProps) {
 
   return (
     <div className="w-full space-y-4 md:w-64">
-      <div className="sticky top-20 max-h-[calc(100vh-5rem)] overflow-y-auto">
+      <div className="sticky top-20 max-h-[calc(100vh-5rem)] overflow-y-auto overflow-x-hidden">
         <h3 className="mb-4 text-lg font-semibold">Course Content</h3>
         <Accordion
           type="single"

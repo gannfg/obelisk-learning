@@ -97,8 +97,8 @@ users (
 Make sure your `.env.local` has:
 
 ```env
-NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 ## Troubleshooting

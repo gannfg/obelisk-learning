@@ -3,8 +3,8 @@ import { headers } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client for auth database
-const supabaseUrl = process.env.NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY!;
 
 // Create Supabase client for webhook operations
 const supabase = createClient(supabaseUrl, supabaseAnonKey);

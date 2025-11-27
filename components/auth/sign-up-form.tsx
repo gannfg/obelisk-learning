@@ -34,6 +34,7 @@ export function SignUpForm() {
     setLoading(true);
 
     try {
+      // Try signup with minimal options first
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -43,12 +44,40 @@ export function SignUpForm() {
       });
 
       if (signUpError) {
-        setError(signUpError.message || "Failed to create account");
+        console.error("Signup error details:", {
+          message: signUpError.message,
+          status: signUpError.status,
+          name: signUpError.name,
+          cause: signUpError.cause,
+        });
+        setError(signUpError.message || `Failed to create account (${signUpError.status || 'unknown error'})`);
         setLoading(false);
         return;
       }
 
       if (data.user) {
+        // Create user profile in public.users table
+        try {
+          const { error: profileError } = await supabase
+            .from("users")
+            .upsert({
+              id: data.user.id,
+              email: data.user.email || email,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: "id"
+            });
+
+          if (profileError) {
+            console.error("Profile creation error:", profileError);
+            // Don't fail signup if profile creation fails - user can still sign in
+          }
+        } catch (profileErr) {
+          console.error("Profile creation exception:", profileErr);
+          // Don't fail signup if profile creation fails
+        }
+
         // Check if email confirmation is required
         if (data.user.email_confirmed_at) {
           // Email already confirmed, redirect to dashboard

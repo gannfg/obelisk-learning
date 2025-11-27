@@ -1,13 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-// Use Auth Supabase for authentication
+// Use Obelisk Learning Auth Supabase for authentication
 export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {

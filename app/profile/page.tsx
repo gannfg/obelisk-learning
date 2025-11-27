@@ -121,14 +121,14 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="container mx-auto px-6 py-12">
-        <Card>
-          <CardHeader>
-            <CardTitle>Please sign in</CardTitle>
-            <CardDescription>You need to be signed in to view your profile.</CardDescription>
+      <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 pb-20 md:pb-8 max-w-4xl">
+        <Card className="p-4 sm:p-5 md:p-6">
+          <CardHeader className="p-0 pb-4 sm:pb-6">
+            <CardTitle className="text-lg sm:text-xl md:text-2xl">Please sign in</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">You need to be signed in to view your profile.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button asChild>
+          <CardContent className="p-0">
+            <Button asChild className="text-xs sm:text-sm h-8 sm:h-9 md:h-10 w-full sm:w-auto">
               <Link href="/auth/sign-in">Sign In</Link>
             </Button>
           </CardContent>
@@ -148,15 +148,15 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="container mx-auto px-6 py-12 max-w-4xl">
-      <div className="mb-6">
-        <Button asChild variant="ghost" size="sm" className="mb-4">
+    <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 pb-20 md:pb-8 max-w-4xl">
+      <div className="mb-4 sm:mb-6">
+        <Button asChild variant="ghost" size="sm" className="mb-3 sm:mb-4 text-xs sm:text-sm h-7 sm:h-8 md:h-9">
           <Link href="/dashboard">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
             Back to Dashboard
           </Link>
         </Button>
-        <h1 className="text-3xl font-medium mb-2">Profile</h1>
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-medium mb-2">Profile</h1>
         <p className="text-muted-foreground">
           Manage your profile information and preferences.
         </p>
@@ -176,25 +176,25 @@ export default function ProfilePage() {
           )}
 
           {/* Edit Form */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
+          <Card className="p-4 sm:p-5 md:p-6">
+            <CardHeader className="p-0 pb-4 sm:pb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <div>
-                  <CardTitle>{isEditing ? "Edit Profile" : "Profile Information"}</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lg sm:text-xl md:text-2xl">{isEditing ? "Edit Profile" : "Profile Information"}</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
                     {isEditing
                       ? "Update your profile information below."
                       : "View and edit your profile information."}
                   </CardDescription>
                 </div>
                 {!isEditing && (
-                  <Button onClick={() => setIsEditing(true)} variant="outline">
+                  <Button onClick={() => setIsEditing(true)} variant="outline" className="text-xs sm:text-sm h-8 sm:h-9 md:h-10 w-full sm:w-auto">
                     Edit
                   </Button>
                 )}
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {/* Error Message */}
               {error && (
                 <div className="mb-4 p-3 rounded-md bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">

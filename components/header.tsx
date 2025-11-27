@@ -1,31 +1,52 @@
-"use client";
-
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/lib/hooks/use-auth";
-import { UserMenu } from "@/components/auth/user-menu";
-import { SearchBar } from "@/components/search-bar";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { Menu, User } from "lucide-react";
-
-export function Header() {
-  const { user, loading } = useAuth();
-
-  return (
-    <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm safe-area-inset-top">
-      <div className="container mx-auto flex h-14 sm:h-16 items-center gap-4 sm:gap-6 px-4 sm:px-6 relative">
-        <div className="flex items-center gap-3 sm:gap-6 shrink-0">
-          <Link href="/" className="text-base sm:text-lg font-medium truncate transition-all duration-200 hover:scale-105 active:scale-95">
-            Obelisk Learning
+ "use client";
+ 
+ import Link from "next/link";
+ import Image from "next/image";
+ import { Button } from "@/components/ui/button";
+ import {
+   DropdownMenu,
+   DropdownMenuContent,
+   DropdownMenuItem,
+   DropdownMenuSeparator,
+   DropdownMenuTrigger,
+ } from "@/components/ui/dropdown-menu";
+ import { useAuth } from "@/lib/hooks/use-auth";
+ import { UserMenu } from "@/components/auth/user-menu";
+ import { SearchBar } from "@/components/search-bar";
+ import { ThemeToggle } from "@/components/theme-toggle";
+ import { Menu, User } from "lucide-react";
+ 
+ export function Header() {
+   const { user, loading } = useAuth();
+ 
+   return (
+     <header 
+       className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm safe-area-inset-top"
+       style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50 }}
+     >
+       <div className="container mx-auto flex h-14 sm:h-16 items-center gap-4 sm:gap-6 px-4 sm:px-6 relative">
+         <div className="flex items-center gap-3 sm:gap-6 shrink-0">
+          <Link
+            href="/"
+            className="flex items-center gap-2 sm:gap-2.5 text-base sm:text-lg font-medium truncate transition-all duration-200 hover:scale-105 active:scale-95"
+          >
+            <Image
+              src="/logo.png"
+              alt="Obelisk Learning logo"
+              width={32}
+              height={32}
+              className="h-8 w-8 rounded-md object-contain filter dark:invert"
+              priority
+            />
+            <span className="truncate">Obelisk Learning</span>
           </Link>
           <div className="hidden md:flex items-center gap-6">
+            <Link
+              href="/missions"
+              className="text-sm text-muted-foreground transition-all duration-200 hover:text-foreground hover:scale-105 active:scale-95"
+            >
+              Missions
+            </Link>
             <Link
               href="/courses"
               className="text-sm text-muted-foreground transition-all duration-200 hover:text-foreground hover:scale-105 active:scale-95"
@@ -72,6 +93,9 @@ export function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem asChild>
+                <Link href="/missions">Missions</Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/courses">Courses</Link>
               </DropdownMenuItem>

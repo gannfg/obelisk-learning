@@ -18,21 +18,19 @@ const envContent = fs.readFileSync(envPath, 'utf-8');
 const lines = envContent.split('\n').filter(line => line.trim() && !line.trim().startsWith('#'));
 
 const requiredVars = [
-  'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
-  'CLERK_SECRET_KEY',
+  // Obelisk Learning Auth Supabase
+  'NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL',
+  'NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY',
 ];
 
 const optionalVars = [
-  'NEXT_PUBLIC_CLERK_DOMAIN',
-  'NEXT_PUBLIC_CLERK_IS_SATELLITE',
   'NEXT_PUBLIC_APP_ENV',
-  'CLERK_WEBHOOK_SECRET', // Recommended for automatic user sync
-  // Auth Supabase (lantaidua-universal-auth)
-  'NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL',
-  'NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY',
-  // Learning Supabase (obelisk-learning)
+  // Learning Supabase (optional, for platform data)
   'NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL',
   'NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_ANON_KEY',
+  // Ollama AI Integration (optional, defaults to localhost:11434 and llama3)
+  'OLLAMA_URL',
+  'OLLAMA_MODEL',
 ];
 
 const foundVars = new Set();
@@ -51,7 +49,7 @@ requiredVars.forEach(varName => {
   if (foundVars.has(varName)) {
     const line = lines.find(l => l.startsWith(varName + '='));
     const value = line ? line.split('=')[1]?.trim() : '';
-    if (value && value !== 'your_clerk_publishable_key_here' && value !== '') {
+    if (value && !value.includes('your_') && value !== '') {
       const masked = value.length > 14 
         ? `${value.substring(0, 10)}...${value.substring(value.length - 4)}`
         : '***';
@@ -78,8 +76,8 @@ optionalVars.forEach(varName => {
 
 // Check for Supabase variables
 const authSupabaseVars = [
-  'NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_URL',
-  'NEXT_PUBLIC_LANTAIDUA_UNIVERSAL_AUTH_SUPABASE_ANON_KEY'
+  'NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL',
+  'NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY'
 ];
 const learningSupabaseVars = [
   'NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL',
@@ -89,10 +87,9 @@ const hasAuthSupabase = authSupabaseVars.every(v => foundVars.has(v));
 const hasLearningSupabase = learningSupabaseVars.every(v => foundVars.has(v));
 
 console.log('\n📊 Summary:');
-console.log(`  Clerk Auth: ${foundVars.has('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY') ? '✅ Configured' : '❌ Not configured'}`);
-console.log(`  Clerk Webhooks: ${foundVars.has('CLERK_WEBHOOK_SECRET') ? '✅ Configured' : '○ Not configured (optional but recommended)'}`);
-console.log(`  Auth Supabase (lantaidua-universal-auth): ${hasAuthSupabase ? '✅ Configured' : '○ Not configured'}`);
-console.log(`  Learning Supabase (obelisk-learning): ${hasLearningSupabase ? '✅ Configured' : '○ Not configured'}`);
+console.log(`  Obelisk Learning Auth Supabase: ${hasAuthSupabase ? '✅ Configured' : '❌ Not configured (required)'}`);
+console.log(`  Learning Supabase (optional): ${hasLearningSupabase ? '✅ Configured' : '○ Not configured'}`);
+console.log(`  Ollama AI: ${foundVars.has('OLLAMA_URL') || foundVars.has('OLLAMA_MODEL') ? '✅ Configured' : '○ Using defaults (localhost:11434, llama3)'}`);
 
 console.log('\n' + '='.repeat(50));
 if (hasErrors) {

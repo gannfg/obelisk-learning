@@ -32,9 +32,9 @@ export default async function CoursePage({ params }: CoursePageProps) {
     : "#";
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <div className="relative mb-6 h-64 w-full overflow-hidden rounded-lg md:h-96">
+    <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 pb-20 md:pb-8">
+      <div className="mb-4 sm:mb-6 md:mb-8">
+        <div className="relative mb-4 sm:mb-5 md:mb-6 h-48 sm:h-64 md:h-80 lg:h-96 w-full overflow-hidden rounded-lg">
           <Image
             src={course.thumbnail}
             alt={course.title}
@@ -44,37 +44,37 @@ export default async function CoursePage({ params }: CoursePageProps) {
             className="object-cover"
           />
         </div>
-        <h1 className="mb-4 text-4xl font-bold">{course.title}</h1>
-        <p className="mb-6 text-lg text-zinc-600 dark:text-zinc-400">
+        <h1 className="mb-2 sm:mb-3 md:mb-4 text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">{course.title}</h1>
+        <p className="mb-4 sm:mb-5 md:mb-6 text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-400">
           {course.description}
         </p>
-        <div className="mb-6 flex flex-wrap items-center gap-4">
+        <div className="mb-4 sm:mb-5 md:mb-6 flex flex-wrap items-center gap-3 sm:gap-4">
           {instructor && (
             <Link
               href={`/instructors/${instructor.id}`}
-              className="flex items-center gap-3"
+              className="flex items-center gap-2 sm:gap-3"
             >
               <Image
                 src={instructor.avatar}
                 alt={instructor.name}
                 width={48}
                 height={48}
-                className="rounded-full"
+                className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
                 unoptimized
               />
               <div>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
                   Instructor
                 </p>
-                <p className="font-medium">{instructor.name}</p>
+                <p className="font-medium text-sm sm:text-base">{instructor.name}</p>
               </div>
             </Link>
           )}
           <div>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
               Course Content
             </p>
-            <p className="font-medium">
+            <p className="font-medium text-sm sm:text-base">
               {course.modules.length} modules • {totalLessons} lessons
             </p>
           </div>

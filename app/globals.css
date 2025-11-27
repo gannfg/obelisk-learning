@@ -2,10 +2,12 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #1a1a1a;
+  --foreground: #0a0a0a;
   --muted: #f5f5f5;
   --muted-foreground: #737373;
   --border: #e5e5e5;
+  --primary: #0a0a0a;
+  --primary-foreground: #ffffff;
 }
 
 @theme inline {
@@ -19,17 +21,51 @@
 }
 
 .dark {
-  --background: #1a1a1a;
+  --background: #0a0a0a;
   --foreground: #fafafa;
-  --muted: #262626;
+  --muted: #1a1a1a;
   --muted-foreground: #a3a3a3;
-  --border: #404040;
+  --border: #262626;
+  --primary: #fafafa;
+  --primary-foreground: #0a0a0a;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure fixed elements stay fixed - target header and nav directly */
+header,
+nav[class*="MobileNav"],
+nav[class*="mobile"] {
+  position: fixed !important;
+}
+
+/* Header specific positioning */
+header {
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 50 !important;
+}
+
+/* Mobile nav specific positioning */
+nav[class*="MobileNav"],
+nav[class*="mobile"] {
+  top: auto !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 50 !important;
 }
 
 /* Ensure hover states work properly */
