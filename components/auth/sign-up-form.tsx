@@ -49,8 +49,18 @@ export function SignUpForm() {
           status: signUpError.status,
           name: signUpError.name,
           cause: signUpError.cause,
+          error: signUpError,
         });
-        setError(signUpError.message || `Failed to create account (${signUpError.status || 'unknown error'})`);
+        
+        // Provide more helpful error messages
+        let errorMessage = signUpError.message || "Failed to create account";
+        if (signUpError.status === 500) {
+          errorMessage = "Server error during signup. Please check your Supabase Auth configuration or try again later.";
+        } else if (signUpError.message?.includes("email")) {
+          errorMessage = signUpError.message;
+        }
+        
+        setError(errorMessage);
         setLoading(false);
         return;
       }
