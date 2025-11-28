@@ -18,8 +18,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Obelisk Learning - Master Modern Development",
-  description: "Learn from expert instructors with comprehensive courses on Next.js, React, and modern web development.",
+  title: "Web3 Coding Academy",
+  description:
+    "Learn Web3, blockchain, and modern web development with expert-led courses and hands-on projects.",
 };
 
 export default function RootLayout({

@@ -1,437 +1,292 @@
 import { Course, Instructor, CourseCategory } from "@/types";
 
-// Mock Instructors
+// Mock Instructors - AI-first teaching model
 export const mockInstructors: Instructor[] = [
   {
-    id: "instructor-1",
-    name: "Belac",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Belac",
-    bio: "Full-stack developer and Solana expert. Passionate about building decentralized applications and teaching the next generation of blockchain developers. Specializes in modern web development, smart contracts, and Solana ecosystem integration.",
-    specializations: ["Fullstack Dev", "Solana Mastery"],
-    socials: {
-      twitter: "@belac",
-      github: "belac",
-      website: "https://belac.dev",
-    },
-  },
-  {
-    id: "instructor-2",
-    name: "Yves",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Yves",
-    bio: "Creative professional specializing in design and video editing. Expert in visual storytelling, UI/UX design, and post-production workflows. Loves bringing ideas to life through beautiful visuals and engaging content.",
-    specializations: ["Design", "Editing"],
-    socials: {
-      twitter: "@yves",
-      website: "https://yves.design",
-    },
-  },
-  {
-    id: "instructor-3",
-    name: "FG",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=FG",
-    bio: "Versatile professional with expertise across multiple domains. Specializes in marketing strategy, UI/UX design, full-stack development, and creative design. Known for bridging the gap between technical and creative disciplines.",
-    specializations: ["Marketing", "UI/UX", "Fullstack", "Design"],
-    socials: {
-      twitter: "@fg",
-      github: "fg",
-      website: "https://fg.dev",
-      linkedin: "fg",
-    },
+    id: "ai-instructor-1",
+    name: "DeMentor",
+    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Web3AIMentor",
+    bio: "Your AI-native mentor for Web3 and modern development. Available 24/7 to guide you through coding challenges, review your progress, and personalize your learning path.",
+    specializations: ["Web3", "Solana", "Fullstack", "AI-Powered Teaching"],
+    socials: {},
   },
 ];
 
-// Mock Courses
+// Mock Courses - primary AI-taught Web3 curriculum
 export const mockCourses: Course[] = [
   {
-    id: "course-1",
-    title: "Complete Next.js Mastery",
+    id: "course-web3-1",
+    title: "Web3 Coding Academy: Full Stack Web3 Developer",
     description:
-      "Master Next.js 14 with App Router, Server Components, and advanced patterns. Build production-ready applications from scratch.",
-    thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop",
-    instructorId: "instructor-1", // Belac
-    category: "Developer",
+      "Go from zero to building real Web3 dApps. Learn Solidity, Solana, smart contracts, and full-stack Web3 with an AI mentor guiding you at every step.",
+    thumbnail: "https://images.unsplash.com/photo-1639322537228-f710d846310a?w=800&h=450&fit=crop",
+    instructorId: "ai-instructor-1",
+    category: "Solana Integration",
     featured: true,
     modules: [
       {
         id: "module-1",
-        title: "Getting Started",
-        description: "Introduction to Next.js and project setup",
+        title: "AI Development Fundamentals",
+        description:
+          "Learn how to use AI as your coding copilot: prompting, context, workflows, and the AI developer mindset.",
         lessons: [
           {
             id: "lesson-1-1",
-            title: "Introduction to Next.js",
-            markdownContent: `# Introduction to Next.js
+            title: "How AI-Assisted Coding Works",
+            markdownContent: `# AI Development Fundamentals
 
-Welcome to the Complete Next.js Mastery course! In this first lesson, we'll explore what Next.js is and why it's become one of the most popular React frameworks.
+In this module you'll learn how to work with AI as a **development partner**, not a code generator.
 
-## What is Next.js?
+You’ll cover:
 
-Next.js is a React framework that provides:
+- How context windows work
+- How models understand codebases
+- Structuring prompts for refactors and new features
+- Conversation-first coding and chain-of-thought with dev tools
+- When **not** to trust AI
+- Cursor deep dive: workspaces, Composer, commands, and edit workflows
 
-- **Server-Side Rendering (SSR)**: Render pages on the server for better SEO and performance
-- **Static Site Generation (SSG)**: Pre-render pages at build time
-- **API Routes**: Build backend functionality alongside your frontend
-- **File-based Routing**: Automatic routing based on your file structure
-- **Image Optimization**: Built-in image optimization and lazy loading
-
-## Why Next.js?
-
-Next.js solves many common problems in React development:
-
-1. **Performance**: Automatic code splitting and optimization
-2. **SEO**: Server-side rendering improves search engine visibility
-3. **Developer Experience**: Great tooling and conventions
-4. **Production Ready**: Built-in optimizations for production
-
-Let's get started!`,
-            duration: 10,
-          },
-          {
-            id: "lesson-1-2",
-            title: "Project Setup",
-            markdownContent: `# Project Setup
-
-In this lesson, we'll set up a new Next.js project from scratch.
-
-## Creating a New Project
-
-\`\`\`bash
-npx create-next-app@latest my-app
-\`\`\`
-
-You'll be prompted to configure:
-- TypeScript
-- ESLint
-- Tailwind CSS
-- App Router (recommended)
-- Import aliases
-
-## Project Structure
-
-\`\`\`
-my-app/
-├── app/
-│   ├── layout.tsx
-│   ├── page.tsx
-│   └── globals.css
-├── public/
-├── package.json
-└── next.config.js
-\`\`\`
-
-## Running the Development Server
-
-\`\`\`bash
-npm run dev
-\`\`\`
-
-Open [http://localhost:3000](http://localhost:3000) to see your app!`,
-            duration: 15,
-          },
-          {
-            id: "lesson-1-3",
-            title: "Understanding the App Router",
-            videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", // Placeholder
+By the end, you'll think like an architect and use AI as the builder.`,
             duration: 20,
           },
         ],
       },
       {
         id: "module-2",
-        title: "Core Concepts",
-        description: "Server Components, Client Components, and Routing",
+        title: "Engineering Environment Mastery",
+        description:
+          "Set up professional-grade local environments, version control, and repo hygiene so AI can work effectively with your code.",
         lessons: [
           {
             id: "lesson-2-1",
-            title: "Server vs Client Components",
-            markdownContent: `# Server vs Client Components
+            title: "Local Dev, Envs, and Git Basics",
+            markdownContent: `# Engineering Environment Mastery
 
-Next.js 14 introduces a powerful distinction between Server and Client Components.
+This module gives you the foundations most beginners lack.
 
-## Server Components
+You’ll cover:
 
-Server Components are the default in the App Router. They:
+- Local dev setup (Node.js versions, nvm, Python envs)
+- Package managers and dependency hygiene
+- Virtual environments and lockfiles
+- Git and GitHub workflows (branches, commits, reviews, conflicts)
+- Workspace structure, .gitignore, and .env + secret management
 
-- Run on the server
-- Can directly access backend resources
-- Reduce client-side JavaScript bundle
-- Improve performance
-
-\`\`\`tsx
-// app/page.tsx (Server Component by default)
-export default async function Page() {
-  const data = await fetch('https://api.example.com/data');
-  return <div>{/* Render data */}</div>;
-}
-\`\`\`
-
-## Client Components
-
-Use Client Components when you need:
-- Interactivity (onClick, useState, etc.)
-- Browser APIs
-- Event listeners
-
-\`\`\`tsx
-'use client';
-
-import { useState } from 'react';
-
-export default function Counter() {
-  const [count, setCount] = useState(0);
-  return <button onClick={() => setCount(count + 1)}>{count}</button>;
-}
-\`\`\``,
+The goal is simple: **you** control the environment so AI can safely operate inside it.`,
             duration: 25,
-          },
-          {
-            id: "lesson-2-2",
-            title: "Dynamic Routing",
-            markdownContent: `# Dynamic Routing
-
-Next.js App Router supports dynamic routes using folder names with brackets.
-
-## Dynamic Segments
-
-Create a dynamic route by using \`[param]\` in your folder name:
-
-\`\`\`
-app/
-└── blog/
-    └── [slug]/
-        └── page.tsx
-\`\`\`
-
-## Accessing Parameters
-
-\`\`\`tsx
-export default function BlogPost({ params }: { params: { slug: string } }) {
-  return <div>Post: {params.slug}</div>;
-}
-\`\`\`
-
-## Catch-all Routes
-
-Use \`[...slug]\` for catch-all routes that match multiple segments.`,
-            duration: 20,
           },
         ],
       },
       {
         id: "module-3",
-        title: "Advanced Patterns",
-        description: "Data fetching, caching, and optimization",
+        title: "The Modern Web Stack",
+        description:
+          "Understand APIs, databases, auth, and deployment so you can make architectural decisions before asking AI for code.",
         lessons: [
           {
             id: "lesson-3-1",
-            title: "Data Fetching Strategies",
-            markdownContent: `# Data Fetching Strategies
+            title: "APIs, Databases, Auth, and Deployment",
+            markdownContent: `# The Modern Web Stack
 
-Next.js provides multiple ways to fetch data, each optimized for different use cases.
+This module is framework-agnostic: you’ll learn the **concepts** behind modern web systems.
 
-## fetch() API
+You’ll cover:
 
-Next.js extends the native \`fetch()\` API with automatic caching:
+- APIs: REST vs RPC vs GraphQL, status codes, rate limits, API keys, webhooks
+- Databases: SQL vs NoSQL, schemas, migrations, indexing, ORMs, pooling
+- Auth basics: sessions vs JWT vs OAuth, RBAC, cookie security, CSRF, CORS
+- Deployment architecture: Vercel vs Docker vs VPS, CI/CD, secrets, logging
 
-\`\`\`tsx
-async function getData() {
-  const res = await fetch('https://api.example.com/data', {
-    next: { revalidate: 3600 } // Revalidate every hour
-  });
-  return res.json();
-}
-\`\`\`
-
-## Server Actions
-
-Server Actions let you mutate data on the server:
-
-\`\`\`tsx
-'use server';
-
-export async function createPost(data: FormData) {
-  // Server-side logic
-}
-\`\`\``,
+After this, you’ll be able to reason about architecture before you ever prompt AI.`,
             duration: 30,
           },
         ],
       },
-    ],
-  },
-  {
-    id: "course-2",
-    title: "React Fundamentals",
-    description:
-      "Learn React from the ground up. Master hooks, state management, and component patterns.",
-    thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop",
-    instructorId: "instructor-3", // FG
-    category: "Developer",
-    featured: true,
-    modules: [
       {
-        id: "module-1",
-        title: "React Basics",
+        id: "module-4",
+        title: "Language Survival Kits",
+        description:
+          "Learn just enough JavaScript/TypeScript and Python fundamentals to understand and debug what AI generates.",
         lessons: [
           {
-            id: "lesson-1-1",
-            title: "What is React?",
-            markdownContent: `# What is React?
+            id: "lesson-4-1",
+            title: "JS/TS and Python Survival Kits",
+            markdownContent: `# Language Survival Kits
 
-React is a JavaScript library for building user interfaces.
+You are **not** memorizing syntax — you are learning how to survive in AI-generated codebases.
 
-## Key Concepts
+JavaScript / TypeScript survival kit:
 
-- **Components**: Reusable pieces of UI
-- **JSX**: Syntax extension for JavaScript
-- **Props**: Data passed to components
-- **State**: Component's internal data
+- Modules (import/export)
+- async/await and promises
+- Event loop basics
+- NPM ecosystem and tsconfig mental model
+- Types: interfaces and simple generics
 
-## Your First Component
+Python survival kit:
 
-\`\`\`tsx
-function Welcome({ name }: { name: string }) {
-  return <h1>Hello, {name}!</h1>;
-}
-\`\`\``,
-            duration: 15,
+- pip and virtual environments
+- requirements.txt and pip freeze
+- File system imports and common import errors
+- Script vs notebook workflows
+
+Outcome: you can read, navigate, and debug AI-generated JS/TS and Python.`,
+            duration: 30,
           },
         ],
       },
-    ],
-  },
-  {
-    id: "course-3",
-    title: "Backend Development with Node.js",
-    description:
-      "Build robust backend services with Node.js, Express, and modern JavaScript patterns.",
-    thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=450&fit=crop",
-    instructorId: "instructor-1", // Belac
-    category: "Developer",
-    featured: false,
-    modules: [
       {
-        id: "module-1",
-        title: "Node.js Basics",
+        id: "module-5",
+        title: "Framework Mental Models",
+        description:
+          "Understand how Next.js and similar frameworks work conceptually so you can prompt AI precisely.",
         lessons: [
           {
-            id: "lesson-1-1",
-            title: "Introduction to Node.js",
-            markdownContent: `# Introduction to Node.js
+            id: "lesson-5-1",
+            title: "Next.js Architecture, Not Code",
+            markdownContent: `# Framework Deep-Dive: Next.js Mental Model
 
-Node.js is a JavaScript runtime built on Chrome's V8 engine.
+This module focuses on **how the framework works**, not how to memorize its APIs.
 
-## Why Node.js?
+You’ll cover:
 
-- JavaScript everywhere
-- Non-blocking I/O
-- Large ecosystem
-- Great for APIs and real-time apps`,
-            duration: 20,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "course-4",
-    title: "UI/UX Design Masterclass",
-    description:
-      "Learn modern design principles, user experience best practices, and create stunning interfaces with Figma and design systems.",
-    thumbnail: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800&h=450&fit=crop",
-    instructorId: "instructor-3", // FG
-    category: "Design",
-    featured: true,
-    modules: [
-      {
-        id: "module-1",
-        title: "Design Fundamentals",
-        lessons: [
-          {
-            id: "lesson-1-1",
-            title: "Introduction to UI/UX Design",
-            markdownContent: `# Introduction to UI/UX Design
+- App Router mental model
+- Server vs Client Components
+- Server Actions and route handlers
+- Layouts and nested routes
+- Data fetching strategies and caching
+- Env vars (public vs private), middleware, and deployment on Vercel
 
-Learn the fundamentals of creating beautiful and functional user interfaces.`,
-            duration: 20,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "course-5",
-    title: "Video Production Essentials",
-    description:
-      "Master video production from shooting to editing. Learn camera techniques, lighting, and post-production workflows.",
-    thumbnail: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=800&h=450&fit=crop",
-    instructorId: "instructor-2", // Yves
-    category: "Videography / Photography",
-    featured: false,
-    modules: [
-      {
-        id: "module-1",
-        title: "Camera Basics",
-        lessons: [
-          {
-            id: "lesson-1-1",
-            title: "Understanding Your Camera",
-            markdownContent: `# Understanding Your Camera
-
-Learn the basics of camera settings and composition.`,
+Outcome: you can explain the framework to AI and ask for the right abstractions.`,
             duration: 25,
           },
         ],
       },
-    ],
-  },
-  {
-    id: "course-6",
-    title: "Digital Marketing Strategy",
-    description:
-      "Build effective marketing campaigns. Learn SEO, social media marketing, content strategy, and analytics.",
-    thumbnail: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=450&fit=crop",
-    instructorId: "instructor-3", // FG
-    category: "Marketing",
-    featured: false,
-    modules: [
       {
-        id: "module-1",
-        title: "Marketing Fundamentals",
+        id: "module-6",
+        title: "Supabase / Firebase / Prisma Mastery",
+        description:
+          "Learn how modern backend platforms and ORMs are structured so you can design schemas and auth flows with AI.",
         lessons: [
           {
-            id: "lesson-1-1",
-            title: "Introduction to Digital Marketing",
-            markdownContent: `# Introduction to Digital Marketing
+            id: "lesson-6-1",
+            title: "Databases and Auth with Modern Tools",
+            markdownContent: `# Supabase / Firebase / Prisma Mastery
 
-Learn how to create effective marketing campaigns in the digital age.`,
-            duration: 30,
+In this module you’ll learn:
+
+- Typical project structure for hosted backends
+- Row Level Security (RLS) and why it matters
+- Auth flows and how clients talk to auth services
+- Query design and using Supabase SDKs intelligently
+- Migrations and schema versioning with tools like Prisma/Drizzle
+
+Goal: you can describe the data layer you want, and have AI implement it safely.`,
+            duration: 25,
           },
         ],
       },
-    ],
-  },
-  {
-    id: "course-7",
-    title: "Building on Solana",
-    description:
-      "Complete guide to building decentralized applications on Solana. Learn Rust, Anchor framework, and smart contract development.",
-    thumbnail: "https://images.unsplash.com/photo-1639322537228-f710d846310a?w=800&h=450&fit=crop",
-    instructorId: "instructor-1", // Belac
-    category: "Solana Integration",
-    featured: true,
-    modules: [
       {
-        id: "module-1",
-        title: "Solana Basics",
+        id: "module-7",
+        title: "Solana Builder Track (AI-First)",
+        description:
+          "Deep mental model of the Solana runtime, Anchor, testing, and AI-first Solana development workflows.",
         lessons: [
           {
-            id: "lesson-1-1",
-            title: "Introduction to Solana",
-            markdownContent: `# Introduction to Solana
+            id: "lesson-7-1",
+            title: "Solana Runtime and Anchor Mental Models",
+            markdownContent: `# Solana Builder Track (AI-First)
 
-Learn about the Solana blockchain and its unique features.`,
-            duration: 20,
+This module teaches **how Solana works**, so you can ask AI for the right on-chain code.
+
+You’ll cover:
+
+- Solana runtime: accounts, programs, lamports, transactions, PDAs
+- How Anchor abstracts Solana (IDLs, macros, client bindings)
+- The Anchor dev loop: init → build → test → deploy
+- Safe account reads/writes, rent, serialization, signer logic
+- Testing strategies: Rust unit tests and client integration tests
+- Connecting frontends to Solana programs (wallet adapters, connections)
+- Localnet and CI patterns (solana-test-validator)
+- How to spot and fix AI hallucinations in Solana code
+
+Outcome: you can supervise AI as it writes Solana and Anchor code.`,
+            duration: 35,
+          },
+        ],
+      },
+      {
+        id: "module-8",
+        title: "Debugging & QA with AI",
+        description:
+          "Use AI to debug, review, and harden code without blindly trusting its first answer.",
+        lessons: [
+          {
+            id: "lesson-8-1",
+            title: "AI-First Debugging and Code Review",
+            markdownContent: `# Debugging & QA with AI
+
+In this module you’ll learn:
+
+- How to feed logs and stack traces to AI
+- How to isolate bugs and ask targeted debugging questions
+- How to detect hallucinated fixes
+- How to perform AI-assisted code reviews
+- Security and efficiency pitfalls
+- Detecting dependency bloat and tech debt early
+
+Goal: you become the **QA layer** on top of AI, not a passive user.`,
+            duration: 25,
+          },
+        ],
+      },
+      {
+        id: "module-9",
+        title: "Real Project Building (AI-First Workflow)",
+        description:
+          "Plan, scaffold, and ship a real project where AI is your primary builder but you own the architecture.",
+        lessons: [
+          {
+            id: "lesson-9-1",
+            title: "Capstone: Design and Ship a Real Project",
+            markdownContent: `# Real Project Building (Capstone)
+
+This is the academy’s capstone.
+
+You’ll learn:
+
+- How to design a project before building anything
+- How to write a Project Specification Prompt
+- How to generate scaffolds and iterate new features with AI
+- How to structure a roadmap and phases
+- How to deploy and handle errors post-launch
+
+You’re not just coding — you’re learning **software development**.`,
+            duration: 40,
+          },
+        ],
+      },
+      {
+        id: "module-10",
+        title: "Career & Workflow",
+        description:
+          "Turn your AI-augmented skills into a portfolio, GitHub presence, and professional workflow.",
+        lessons: [
+          {
+            id: "lesson-10-1",
+            title: "Becoming an AI-Powered Developer",
+            markdownContent: `# Career & Workflow
+
+In this final module you’ll cover:
+
+- Building a portfolio of AI-built but well-architected projects
+- Packaging work for GitHub with good READMEs and docs
+- Writing technical documentation with AI as an assistant
+- Communicating like an engineer in teams
+- Positioning yourself as an AI-powered developer
+
+The goal is to leave with a repeatable workflow you can use in jobs, freelancing, or your own products.`,
+            duration: 30,
           },
         ],
       },
