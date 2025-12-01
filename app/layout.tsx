@@ -37,15 +37,11 @@ export default function RootLayout({
               (function() {
                 const theme = localStorage.getItem('theme') || 'light';
                 const root = document.documentElement;
-                // Remove all theme classes first
-                root.classList.remove('dark', 'blue');
-                // Add the appropriate theme class
                 if (theme === 'dark') {
                   root.classList.add('dark');
-                } else if (theme === 'blue') {
-                  root.classList.add('blue');
+                } else {
+                  root.classList.remove('dark');
                 }
-                // light theme doesn't need a class
               })();
             `,
           }}
