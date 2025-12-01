@@ -30,6 +30,16 @@
   --primary-foreground: #0a0a0a;
 }
 
+.blue {
+  --background: #0f172a;
+  --foreground: #e0e7ff;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --border: #334155;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+}
+
 html {
   scroll-behavior: smooth;
 }
