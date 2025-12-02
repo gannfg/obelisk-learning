@@ -19,11 +19,11 @@ export function CategoryFilter() {
   return (
     <div className="mb-12 flex flex-wrap gap-4">
       <Link
-        href="/courses"
+        href="/academy?tab=courses"
         className={cn(
-          "text-sm font-medium transition-all duration-200 hover:opacity-70 hover:scale-105 active:scale-95",
+          "text-sm font-medium transition-all duration-200 hover:text-foreground hover:scale-105 active:scale-95",
           !selectedCategory
-            ? "text-foreground"
+            ? "text-foreground underline underline-offset-4"
             : "text-muted-foreground"
         )}
       >
@@ -34,11 +34,11 @@ export function CategoryFilter() {
         return (
           <Link
             key={category}
-            href={`/courses?category=${encodeURIComponent(category)}`}
+            href={`/academy?category=${encodeURIComponent(category)}&tab=courses`}
             className={cn(
-              "text-sm font-medium transition-all duration-200 hover:opacity-70 hover:scale-105 active:scale-95",
+              "text-sm font-medium transition-all duration-200 hover:text-foreground hover:scale-105 active:scale-95",
               isActive
-                ? "text-foreground"
+                ? "text-foreground underline underline-offset-4"
                 : "text-muted-foreground"
             )}
           >

@@ -47,22 +47,30 @@ export interface UserProfile {
   last_name?: string | null;
   image_url?: string | null;
   bio?: string | null;
+  is_admin?: boolean | null;
   created_at?: string;
   updated_at?: string;
 }
 
 /**
  * Get user profile from Supabase by Supabase Auth user ID or email
+ * @param userId - The user ID
+ * @param email - User email (optional)
+ * @param supabaseClient - Optional authenticated Supabase client (recommended for client-side calls)
  */
-export async function getUserProfile(userId: string, email?: string): Promise<UserProfile | null> {
+export async function getUserProfile(userId: string, email?: string, supabaseClient?: any): Promise<UserProfile | null> {
   if (!OBELISK_LEARNING_AUTH_SUPABASE_URL || !OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY) {
     console.warn('Supabase credentials not configured');
     return null;
   }
 
   try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(OBELISK_LEARNING_AUTH_SUPABASE_URL, OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY);
+    // Use provided client (with auth session) or create a new one
+    let supabase = supabaseClient;
+    if (!supabase) {
+      const { createClient } = await import('@supabase/supabase-js');
+      supabase = createClient(OBELISK_LEARNING_AUTH_SUPABASE_URL, OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY);
+    }
 
     // Try to get by id first (Supabase Auth user ID)
     let { data, error } = await supabase
@@ -80,13 +88,25 @@ export async function getUserProfile(userId: string, email?: string): Promise<Us
         .maybeSingle();
       
       if (emailError) {
-        console.error('Error fetching user profile:', emailError);
+        const errorInfo = {
+          message: emailError.message || 'Unknown error',
+          code: emailError.code || 'UNKNOWN',
+          details: emailError.details || null,
+          hint: emailError.hint || null,
+        };
+        console.error('Error fetching user profile by email:', errorInfo);
         return null;
       }
       
       data = emailData;
     } else if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.error('Error fetching user profile:', error);
+      const errorInfo = {
+        message: error.message || 'Unknown error',
+        code: error.code || 'UNKNOWN',
+        details: error.details || null,
+        hint: error.hint || null,
+      };
+      console.error('Error fetching user profile:', errorInfo);
       return null;
     }
 
@@ -99,11 +119,16 @@ export async function getUserProfile(userId: string, email?: string): Promise<Us
 
 /**
  * Update user profile in Supabase
+ * @param userId - The user ID
+ * @param updates - Profile updates
+ * @param email - User email (optional)
+ * @param supabaseClient - Optional authenticated Supabase client (recommended for client-side calls)
  */
 export async function updateUserProfile(
   userId: string,
   updates: Partial<Omit<UserProfile, 'id' | 'clerk_user_id' | 'created_at'>>,
-  email?: string
+  email?: string,
+  supabaseClient?: any
 ): Promise<boolean> {
   if (!OBELISK_LEARNING_AUTH_SUPABASE_URL || !OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY) {
     console.warn('Supabase credentials not configured');
@@ -198,4 +223,3 @@ export async function updateUserProfile(
     return false;
   }
 }
-

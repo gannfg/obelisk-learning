@@ -30,15 +30,15 @@ export default function Home() {
               </div>
             </Link>
 
-            {/* Courses Box */}
+            {/* Academy Box (updated from Courses) */}
             <Link
-              href="/courses"
-              className="group relative block rounded-2xl overflow-hidden cursor-pointer transition-transform duration-300 hover:scale-105"
+              href="/academy"
+              className="group relative flex items-center justify-center p-6 sm:p-8 rounded-2xl border-2 border-border bg-muted/30 hover:bg-muted/50 transition-all duration-300 hover:scale-105 hover:border-accent/50 cursor-pointer"
             >
               <div className="relative w-full aspect-[4/3]">
                 <Image
                   src="/course_symbol.png"
-                  alt="Courses"
+                  alt="Academy"
                   fill
                   className="object-cover"
                   priority

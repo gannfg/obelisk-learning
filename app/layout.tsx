@@ -18,9 +18,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Web3 Coding Academy",
+  title: "Superteam Study | Web3 Coding Academy",
   description:
     "Learn Web3, blockchain, and modern web development with expert-led courses and hands-on projects.",
+  icons: {
+    icon: "/favicon_tab.svg",
+  },
 };
 
 export default function RootLayout({

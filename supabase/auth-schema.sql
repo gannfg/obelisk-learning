@@ -61,12 +61,15 @@ CREATE TRIGGER update_users_updated_at
 
 -- Function to automatically create user profile when Supabase Auth user is created
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   INSERT INTO public.users (id, email, first_name, last_name, image_url, created_at, updated_at)
   VALUES (
     NEW.id,
-    NEW.email,
+    COALESCE(NEW.email, ''),
     COALESCE(NEW.raw_user_meta_data->>'first_name', NEW.raw_user_meta_data->>'full_name', NULL),
     COALESCE(NEW.raw_user_meta_data->>'last_name', NULL),
     COALESCE(NEW.raw_user_meta_data->>'avatar_url', NEW.avatar_url, NULL),
@@ -74,9 +77,15 @@ BEGIN
     NOW()
   )
   ON CONFLICT (id) DO NOTHING;
+  
   RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Log the error but don't fail the auth user creation
+    RAISE WARNING 'Error creating user profile: %', SQLERRM;
+    RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 -- Trigger to create user profile on signup
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -111,6 +120,10 @@ CREATE POLICY "Users can insert own profile"
   ON users
   FOR INSERT
   WITH CHECK (auth.uid() = id);
+
+-- Grant necessary permissions
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.users TO anon, authenticated;
 
 -- Note: The trigger function uses SECURITY DEFINER to bypass RLS when creating profiles
 -- This allows the trigger to insert user profiles even when RLS is enabled.

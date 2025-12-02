@@ -66,13 +66,22 @@
 
 html {
   scroll-behavior: smooth;
+  /* Prevent layout shift when scrollbar appears */
+  scrollbar-gutter: stable both-edges;
+  height: 100%;
+  /* Always reserve space for vertical scrollbar so layout doesn't shift,
+     even when modals/dropdowns temporarily change body overflow */
+  overflow-y: scroll;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  /* Let html handle the scrollbar to avoid layout jumps when libraries
+     toggle body overflow for modals/dropdowns */
   overflow-x: hidden;
+  overflow-y: visible;
   margin: 0;
   padding: 0;
 }

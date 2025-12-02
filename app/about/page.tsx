@@ -1,9 +1,9 @@
 export default function AboutPage() {
   return (
-    <div className="container mx-auto px-4 py-16 max-w-4xl">
-      <h1 className="text-4xl font-bold mb-8">About Obelisk Learning</h1>
+    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-4xl">
+      <h1 className="text-3xl sm:text-4xl font-bold mb-8">About Obelisk Learning</h1>
       <div className="prose prose-zinc dark:prose-invert max-w-none">
-        <p className="text-lg text-muted-foreground mb-6">
+        <p className="text-base sm:text-lg text-muted-foreground mb-6">
           Obelisk Learning is a modern platform designed to help developers master cutting-edge technologies through expert-led courses and hands-on practice.
         </p>
         <h2 className="text-2xl font-semibold mt-8 mb-4">Our Mission</h2>

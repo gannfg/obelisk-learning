@@ -14,7 +14,7 @@ export function CourseCard({ course, priority }: CourseCardProps) {
 
   return (
     <Link 
-      href={`/courses/${course.id}`}
+      href={`/academy/courses/${course.id}`}
       className="block w-full group"
     >
       <Card className="overflow-hidden w-full transition-all duration-300 ease-out hover:scale-110 hover:-translate-y-2 hover:shadow-2xl active:scale-105">

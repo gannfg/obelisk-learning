@@ -22,7 +22,7 @@ export function LessonSidebar({ course }: LessonSidebarProps) {
   // Find which module contains the active lesson
   const activeModuleId = course.modules.find((module) =>
     module.lessons.some((lesson) => {
-      const lessonPath = `/courses/${course.id}/${module.id}/${lesson.id}`;
+      const lessonPath = `/academy/courses/${course.id}/${module.id}/${lesson.id}`;
       return pathname === lessonPath;
     })
   )?.id;
@@ -47,7 +47,7 @@ export function LessonSidebar({ course }: LessonSidebarProps) {
               <AccordionContent>
                 <ul className="space-y-1">
                   {module.lessons.map((lesson, lessonIndex) => {
-                    const lessonPath = `/courses/${course.id}/${module.id}/${lesson.id}`;
+                    const lessonPath = `/academy/courses/${course.id}/${module.id}/${lesson.id}`;
                     const isActive = pathname === lessonPath;
                     // TODO: Replace with actual progress tracking
                     const isCompleted = false;
@@ -59,20 +59,20 @@ export function LessonSidebar({ course }: LessonSidebarProps) {
                           className={cn(
                             "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
                             isActive
-                              ? "bg-zinc-100 font-medium text-foreground dark:bg-zinc-900"
-                              : "text-zinc-600 hover:bg-zinc-50 hover:text-foreground dark:text-zinc-400 dark:hover:bg-zinc-950"
+                              ? "bg-muted font-medium text-foreground"
+                              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                           )}
                         >
                           {isCompleted ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                           ) : (
-                            <Circle className="h-4 w-4" />
+                            <Circle className="h-4 w-4 text-muted-foreground" />
                           )}
                           <span>
                             {lessonIndex + 1}. {lesson.title}
                           </span>
                           {lesson.duration && (
-                            <span className="ml-auto text-xs text-zinc-500">
+                            <span className="ml-auto text-xs text-muted-foreground">
                               {lesson.duration}m
                             </span>
                           )}

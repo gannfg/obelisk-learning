@@ -138,9 +138,9 @@ export default function MissionPage() {
 
   if (loading || authLoading) {
     return (
-      <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 pb-20 md:pb-8">
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-sm sm:text-base text-muted-foreground">Loading mission...</p>
+          <p className="text-base text-muted-foreground">Loading mission...</p>
         </div>
       </div>
     );
@@ -148,10 +148,10 @@ export default function MissionPage() {
 
   if (!mission) {
     return (
-      <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 pb-20 md:pb-8">
-        <p className="text-sm sm:text-base text-destructive mb-3 sm:mb-4">Mission not found</p>
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <p className="text-base text-destructive mb-4">Mission not found</p>
         <Link href="/missions">
-          <Button variant="outline" className="text-xs sm:text-sm h-8 sm:h-9 md:h-10">
+          <Button variant="outline">
             Back to Missions
           </Button>
         </Link>
@@ -164,21 +164,21 @@ export default function MissionPage() {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
-      <div className="mb-6">
-        <Link href="/missions" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+      <div className="mb-8">
+        <Link href="/missions" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-2 transition-colors">
           <ChevronLeft className="h-4 w-4" />
           Back to Mission Board
         </Link>
       </div>
 
       {/* Mission Header */}
-      <Card className="p-6 mb-6">
+      <Card className="p-6 mb-8">
         <div className="flex items-start gap-4 mb-4">
           <div className="p-3 bg-primary/10 rounded-lg">
             <Target className="h-6 w-6 text-primary" />
           </div>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-2">{mission.title}</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-3">{mission.title}</h1>
             <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
               <div className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
@@ -207,52 +207,52 @@ export default function MissionPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Lesson Content & Checklist */}
-        <div className="lg:col-span-1 space-y-4 sm:space-y-5 md:space-y-6">
+        <div className="lg:col-span-1 space-y-6">
           {missionContent?.markdownContent && (
-            <Card className="p-4 sm:p-5 md:p-6">
-              <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Lesson Content</h2>
+            <Card className="p-6">
+              <h2 className="text-xl font-bold mb-4">Lesson Content</h2>
               <MarkdownContent content={missionContent.markdownContent} />
             </Card>
           )}
 
           {checklist.length > 0 && (
-            <Card className="p-4 sm:p-5 md:p-6">
-              <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Checklist</h2>
-              <div className="space-y-1.5 sm:space-y-2">
+            <Card className="p-6">
+              <h2 className="text-xl font-bold mb-4">Checklist</h2>
+              <div className="space-y-2">
                 {checklist.map((item, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
                     onClick={() => user && handleChecklistToggle(index)}
                   >
                     {item.completed ? (
-                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 flex-shrink-0" />
+                      <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
                     ) : (
-                      <Circle className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
+                      <Circle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                     )}
-                    <span className={`text-xs sm:text-sm ${item.completed ? "line-through text-muted-foreground" : ""}`}>
+                    <span className={`text-sm ${item.completed ? "line-through text-muted-foreground" : ""}`}>
                       {item.text}
                     </span>
                   </div>
                 ))}
               </div>
-              <div className="mt-3 sm:mt-4 text-xs sm:text-sm text-muted-foreground">
+              <div className="mt-4 text-sm text-muted-foreground">
                 {completedCount} / {checklist.length} completed
               </div>
             </Card>
           )}
 
           {missionContent?.advancedTips && (
-            <Card className="p-4 sm:p-5 md:p-6">
+            <Card className="p-6">
               <Button
                 variant="outline"
                 onClick={() => setShowAdvancedTips(!showAdvancedTips)}
-                className="w-full text-xs sm:text-sm h-8 sm:h-9 md:h-10"
+                className="w-full"
               >
                 {showAdvancedTips ? "Hide" : "Show"} Advanced Tips
               </Button>
               {showAdvancedTips && (
-                <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-muted/50 rounded-lg">
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                   <MarkdownContent content={missionContent.advancedTips} />
                 </div>
               )}

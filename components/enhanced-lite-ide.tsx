@@ -128,9 +128,21 @@ export default function EnhancedLiteIDE({
     setAiResponse("Thinking...");
     setActiveTab("ai");
 
-    const prompt = `LessonId: ${lessonId || "N/A"}\nMissionId: ${missionId || "N/A"}\n\nFiles:\n${Object.entries(files)
+    // Build a comprehensive prompt with context
+    const prompt = `You are DeMentor, an AI coding mentor for Web3, Solana, and modern fullstack development.
+
+Lesson Context:
+- LessonId: ${lessonId || "N/A"}
+- MissionId: ${missionId || "N/A"}
+
+Current Code Files:
+${Object.entries(files)
       .map(([name, content]) => `### ${name}\n\`\`\`\n${content}\n\`\`\``)
-      .join("\n\n")}\n\nQuestion: ${aiPrompt}`;
+      .join("\n\n")}
+
+User Question: ${aiPrompt}
+
+Please provide helpful, step-by-step guidance. Speak clearly and concisely. Prefer step-by-step guidance over full code dumps. Ask clarifying questions when the user's goal is ambiguous. When showing code, keep snippets focused and minimal.`;
 
     try {
       const res = await fetch("/api/ai/ask", {
