@@ -17,7 +17,7 @@ export default function Home() {
             {/* Missions Box */}
             <Link
               href="/missions"
-              className="group relative block rounded-2xl overflow-hidden cursor-pointer transition-transform duration-300 hover:scale-105"
+              className="group relative block max-w-sm sm:max-w-md w-full mx-auto rounded-2xl overflow-hidden cursor-pointer transition-transform duration-300 hover:scale-105"
             >
               <div className="relative w-full aspect-[4/3]">
                 <Image
@@ -33,7 +33,7 @@ export default function Home() {
             {/* Courses Box */}
             <Link
               href="/courses"
-              className="group relative block rounded-2xl overflow-hidden cursor-pointer transition-transform duration-300 hover:scale-105"
+              className="group relative block max-w-sm sm:max-w-md w-full mx-auto rounded-2xl overflow-hidden cursor-pointer transition-transform duration-300 hover:scale-105"
             >
               <div className="relative w-full aspect-[4/3]">
                 <Image
