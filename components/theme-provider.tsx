@@ -11,7 +11,7 @@ interface ThemeContextType {
 }
 
 const defaultContext: ThemeContextType = {
-  theme: "light",
+  theme: "dark",
   setTheme: () => {},
   toggleTheme: () => {},
 };
@@ -19,34 +19,41 @@ const defaultContext: ThemeContextType = {
 const ThemeContext = createContext<ThemeContextType>(defaultContext);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light");
+  const [theme, setThemeState] = useState<Theme>("dark");
 
   useEffect(() => {
-    // Get theme from localStorage or default to light
+    // Get theme from localStorage or default to dark (Superteam aesthetic)
     const savedTheme = localStorage.getItem("theme") as Theme | null;
-    const initialTheme = savedTheme || "light";
+    const initialTheme = savedTheme || "dark";
     setThemeState(initialTheme);
     applyTheme(initialTheme);
   }, []);
 
   const applyTheme = (newTheme: Theme) => {
     const root = document.documentElement;
-    if (newTheme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
+    // Remove both classes first
+    root.classList.remove("dark", "light");
+    // Add the correct class
+    root.classList.add(newTheme);
   };
 
   const setTheme = (newTheme: Theme) => {
+    // Update state immediately
     setThemeState(newTheme);
-    localStorage.setItem("theme", newTheme);
+    // Apply theme immediately
     applyTheme(newTheme);
+    // Save to localStorage
+    localStorage.setItem("theme", newTheme);
   };
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
+    // Update state immediately
+    setThemeState(newTheme);
+    // Apply theme immediately without waiting for state update
+    applyTheme(newTheme);
+    // Save to localStorage
+    localStorage.setItem("theme", newTheme);
   };
 
   // Always provide the context, even before mounting
