@@ -86,23 +86,23 @@ export default function MissionBoardPage() {
   const stackTypes = Array.from(new Set(missions.map((m) => m.stackType)));
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 pb-20 md:pb-8">
-      <div className="mb-4 sm:mb-6 md:mb-8">
-        <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
-          <div className="p-2 sm:p-3 bg-primary/10 rounded-lg shrink-0">
-            <Target className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
+    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="mb-8">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="p-3 bg-primary/10 rounded-lg shrink-0">
+            <Target className="h-6 w-6 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">Mission Board</h1>
-            <p className="text-sm sm:text-base md:text-lg text-muted-foreground mt-1 sm:mt-2">
+            <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-3">Mission Board</h1>
+            <p className="text-base sm:text-lg text-muted-foreground">
               Choose a mission to start learning. Complete missions to earn badges and unlock new content.
             </p>
           </div>
         </div>
         {user && (
-          <div className="flex items-center gap-2 sm:gap-3 sm:gap-4 mt-3 sm:mt-4 p-3 sm:p-4 bg-muted/50 rounded-lg">
-            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
-            <span className="text-xs sm:text-sm">
+          <div className="flex items-center gap-3 mt-4 p-4 bg-muted/50 rounded-lg">
+            <Sparkles className="h-5 w-5 text-primary shrink-0" />
+            <span className="text-sm">
               <span className="font-semibold">AI Assistant</span> is ready to help you learn!
             </span>
           </div>
@@ -110,20 +110,19 @@ export default function MissionBoardPage() {
       </div>
 
       {/* Filters */}
-      <Card className="p-3 sm:p-4 mb-4 sm:mb-6">
-        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2">
+      <Card className="p-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="flex items-center gap-2">
-              <Filter className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground shrink-0" />
-              <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Difficulty:</span>
+              <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-sm font-medium whitespace-nowrap">Difficulty:</span>
             </div>
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+            <div className="flex flex-wrap gap-2">
               {["all", "beginner", "intermediate", "advanced"].map((level) => (
                 <Button
                   key={level}
                   variant={filter === level ? "default" : "outline"}
                   size="sm"
-                  className="text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8"
                   onClick={() => setFilter(level as typeof filter)}
                 >
                   {level.charAt(0).toUpperCase() + level.slice(1)}
@@ -131,13 +130,12 @@ export default function MissionBoardPage() {
               ))}
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2">
-            <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Stack:</span>
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <span className="text-sm font-medium whitespace-nowrap">Stack:</span>
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant={stackFilter === "all" ? "default" : "outline"}
                 size="sm"
-                className="text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8"
                 onClick={() => setStackFilter("all")}
               >
                 All
@@ -147,7 +145,6 @@ export default function MissionBoardPage() {
                   key={stack}
                   variant={stackFilter === stack ? "default" : "outline"}
                   size="sm"
-                  className="text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8"
                   onClick={() => setStackFilter(stack)}
                 >
                   {stack}
@@ -160,11 +157,11 @@ export default function MissionBoardPage() {
 
       {/* Mission Grid */}
       {missions.length === 0 ? (
-        <Card className="p-6 sm:p-8 md:p-12 text-center">
-          <p className="text-sm sm:text-base text-muted-foreground">No missions found. Check back later!</p>
+        <Card className="p-12 text-center">
+          <p className="text-base text-muted-foreground">No missions found. Check back later!</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {missions.map((mission) => {
             const progress = progressMap[mission.id];
             const isCompleted = progress?.completed || false;
@@ -175,44 +172,44 @@ export default function MissionBoardPage() {
             return (
               <Link key={mission.id} href={`/missions/${mission.id}`}>
                 <Card
-                  className={`p-4 sm:p-5 md:p-6 h-full transition-all duration-300 ease-out cursor-pointer hover:scale-105 hover:shadow-xl hover:-translate-y-1 ${
+                  className={`p-6 h-full transition-all duration-300 ease-out cursor-pointer hover:scale-105 hover:shadow-xl hover:-translate-y-1 ${
                     isCompleted ? "border-green-500/50 bg-green-500/5" : ""
                   }`}
                 >
-                  <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
-                    <div className={`p-1.5 sm:p-2 rounded-lg shrink-0 ${isCompleted ? "bg-green-500/20" : "bg-primary/10"}`}>
-                      <Target className={`h-4 w-4 sm:h-5 sm:w-5 ${isCompleted ? "text-green-600" : "text-primary"}`} />
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className={`p-2 rounded-lg shrink-0 ${isCompleted ? "bg-green-500/20" : "bg-primary/10"}`}>
+                      <Target className={`h-5 w-5 ${isCompleted ? "text-green-600" : "text-primary"}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-base sm:text-lg mb-1 leading-tight">{mission.title}</h3>
-                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground mb-2">
+                      <h3 className="font-bold text-lg mb-1 leading-tight">{mission.title}</h3>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {mission.estimatedTime || "?"} min
                         </div>
-                        <span className="px-1.5 sm:px-2 py-0.5 rounded bg-muted text-xs">
+                        <span className="px-2 py-0.5 rounded bg-muted text-xs">
                           {mission.difficulty}
                         </span>
                       </div>
                     </div>
                     {isCompleted && (
-                      <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 flex-shrink-0" />
+                      <Trophy className="h-5 w-5 text-green-600 flex-shrink-0" />
                     )}
                   </div>
 
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 line-clamp-2">
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
                     {mission.goal}
                   </p>
 
                   {totalItems > 0 && (
-                    <div className="mb-3 sm:mb-4">
+                    <div className="mb-4">
                       <div className="flex items-center justify-between text-xs mb-1">
                         <span className="text-muted-foreground">Progress</span>
                         <span className="font-medium">
                           {completedItems} / {totalItems}
                         </span>
                       </div>
-                      <div className="h-1.5 sm:h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-primary transition-all duration-300"
                           style={{ width: `${(completedItems / totalItems) * 100}%` }}

@@ -10,12 +10,26 @@ import { Loader2 } from "lucide-react";
 
 export function SignUpForm() {
   const router = useRouter();
-  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Validate Supabase configuration
+  const getSupabaseClient = () => {
+    try {
+      return createClient();
+    } catch (err: any) {
+      setError(
+        "Supabase is not configured. Please set up your environment variables:\n\n" +
+        "NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL\n" +
+        "NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY\n\n" +
+        "See ENV_SETUP.md for instructions."
+      );
+      throw err;
+    }
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +48,8 @@ export function SignUpForm() {
     setLoading(true);
 
     try {
+      const supabase = getSupabaseClient();
+      
       // Try signup with minimal options first
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -54,10 +70,25 @@ export function SignUpForm() {
         
         // Provide more helpful error messages
         let errorMessage = signUpError.message || "Failed to create account";
+        
         if (signUpError.status === 500) {
-          errorMessage = "Server error during signup. Please check your Supabase Auth configuration or try again later.";
+          errorMessage = "Server error during signup. This usually means:\n\n" +
+            "1. Supabase Auth Email provider is not enabled\n" +
+            "2. Database schema is not set up (run supabase/auth-schema.sql)\n" +
+            "3. Redirect URL not configured in Supabase\n" +
+            "4. Environment variables are incorrect\n\n" +
+            "Please check your Supabase Auth configuration. See the console for details.";
+        } else if (signUpError.status === 400) {
+          // Bad request - usually configuration issues
+          if (signUpError.message?.includes("Invalid API key") || signUpError.message?.includes("JWT")) {
+            errorMessage = "Invalid Supabase configuration. Please check your environment variables (NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL and NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY).";
+          } else {
+            errorMessage = signUpError.message || "Invalid request. Please check your input and try again.";
+          }
         } else if (signUpError.message?.includes("email")) {
           errorMessage = signUpError.message;
+        } else if (signUpError.message?.includes("already registered") || signUpError.message?.includes("already exists")) {
+          errorMessage = "An account with this email already exists. Please sign in instead.";
         }
         
         setError(errorMessage);
@@ -65,7 +96,7 @@ export function SignUpForm() {
         return;
       }
 
-      if (data.user) {
+      if (data?.user) {
         // Create user profile in public.users table
         try {
           const { error: profileError } = await supabase
@@ -108,7 +139,7 @@ export function SignUpForm() {
   return (
     <form onSubmit={handleSignUp} className="space-y-4">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200 whitespace-pre-line">
           {error}
         </div>
       )}

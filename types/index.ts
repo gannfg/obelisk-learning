@@ -51,6 +51,9 @@ export type Instructor = {
   };
 };
 
+// Auth / User
+export type AppUserRole = "user" | "admin";
+
 // Progress (for future Supabase integration)
 export type LessonProgress = {
   lessonId: string;
@@ -148,5 +151,46 @@ export type MissionProgress = {
   microChecksPassed: number;
   totalMicroChecks: number;
   lastAccessedAt?: Date;
+};
+
+// Academy Types
+export type Project = {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail?: string;
+  status: "planning" | "in-progress" | "completed" | "archived";
+  difficulty: "beginner" | "intermediate" | "advanced";
+  tags: string[];
+  teamId?: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+  repositoryUrl?: string;
+  liveUrl?: string;
+  members?: ProjectMember[];
+};
+
+export type ProjectMember = {
+  userId: string;
+  role: "owner" | "admin" | "member" | "viewer";
+  joinedAt: Date;
+};
+
+export type Team = {
+  id: string;
+  name: string;
+  description?: string;
+  avatar?: string;
+  createdBy: string;
+  createdAt: Date;
+  members: TeamMember[];
+  projects: string[]; // Project IDs
+};
+
+export type TeamMember = {
+  userId: string;
+  role: "owner" | "admin" | "member";
+  joinedAt: Date;
 };
 

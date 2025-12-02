@@ -32,9 +32,9 @@ export default async function CoursePage({ params }: CoursePageProps) {
     : "#";
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 pb-20 md:pb-8">
-      <div className="mb-4 sm:mb-6 md:mb-8">
-        <div className="relative mb-4 sm:mb-5 md:mb-6 h-48 sm:h-64 md:h-80 lg:h-96 w-full overflow-hidden rounded-lg">
+    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="mb-8">
+        <div className="relative mb-6 h-64 md:h-80 lg:h-96 w-full overflow-hidden rounded-lg">
           <Image
             src={course.thumbnail}
             alt={course.title}
@@ -44,37 +44,37 @@ export default async function CoursePage({ params }: CoursePageProps) {
             className="object-cover"
           />
         </div>
-        <h1 className="mb-2 sm:mb-3 md:mb-4 text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">{course.title}</h1>
-        <p className="mb-4 sm:mb-5 md:mb-6 text-sm sm:text-base md:text-lg text-zinc-600 dark:text-zinc-400">
+        <h1 className="mb-3 text-3xl sm:text-4xl font-bold leading-tight">{course.title}</h1>
+        <p className="mb-6 text-base sm:text-lg text-muted-foreground">
           {course.description}
         </p>
-        <div className="mb-4 sm:mb-5 md:mb-6 flex flex-wrap items-center gap-3 sm:gap-4">
+        <div className="mb-6 flex flex-wrap items-center gap-4">
           {instructor && (
             <Link
               href={`/instructors/${instructor.id}`}
-              className="flex items-center gap-2 sm:gap-3"
+              className="flex items-center gap-3"
             >
               <Image
                 src={instructor.avatar}
                 alt={instructor.name}
                 width={48}
                 height={48}
-                className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
+                className="rounded-full w-12 h-12"
                 unoptimized
               />
               <div>
-                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="text-sm text-muted-foreground">
                   Instructor
                 </p>
-                <p className="font-medium text-sm sm:text-base">{instructor.name}</p>
+                <p className="font-medium text-base">{instructor.name}</p>
               </div>
             </Link>
           )}
           <div>
-            <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               Course Content
             </p>
-            <p className="font-medium text-sm sm:text-base">
+            <p className="font-medium text-base">
               {course.modules.length} modules • {totalLessons} lessons
             </p>
           </div>
@@ -96,7 +96,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
               <h2 className="text-2xl font-semibold">About This Course</h2>
               <div className="prose prose-zinc dark:prose-invert max-w-none">
                 <p>{course.description}</p>
-                <p className="text-zinc-600 dark:text-zinc-400">
+                <p className="text-muted-foreground">
                   This comprehensive course will take you from beginner to advanced,
                   covering all the essential concepts and best practices you need to
                   master.
@@ -109,17 +109,17 @@ export default async function CoursePage({ params }: CoursePageProps) {
                 {course.modules.map((module, index) => (
                   <div
                     key={module.id}
-                    className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
+                    className="rounded-lg border border-border p-4"
                   >
                     <h3 className="mb-2 font-semibold">
                       Module {index + 1}: {module.title}
                     </h3>
                     {module.description && (
-                      <p className="mb-3 text-sm text-zinc-600 dark:text-zinc-400">
+                      <p className="mb-3 text-sm text-muted-foreground">
                         {module.description}
                       </p>
                     )}
-                    <p className="text-sm text-zinc-500">
+                    <p className="text-sm text-muted-foreground">
                       {module.lessons.length} lesson
                       {module.lessons.length !== 1 ? "s" : ""}
                     </p>
@@ -130,7 +130,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
             <TabsContent value="instructor" className="space-y-4">
               <h2 className="text-2xl font-semibold">Meet Your Instructor</h2>
               {instructor && (
-                <div className="flex items-start gap-4 rounded-lg border border-zinc-200 p-6 dark:border-zinc-800">
+                <div className="flex items-start gap-4 rounded-lg border border-border p-6">
                   <Image
                     src={instructor.avatar}
                     alt={instructor.name}
@@ -143,7 +143,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
                     <h3 className="mb-2 text-xl font-semibold">
                       {instructor.name}
                     </h3>
-                    <p className="mb-3 text-zinc-600 dark:text-zinc-400">
+                    <p className="mb-3 text-muted-foreground">
                       {instructor.bio}
                     </p>
                     {instructor.specializations &&
@@ -152,7 +152,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
                           {instructor.specializations.map((spec) => (
                             <span
                               key={spec}
-                              className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                              className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
                             >
                               {spec}
                             </span>

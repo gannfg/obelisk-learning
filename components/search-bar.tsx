@@ -62,7 +62,7 @@ export function SearchBar() {
   }, [isOpen]);
 
   const handleCourseClick = (courseId: string) => {
-    router.push(`/courses/${courseId}`);
+    router.push(`/academy/courses/${courseId}`);
     setQuery("");
     setIsOpen(false);
     inputRef.current?.blur();

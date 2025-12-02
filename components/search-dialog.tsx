@@ -37,7 +37,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   }, [query]);
 
   const handleCourseClick = (courseId: string) => {
-    router.push(`/courses/${courseId}`);
+    router.push(`/academy/courses/${courseId}`);
     onOpenChange(false);
     setQuery("");
   };
