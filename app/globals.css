@@ -1,13 +1,38 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
-  --muted: #f5f5f5;
-  --muted-foreground: #737373;
-  --border: #e5e5e5;
-  --primary: #0a0a0a;
-  --primary-foreground: #ffffff;
+/* Default: Pure Black and White Theme (Dark Mode) */
+:root,
+:root.dark {
+  /* Pure Black and White Theme */
+  --background: #000000; /* Pure black */
+  --foreground: #ffffff; /* Pure white */
+  --muted: #1a1a1a; /* Very dark grey */
+  --muted-foreground: #a3a3a3; /* Medium grey */
+  --border: #333333; /* Dark grey */
+  
+  /* Primary - White on Black */
+  --primary: #ffffff; /* White */
+  --primary-foreground: #000000; /* Black */
+  --primary-hover: #e5e5e5; /* Light grey */
+  
+  /* Accent - White/Grey */
+  --accent: #ffffff; /* White */
+  --accent-foreground: #000000; /* Black */
+  --accent-hover: #e5e5e5; /* Light grey */
+  
+  /* Secondary Colors - Grey scale */
+  --secondary: #808080; /* Medium grey */
+  --secondary-foreground: #ffffff;
+  
+  /* Success, Warning, Error - Grey scale */
+  --success: #ffffff; /* White */
+  --warning: #cccccc; /* Light grey */
+  --error: #ffffff; /* White */
+  
+  /* Gradient - Black to White */
+  --gradient-primary: linear-gradient(135deg, #ffffff 0%, #cccccc 100%);
+  --gradient-secondary: linear-gradient(135deg, #cccccc 0%, #808080 100%);
+  --gradient-accent: linear-gradient(135deg, #ffffff 0%, #e5e5e5 100%);
 }
 
 @theme inline {
@@ -16,18 +41,27 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-.dark {
-  --background: #0a0a0a;
-  --foreground: #fafafa;
-  --muted: #1a1a1a;
-  --muted-foreground: #a3a3a3;
-  --border: #262626;
-  --primary: #fafafa;
-  --primary-foreground: #0a0a0a;
+/* Light mode - White and Black (inverted) */
+:root.light {
+  --background: #ffffff;
+  --foreground: #000000;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --border: #e5e5e5;
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --accent: #000000;
+  --accent-foreground: #ffffff;
+  --primary-hover: #1a1a1a;
+  --accent-hover: #1a1a1a;
 }
 
 html {
@@ -77,6 +111,15 @@ nav[class*="mobile"] {
 button:hover,
 a:hover {
   transition-property: transform, box-shadow, background-color, border-color, opacity;
+}
+
+/* Theme transition - but don't override all transitions */
+html {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html * {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 /* Safe area insets for mobile devices */
@@ -183,4 +226,18 @@ a:hover {
 
 .animate-accordion-up {
   animation: accordion-up 0.2s ease-out;
+}
+
+/* DeMentor floating animation */
+@keyframes dementor-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.animate-dementor-float {
+  animation: dementor-float 3s ease-in-out infinite;
 }
