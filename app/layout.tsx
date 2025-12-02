@@ -32,18 +32,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark">
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                const theme = localStorage.getItem('theme') || 'light';
+                const theme = localStorage.getItem('theme') || 'dark';
                 const root = document.documentElement;
+                root.classList.remove('light', 'dark');
                 if (theme === 'dark') {
                   root.classList.add('dark');
                 } else {
-                  root.classList.remove('dark');
+                  root.classList.add('light');
                 }
               })();
             `,
@@ -51,7 +52,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}
       >
         <ThemeProvider>
           <UserSync />

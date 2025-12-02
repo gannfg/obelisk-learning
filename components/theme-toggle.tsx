@@ -33,7 +33,10 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="sm"
-      onClick={toggleTheme}
+      onClick={(e) => {
+        e.preventDefault();
+        toggleTheme();
+      }}
       className="h-9 w-9 p-0"
       aria-label="Toggle theme"
     >

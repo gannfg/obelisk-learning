@@ -7,6 +7,37 @@ const OBELISK_LEARNING_AUTH_SUPABASE_URL =
 const OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY =
   process.env.NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY || '';
 
+/**
+ * Get authenticated Supabase client
+ * This ensures we have the user session for RLS policies
+ * Uses the SSR client which automatically handles sessions
+ */
+async function getAuthenticatedClient() {
+  // Use the SSR client from lib/supabase/client.ts which handles sessions automatically
+  // This works for client-side components
+  try {
+    const { createClient } = await import('@/lib/supabase/client');
+    const client = createClient();
+    
+    // Verify we have a session
+    const { data: { session }, error: sessionError } = await client.auth.getSession();
+    if (sessionError) {
+      console.warn('⚠️ Error checking session:', sessionError);
+    }
+    if (!session) {
+      console.warn('⚠️ No Supabase Auth session found. RLS policies may block operations.');
+      console.warn('💡 Make sure the user is authenticated via Supabase Auth before calling this function.');
+    }
+    
+    return client;
+  } catch (error) {
+    // Fallback to basic client if SSR client is not available (shouldn't happen in client components)
+    console.warn('⚠️ Could not use SSR client, falling back to basic client:', error);
+    const { createClient } = await import('@supabase/supabase-js');
+    return createClient(OBELISK_LEARNING_AUTH_SUPABASE_URL, OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY);
+  }
+}
+
 export interface UserProfile {
   id: string;
   clerk_user_id?: string;
@@ -105,14 +136,21 @@ export async function updateUserProfile(
   }
 
   try {
-    // Use provided client (with auth session) or create a new one
-    let supabase = supabaseClient;
-    if (!supabase) {
-      const { createClient } = await import('@supabase/supabase-js');
-      supabase = createClient(
-        OBELISK_LEARNING_AUTH_SUPABASE_URL,
-        OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY
-      );
+    const supabase = await getAuthenticatedClient();
+
+    // Verify the user is authenticated and the userId matches
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    if (authError || !authUser) {
+      console.error('❌ User not authenticated via Supabase Auth:', authError);
+      console.error('💡 The user must be signed in via Supabase Auth for RLS policies to work.');
+      return false;
+    }
+
+    // Ensure the userId matches the authenticated user (for security)
+    if (authUser.id !== userId) {
+      console.error('❌ User ID mismatch. Cannot update profile for different user.');
+      console.error(`Authenticated user: ${authUser.id}, Requested user: ${userId}`);
+      return false;
     }
 
     const updateData = {
@@ -120,186 +158,64 @@ export async function updateUserProfile(
       updated_at: new Date().toISOString(),
     };
 
-    // First, check if user exists by id
-    let existingUser: UserProfile | null = null;
-    
-    let { data: checkUser, error: checkError } = await supabase
+    // Use upsert to handle both insert and update in one operation
+    // This is more efficient and handles race conditions better
+    const userData: any = {
+      id: userId, // Use Supabase Auth user ID
+      email: email || authUser.email || '',
+      ...updateData,
+    };
+
+    // Only set created_at if this is a new user
+    // We'll check if user exists first
+    const { data: existingUser } = await supabase
       .from('users')
-      .select('id, email')
+      .select('id, created_at')
       .eq('id', userId)
       .maybeSingle();
 
-    // PGRST116 = no rows returned (user doesn't exist) - this is OK
-    if (checkError && checkError.code !== 'PGRST116') {
-      const errorInfo = {
-        message: checkError.message || 'Unknown error',
-        code: checkError.code || 'UNKNOWN',
-        details: checkError.details || null,
-        hint: checkError.hint || null,
-      };
-      console.error('Error checking for existing user:', errorInfo);
-      return false;
-    }
-    
-    existingUser = checkUser as UserProfile | null;
-
-    // If user doesn't exist, we need to create them first
     if (!existingUser) {
-      console.log('User not found, creating new user record...');
-      
-      const newUserData: any = {
-        id: userId, // Use Supabase Auth user ID
-        email: email || '',
-        ...updateData,
-        created_at: new Date().toISOString(),
-      };
-
-      const { error: insertError, data: insertData } = await supabase
-        .from('users')
-        .insert(newUserData)
-        .select();
-
-      if (insertError) {
-        // Extract error information safely
-        const errorMessage = insertError.message || '';
-        const errorCode = insertError.code || '';
-        const errorDetails = insertError.details || null;
-        const errorHint = insertError.hint || null;
-
-        // Check if it's a duplicate/unique constraint error (profile might have been created by trigger)
-        const isDuplicate = errorCode === '23505' || 
-                           errorMessage.toLowerCase().includes('duplicate') || 
-                           errorMessage.toLowerCase().includes('unique') ||
-                           errorMessage.toLowerCase().includes('already exists');
-
-        // Check if it's an RLS policy error (profile might exist but we don't have permission, or trigger created it)
-        const isRLSError = errorCode === '42501' || 
-                          errorMessage.toLowerCase().includes('row-level security') ||
-                          errorMessage.toLowerCase().includes('violates row-level security');
-
-        if (isDuplicate || isRLSError) {
-          console.debug('User profile may already exist (likely created by trigger), checking...');
-          // Try to fetch the existing profile
-          const { data: existingData, error: fetchError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle();
-          
-          if (existingData) {
-            console.log('✅ User profile found (created by trigger)');
-            // Profile exists, try to update it with any new data
-            if (Object.keys(updates).length > 0) {
-              const { error: updateError } = await supabase
-                .from('users')
-                .update(updates)
-                .eq('id', userId);
-              
-              if (!updateError) {
-                console.log('✅ User profile updated');
-              }
-            }
-            return true;
-          }
-          // If it's an RLS error and we can't fetch, the profile might exist but we don't have access
-          // This is OK - the trigger should have created it
-          if (isRLSError) {
-            console.debug('RLS error - profile likely created by trigger, skipping manual insert');
-            return true; // Assume success since trigger should handle it
-          }
-          return false;
-        }
-
-        // Only log if there's actual error information
-        const hasErrorInfo = errorMessage || errorCode || errorDetails || errorHint;
-        
-        if (hasErrorInfo) {
-          const errorInfo: Record<string, any> = {};
-          if (errorMessage) errorInfo.message = errorMessage;
-          if (errorCode) errorInfo.code = errorCode;
-          if (errorDetails) errorInfo.details = errorDetails;
-          if (errorHint) errorInfo.hint = errorHint;
-          
-          console.error('Error creating user profile:', errorInfo);
-        } else {
-          // If error object is completely empty/malformed, try to extract any properties
-          try {
-            const errorKeys = Object.keys(insertError);
-            const errorValues = Object.values(insertError);
-            
-            if (errorKeys.length > 0 || errorValues.some(v => v !== null && v !== undefined && v !== '')) {
-              // Try to serialize with all properties
-              const errorString = JSON.stringify(insertError, Object.getOwnPropertyNames(insertError));
-              if (errorString && errorString !== '{}') {
-                console.error('Error creating user profile:', JSON.parse(errorString));
-              } else {
-                // Silent fail for empty error objects - likely a non-critical issue
-                console.debug('User profile creation returned empty error (may already exist)');
-              }
-            } else {
-              // Silent fail for completely empty error objects
-              console.debug('User profile creation returned empty error (may already exist)');
-            }
-          } catch (e) {
-            // Silent fail if we can't serialize
-            console.debug('User profile creation error (unable to parse error details)');
-          }
-        }
-        return false;
-      }
-
-      // Check if insert was successful
-      if (insertData && insertData.length > 0) {
-        console.log('✅ User profile created successfully');
-        return true;
-      } else {
-        console.warn('⚠️ Insert completed but no data returned');
-        return false;
-      }
+      // New user - set created_at
+      userData.created_at = new Date().toISOString();
     }
 
-    // User exists, update them
-    let { data, error } = await supabase
+    // Use upsert with onConflict to handle both insert and update
+    const { data, error } = await supabase
       .from('users')
-      .update(updateData)
-      .eq('id', userId)
+      .upsert(userData, {
+        onConflict: 'id',
+        ignoreDuplicates: false,
+      })
       .select();
 
-    // Check if update actually affected any rows
     if (error) {
-      // Extract error information safely
-      const errorMessage = error.message || '';
-      const errorCode = error.code || '';
-      const errorDetails = error.details || null;
-      const errorHint = error.hint || null;
-
-      // Only log if there's actual error information
-      const hasErrorInfo = errorMessage || errorCode || errorDetails || errorHint;
-      
-      if (hasErrorInfo) {
-        const errorInfo: Record<string, any> = {};
-        if (errorMessage) errorInfo.message = errorMessage;
-        if (errorCode) errorInfo.code = errorCode;
-        if (errorDetails) errorInfo.details = errorDetails;
-        if (errorHint) errorInfo.hint = errorHint;
-        
-        console.error('Error updating user profile:', errorInfo);
+      console.error('Error upserting user profile:', error);
+      const errorDetails: Record<string, any> = {};
+      if (error.message) errorDetails.message = error.message;
+      if (error.code) errorDetails.code = error.code;
+      if (error.details) errorDetails.details = error.details;
+      if (error.hint) errorDetails.hint = error.hint;
+      if (Object.keys(errorDetails).length > 0) {
+        console.error('Error details:', errorDetails);
       } else {
-        // Silent fail for empty error objects
-        console.debug('User profile update returned empty error');
+        console.error('Error details:', error);
+      }
+      
+      // If RLS is blocking, provide helpful error message
+      if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('RLS')) {
+        console.error('❌ RLS Policy Error: Make sure the user is authenticated via Supabase Auth and the RLS policy allows this operation.');
+        console.error('💡 Tip: The user must exist in auth.users table and be authenticated with a valid session.');
       }
       
       return false;
     }
 
-    // If no rows were updated, the user might not exist or the query didn't match
     if (!data || data.length === 0) {
-      console.warn('No rows updated. This might mean the user record was deleted or the query did not match.');
-      // Don't recursively call - just return false to avoid infinite loop
+      console.warn('⚠️ Upsert completed but no data returned. This might indicate an RLS policy issue.');
       return false;
     }
 
-    console.log('✅ User profile updated successfully');
+    console.log('✅ User profile upserted successfully');
     return true;
   } catch (error: any) {
     console.error('Error in updateUserProfile:', error);
@@ -307,4 +223,3 @@ export async function updateUserProfile(
     return false;
   }
 }
-
