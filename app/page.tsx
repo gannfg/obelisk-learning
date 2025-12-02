@@ -17,25 +17,16 @@ export default function Home() {
             className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6 leading-tight"
             style={{ color: 'var(--foreground)' }}
           >
-            Your Vision, Our{" "}
-            <span className="text-[#3d1d9c]">Expertise</span>
+            Your Vision, Our Expertise
             <br className="hidden sm:block" />
-            <span className="block sm:inline mt-2 sm:mt-0">— Let's Build </span>
-            <span className="text-[#3d1d9c] underline decoration-[#3d1d9c]">Together</span>
+            <span className="block sm:inline mt-2 sm:mt-0">— Let's Build Together</span>
           </h1>
           <p 
-            className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-6 sm:mb-8 leading-relaxed opacity-70"
+            className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-0 sm:mb-2 leading-relaxed opacity-70"
             style={{ color: 'var(--foreground)' }}
           >
-            We're here to help you master the skills you need for your next big project. Whether it's software development, web design, or building something entirely new—we'll craft a platform that elevates your vision to something truly remarkable. Ready to make it happen?
+            We're here to help you master the skills you need for your next big project. Whether it's software development, web design, or building something entirely new—we'll craft a platform that elevates your vision to something truly remarkable.
           </p>
-          <Link
-            href="/academy"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#3d1d9c] hover:bg-[#2f1675] text-white font-semibold rounded-lg transition-colors duration-200"
-          >
-            Start Today
-            <span className="text-lg">→</span>
-          </Link>
         </div>
       </section>
 
@@ -50,7 +41,7 @@ export default function Home() {
             >
               <div className="relative w-full aspect-[4/3]">
                 <Image
-                  src="/mission_symbol.png"
+                  src="/mission_button.png"
                   alt="Missions"
                   fill
                   className="object-cover"
@@ -59,14 +50,14 @@ export default function Home() {
               </div>
             </Link>
 
-            {/* Academy Box (updated from Courses) */}
+            {/* Academy Box */}
             <Link
               href="/academy"
-              className="group relative flex items-center justify-center p-6 sm:p-8 rounded-2xl border-2 border-border bg-muted/30 hover:bg-muted/50 transition-all duration-300 hover:scale-105 hover:border-accent/50 cursor-pointer"
+              className="group relative block max-w-sm sm:max-w-md w-full mx-auto rounded-2xl overflow-hidden cursor-pointer transition-transform duration-300 hover:scale-105"
             >
               <div className="relative w-full aspect-[4/3]">
                 <Image
-                  src="/course_symbol.png"
+                  src="/academy_button.png"
                   alt="Academy"
                   fill
                   className="object-cover"
