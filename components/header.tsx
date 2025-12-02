@@ -200,11 +200,11 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
           {!loading && (
             <>
+              {/* Theme Toggle - always visible */}
+              <ThemeToggle />
+
               {user ? (
                 <>
-                  {/* Theme Toggle */}
-                  <ThemeToggle />
-
                   {/* Lessons Submission / Notifications */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -390,14 +390,14 @@ import { ThemeToggle } from "@/components/theme-toggle";
               ) : (
                 <>
                   {/* Sign In / Get Started for non-authenticated users */}
-                <div className="hidden sm:flex items-center gap-2">
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/auth/sign-in">Sign In</Link>
-                  </Button>
-                  <Button size="sm" asChild>
-                    <Link href="/auth/sign-up">Get Started</Link>
-                  </Button>
-                </div>
+                  <div className="hidden sm:flex items-center gap-2">
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href="/auth/sign-in">Sign In</Link>
+                    </Button>
+                    <Button size="sm" asChild>
+                      <Link href="/auth/sign-up">Get Started</Link>
+                    </Button>
+                  </div>
                 </>
               )}
             </>

@@ -28,7 +28,7 @@ export default async function InstructorPage({ params }: InstructorPageProps) {
             alt={instructor.name}
             width={128}
             height={128}
-            className="rounded-full w-32 h-32"
+            className="rounded-full w-32 h-32 object-cover object-top"
             unoptimized
           />
           <div className="flex-1 text-center md:text-left">

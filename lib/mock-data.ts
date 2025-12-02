@@ -8,7 +8,8 @@ export const mockInstructors: Instructor[] = [
   {
     id: "ai-instructor-1",
     name: "DeMentor",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Web3AIMentor",
+    // Local DeMentor avatar icon
+    avatar: "/dementor_avatar.png",
     bio: "Your AI-native mentor for Web3 and modern development. Available 24/7 to guide you through coding challenges, review your progress, and personalize your learning path.",
     specializations: ["Web3", "Solana", "Fullstack", "AI-Powered Teaching"],
     socials: {},

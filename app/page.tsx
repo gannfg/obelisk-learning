@@ -24,52 +24,45 @@ export default function Home() {
             <span className="text-[#3d1d9c] underline decoration-[#3d1d9c]">Together</span>
           </h1>
           <p 
-            className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-6 sm:mb-8 leading-relaxed opacity-70"
+            className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto leading-relaxed opacity-70"
             style={{ color: 'var(--foreground)' }}
           >
             We're here to help you master the skills you need for your next big project. Whether it's software development, web design, or building something entirely new—we'll craft a platform that elevates your vision to something truly remarkable. Ready to make it happen?
           </p>
-          <Link
-            href="/academy"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#3d1d9c] hover:bg-[#2f1675] text-white font-semibold rounded-lg transition-colors duration-200"
-          >
-            Start Today
-            <span className="text-lg">→</span>
-          </Link>
         </div>
       </section>
 
       {/* Main Content - 2 Boxes */}
       <section className="flex-1 container mx-auto px-4 sm:px-6 py-8 sm:py-12 md:py-16">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {/* Missions Box */}
             <Link
               href="/missions"
-              className="group relative block max-w-sm sm:max-w-md w-full mx-auto rounded-2xl overflow-hidden cursor-pointer transition-transform duration-300 hover:scale-105"
+              className="group relative block w-full rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 hover:shadow-2xl"
             >
-              <div className="relative w-full aspect-[4/3]">
+              <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-background to-muted">
                 <Image
-                  src="/mission_symbol.png"
+                  src="/mission.png"
                   alt="Missions"
                   fill
-                  className="object-cover"
+                  className="object-contain p-8 transition-transform duration-300 group-hover:scale-105"
                   priority
                 />
               </div>
             </Link>
 
-            {/* Academy Box (updated from Courses) */}
+            {/* Academy Box */}
             <Link
               href="/academy"
-              className="group relative flex items-center justify-center p-6 sm:p-8 rounded-2xl border-2 border-border bg-muted/30 hover:bg-muted/50 transition-all duration-300 hover:scale-105 hover:border-accent/50 cursor-pointer"
+              className="group relative block w-full rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 hover:shadow-2xl"
             >
-              <div className="relative w-full aspect-[4/3]">
+              <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-background to-muted">
                 <Image
-                  src="/course_symbol.png"
+                  src="/academy.png"
                   alt="Academy"
                   fill
-                  className="object-cover"
+                  className="object-contain p-8 transition-transform duration-300 group-hover:scale-105"
                   priority
                 />
               </div>
@@ -96,6 +89,21 @@ export default function Home() {
                   priority
                 />
               </div>
+              
+              {/* Floating Bubble Text */}
+              <div className="absolute top-[35%] sm:top-[30%] md:top-[25%] left-1/2 -translate-x-1/2 sm:left-[65%] sm:-translate-x-0 animate-bubble-float z-10 transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-2">
+                <div className="relative">
+                  {/* Blurry transparent container */}
+                  <div className="backdrop-blur-md bg-white/20 dark:bg-black/20 border border-white/30 dark:border-white/20 rounded-2xl px-6 py-3 shadow-lg transition-all duration-300 group-hover:shadow-2xl group-hover:bg-white/30 dark:group-hover:bg-black/30">
+                    <p className="text-sm sm:text-base md:text-lg font-semibold whitespace-nowrap" style={{ color: 'var(--foreground)' }}>
+                      Meet the DeMentor
+                    </p>
+                  </div>
+                  {/* Speech bubble tail */}
+                  <div className="absolute -bottom-2 left-8 w-4 h-4 backdrop-blur-md bg-white/20 dark:bg-black/20 border-l border-b border-white/30 dark:border-white/20 rotate-45 transform origin-center transition-all duration-300 group-hover:bg-white/30 dark:group-hover:bg-black/30"></div>
+                </div>
+              </div>
+              
               {/* Bottom fade-out */}
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
             </div>
