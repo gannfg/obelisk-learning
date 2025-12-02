@@ -7,7 +7,7 @@ import { useAdmin } from "@/lib/hooks/use-admin";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, FolderKanban, Users as UsersIcon } from "lucide-react";
+import { BookOpen, FolderKanban, Users as UsersIcon, Target } from "lucide-react";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -35,11 +35,11 @@ export default function AdminPage() {
       <div>
         <h1 className="text-3xl sm:text-4xl font-bold mb-3">Admin Panel</h1>
         <p className="text-base sm:text-lg text-muted-foreground">
-          Welcome{user?.email ? `, ${user.email}` : ""}. Manage courses, projects, and teams for the academy.
+          Welcome{user?.email ? `, ${user.email}` : ""}. Manage courses, missions, projects, and teams for the academy.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -54,6 +54,28 @@ export default function AdminPage() {
             <Button asChild className="w-full">
               <Link href="/admin/courses">Open Courses Admin</Link>
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Missions
+            </CardTitle>
+            <CardDescription>
+              Create and manage practice missions for learners.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              <Button asChild>
+                <Link href="/admin/missions">Open Missions Admin</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/missions">View Mission Board</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
