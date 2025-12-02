@@ -29,7 +29,6 @@ export default function AdminCoursesPage() {
   const { isAdmin, loading } = useAdmin();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createLearningClient();
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -53,6 +52,21 @@ export default function AdminCoursesPage() {
     e.preventDefault();
     setSaving(true);
     setError(null);
+
+    // Create Supabase client only on the client when form is submitted.
+    // This avoids throwing during build/prerender if env vars are missing.
+    let supabase;
+    try {
+      supabase = createLearningClient();
+    } catch (err: any) {
+      console.error("Supabase client not configured:", err);
+      setError(
+        err?.message ||
+          "Supabase environment variables are not configured. Please set NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL and NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_ANON_KEY."
+      );
+      setSaving(false);
+      return;
+    }
 
     const formData = new FormData(e.currentTarget);
     const title = formData.get("title") as string;
