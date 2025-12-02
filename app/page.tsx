@@ -13,11 +13,11 @@ export default function Home() {
       {/* Main Content - 2 Boxes */}
       <section className="flex-1 container mx-auto px-4 sm:px-6 py-12 sm:py-16 md:py-24">
         <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10">
             {/* Missions Box */}
             <Link
               href="/missions"
-              className="group relative block rounded-2xl border-2 border-border bg-muted/30 hover:bg-muted/50 transition-all duration-300 hover:scale-105 hover:border-primary/50 overflow-hidden cursor-pointer"
+              className="group relative block rounded-2xl overflow-hidden cursor-pointer transition-transform duration-300 hover:scale-105"
             >
               <div className="relative w-full aspect-[4/3]">
                 <Image
@@ -33,7 +33,7 @@ export default function Home() {
             {/* Courses Box */}
             <Link
               href="/courses"
-              className="group relative block rounded-2xl border-2 border-border bg-muted/30 hover:bg-muted/50 transition-all duration-300 hover:scale-105 hover:border-accent/50 overflow-hidden cursor-pointer"
+              className="group relative block rounded-2xl overflow-hidden cursor-pointer transition-transform duration-300 hover:scale-105"
             >
               <div className="relative w-full aspect-[4/3]">
                 <Image
