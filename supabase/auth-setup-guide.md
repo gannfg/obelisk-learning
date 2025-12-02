@@ -103,6 +103,41 @@ NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ## Troubleshooting
 
+### Server error (500) during signup
+
+If you see "Server error during signup" with a 500 status code, check the following:
+
+1. **Environment Variables:**
+   - Verify `.env.local` exists and has correct values
+   - Run `node scripts/check-env.js` to validate
+   - Ensure variables start with `NEXT_PUBLIC_`
+   - Restart your dev server after changing env vars
+
+2. **Supabase Auth Email Provider:**
+   - Go to Supabase Dashboard → Authentication → Providers
+   - Ensure **Email** provider is enabled
+   - Check that "Confirm email" is configured correctly
+
+3. **Database Schema:**
+   - Run `supabase/auth-schema.sql` in Supabase SQL Editor
+   - Verify the `users` table exists: `SELECT * FROM users LIMIT 1;`
+   - Check that triggers are created (see "Profile not created on signup" below)
+
+4. **Redirect URLs:**
+   - Go to Supabase Dashboard → Authentication → URL Configuration
+   - Add your redirect URL: `http://localhost:3000/auth/callback` (dev) or your production URL
+   - Ensure "Site URL" is set correctly
+
+5. **API Keys:**
+   - Verify you're using the **anon/public** key (not service_role)
+   - Check that the key matches your Supabase project
+   - Ensure the URL matches your project URL
+
+6. **Check Supabase Logs:**
+   - Go to Supabase Dashboard → Logs → API Logs
+   - Look for errors around the time of signup attempt
+   - Check for authentication errors or database errors
+
 ### Profile not created on signup
 
 1. Check if the trigger exists:

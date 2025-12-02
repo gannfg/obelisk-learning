@@ -27,8 +27,8 @@ export default function Home() {
             </Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="gap-2 w-full sm:w-auto text-sm sm:text-base h-10 sm:h-11">
-            <Link href="/courses">
-              Browse Courses
+            <Link href="/academy">
+              Browse Academy
             </Link>
           </Button>
           <Button asChild variant="ghost" size="lg" className="w-full sm:w-auto text-sm sm:text-base h-10 sm:h-11">
@@ -146,7 +146,7 @@ export default function Home() {
           <div className="mb-8 sm:mb-10 md:mb-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-medium">Featured Courses</h2>
             <Button asChild variant="ghost" className="text-xs sm:text-sm h-8 sm:h-9 md:h-10">
-              <Link href="/courses">View All</Link>
+              <Link href="/academy">View All</Link>
             </Button>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:gap-6 md:gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -174,7 +174,7 @@ export default function Home() {
             return (
               <Link
                 key={category}
-                href={`/courses?category=${encodeURIComponent(category)}`}
+                href={`/academy?category=${encodeURIComponent(category)}&tab=courses`}
                 className="block rounded-lg border border-border bg-background p-3 sm:p-4 md:p-6 text-center transition-all duration-300 ease-out hover:scale-105 hover:shadow-xl hover:-translate-y-1 active:scale-95 cursor-pointer"
               >
                 <h3 className="mb-1 sm:mb-2 text-xs sm:text-sm font-medium">
@@ -238,7 +238,7 @@ export default function Home() {
         </p>
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Button asChild size="lg">
-            <Link href="/courses">Browse All Courses</Link>
+            <Link href="/academy">Browse Academy</Link>
           </Button>
           <Button asChild variant="outline" size="lg">
             <Link href="/instructors">Instructors</Link>

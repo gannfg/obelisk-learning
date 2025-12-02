@@ -7,7 +7,6 @@
  import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
  import { Textarea } from "@/components/ui/textarea";
 import { Play, Loader2, CheckCircle2, XCircle, Save, RotateCcw, Terminal, ListChecks, Sparkles } from "lucide-react";
- import { getLessonGuideReply } from "@/lib/lesson-ai-guide";
 
 interface FileTree {
   [filename: string]: string;
@@ -58,21 +57,33 @@ interface FileTree {
 
     const starter = "What do you think this function does? Just guess.";
 
-    const reply = getLessonGuideReply({
-      lessonId,
-      lessonTitle,
-      lessonContent,
-      files,
-      message: starter,
-      lastOutput: lastRunOutput,
-      hadError: lastRunHadError,
-    });
-
+    // Auto-ask the AI with the starter question
     setActiveTab("ai");
     setAiPrompt(starter);
-    setAiResponse(reply);
     setHasShownGuideIntro(true);
-  }, [hasShownGuideIntro, lessonId, lessonTitle, lessonContent, files, lastRunOutput, lastRunHadError]);
+    
+    // Trigger the AI call
+    const askStarter = async () => {
+      const prompt = `LessonId: ${lessonId || "N/A"}\nLessonTitle: ${lessonTitle || "N/A"}\nLessonContent: ${lessonContent || ""}\n\nFiles:\n${Object.entries(files)
+        .map(([name, content]) => `### ${name}\n\`\`\`\n${content}\n\`\`\``)
+        .join("\n\n")}\n\nQuestion: ${starter}`;
+
+      try {
+        const res = await fetch("/api/ai/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, lessonId, missionId }),
+        });
+
+        const data = await res.json();
+        setAiResponse(data.answer || data.response || "No response received");
+      } catch (e) {
+        setAiResponse(`Failed to get AI response: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    };
+    
+    void askStarter();
+  }, [hasShownGuideIntro, lessonId, lessonTitle, lessonContent, files, missionId]);
 
   const handleEdit = useCallback((value: string | undefined) => {
     if (value !== undefined) {
@@ -144,33 +155,53 @@ interface FileTree {
     }
   }, [files, lessonId, missionId]);
 
- const askAI = useCallback(() => {
+ const askAI = useCallback(async () => {
    if (!aiPrompt.trim()) return;
  
    setIsAiLoading(true);
    setActiveTab("ai");
- 
+   setAiResponse("Thinking...");
+
+   // Build a comprehensive prompt with context
+   const prompt = `You are DeMentor, an AI coding mentor for Web3, Solana, and modern fullstack development.
+
+Lesson Context:
+- LessonId: ${lessonId || "N/A"}
+- LessonTitle: ${lessonTitle || "N/A"}
+- LessonContent: ${lessonContent || ""}
+
+Current Code Files:
+${Object.entries(files)
+  .map(([name, content]) => `### ${name}\n\`\`\`\n${content}\n\`\`\``)
+  .join("\n\n")}
+
+${lastRunOutput ? `Last Run Output:\n\`\`\`\n${lastRunOutput}\n\`\`\`\n` : ""}
+${lastRunHadError ? "Note: The last run had an error.\n" : ""}
+
+User Question: ${aiPrompt}
+
+Please provide helpful, step-by-step guidance. Speak clearly and concisely. Prefer step-by-step guidance over full code dumps. Ask clarifying questions when the user's goal is ambiguous.`;
+
    try {
-     const reply = getLessonGuideReply({
-       lessonId,
-       lessonTitle,
-       lessonContent,
-       files,
-       message: aiPrompt,
-       lastOutput: lastRunOutput,
-       hadError: lastRunHadError,
+     const res = await fetch("/api/ai/ask", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({ prompt, lessonId, missionId }),
      });
-     setAiResponse(reply);
+
+     const data = await res.json();
+     
+     if (data.error) {
+       setAiResponse(`Error: ${data.error}`);
+     } else {
+       setAiResponse(data.answer || data.response || "No response received");
+     }
    } catch (e) {
-     setAiResponse(
-       `Unable to generate guidance locally: ${
-         e instanceof Error ? e.message : String(e)
-       }`
-     );
+     setAiResponse(`Failed to get AI response: ${e instanceof Error ? e.message : String(e)}`);
    } finally {
      setIsAiLoading(false);
    }
- }, [aiPrompt, files, lessonContent, lessonId, lessonTitle, lastRunOutput, lastRunHadError]);
+ }, [aiPrompt, files, lessonContent, lessonId, lessonTitle, missionId, lastRunOutput, lastRunHadError]);
 
   const saveSnapshot = useCallback(async () => {
     try {

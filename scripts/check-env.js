@@ -15,7 +15,10 @@ if (!fs.existsSync(envPath)) {
 }
 
 const envContent = fs.readFileSync(envPath, 'utf-8');
-const lines = envContent.split('\n').filter(line => line.trim() && !line.trim().startsWith('#'));
+const lines = envContent.split('\n').filter(line => {
+  const trimmed = line.trim();
+  return trimmed && !trimmed.startsWith('#');
+});
 
 const requiredVars = [
   // Obelisk Learning Auth Supabase
@@ -34,10 +37,16 @@ const optionalVars = [
 ];
 
 const foundVars = new Set();
+const varValues = new Map();
 lines.forEach(line => {
-  const match = line.match(/^([A-Z_]+)=/);
+  const trimmed = line.trim();
+  // Match variable name at start of line (with optional whitespace), followed by =
+  const match = trimmed.match(/^([A-Z_][A-Z0-9_]*)\s*=\s*(.+)$/);
   if (match) {
-    foundVars.add(match[1]);
+    const varName = match[1];
+    const varValue = match[2].trim();
+    foundVars.add(varName);
+    varValues.set(varName, varValue);
   }
 });
 
@@ -47,9 +56,8 @@ let hasErrors = false;
 console.log('📋 Required Variables:');
 requiredVars.forEach(varName => {
   if (foundVars.has(varName)) {
-    const line = lines.find(l => l.startsWith(varName + '='));
-    const value = line ? line.split('=')[1]?.trim() : '';
-    if (value && !value.includes('your_') && value !== '') {
+    const value = varValues.get(varName) || '';
+    if (value && !value.includes('your_') && value !== '' && !value.match(/^https?:\/\/your_/)) {
       const masked = value.length > 14 
         ? `${value.substring(0, 10)}...${value.substring(value.length - 4)}`
         : '***';

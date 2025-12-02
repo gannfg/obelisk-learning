@@ -7,13 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getUserProfile, updateUserProfile, UserProfile } from "@/lib/profile";
-import { Loader2, Save, ArrowLeft } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { uploadProfilePicture } from "@/lib/storage";
+import { Loader2, Save, ArrowLeft, Upload, X, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const supabase = createClient();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,6 +30,9 @@ export default function ProfilePage() {
     last_name: "",
     bio: "",
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   // Load profile data
   useEffect(() => {
@@ -37,7 +44,7 @@ export default function ProfilePage() {
 
       setLoading(true);
       try {
-        const userProfile = await getUserProfile(user.id, user.email || undefined);
+        const userProfile = await getUserProfile(user.id, user.email || undefined, supabase);
         
         if (userProfile) {
           setProfile(userProfile);
@@ -64,7 +71,7 @@ export default function ProfilePage() {
     };
 
     loadProfile();
-  }, [user, authLoading]);
+  }, [user, authLoading, supabase]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -80,11 +87,11 @@ export default function ProfilePage() {
         first_name: formData.first_name || null,
         last_name: formData.last_name || null,
         bio: formData.bio || null,
-      }, email);
+      }, email, supabase);
 
       if (updateSuccess) {
         // Reload profile
-        const updatedProfile = await getUserProfile(user.id, user.email || undefined);
+        const updatedProfile = await getUserProfile(user.id, user.email || undefined, supabase);
         if (updatedProfile) {
           setProfile(updatedProfile);
           setFormData({
@@ -106,6 +113,65 @@ export default function ProfilePage() {
       setError(`An error occurred: ${error?.message || 'Unknown error'}. Please check the console for details.`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleForceSync = async () => {
+    if (!user) return;
+
+    setSyncing(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      const email = user.email || '';
+      
+      // Force sync all fields from auth provider
+      const updates: any = {
+        email: email,
+      };
+
+      // Sync username from auth provider
+      if (user.user_metadata?.username) {
+        updates.username = user.user_metadata.username;
+      }
+
+      // Sync names from auth provider
+      const authFirstName = user.user_metadata?.first_name || user.user_metadata?.full_name?.split(' ')[0] || null;
+      const authLastName = user.user_metadata?.last_name || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null;
+      
+      if (authFirstName) updates.first_name = authFirstName;
+      if (authLastName) updates.last_name = authLastName;
+
+      // Only sync image if profile doesn't have one (preserve uploaded pictures)
+      if (!profile?.image_url && user.user_metadata?.avatar_url) {
+        updates.image_url = user.user_metadata.avatar_url;
+      }
+
+      const syncSuccess = await updateUserProfile(user.id, updates, email, supabase);
+
+      if (syncSuccess) {
+        // Reload profile
+        const updatedProfile = await getUserProfile(user.id, user.email || undefined, supabase);
+        if (updatedProfile) {
+          setProfile(updatedProfile);
+          setFormData({
+            username: updatedProfile.username || "",
+            first_name: updatedProfile.first_name || "",
+            last_name: updatedProfile.last_name || "",
+            bio: updatedProfile.bio || "",
+          });
+        }
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      } else {
+        setError("Failed to sync profile. Please check the browser console for details.");
+      }
+    } catch (error: any) {
+      console.error("Error syncing profile:", error);
+      setError(`Sync error: ${error?.message || 'Unknown error'}. Please check the console for details.`);
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -137,27 +203,32 @@ export default function ProfilePage() {
     );
   }
 
-  const displayProfile: UserProfile = profile || {
+  // Merge database profile with auth provider data (auth provider takes precedence for missing fields)
+  const displayProfile: UserProfile = {
     id: user.id,
     email: user.email || "",
-    username: user.user_metadata?.username || null,
-    first_name: user.user_metadata?.first_name || user.user_metadata?.full_name?.split(' ')[0] || null,
-    last_name: user.user_metadata?.last_name || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null,
-    image_url: user.user_metadata?.avatar_url || null,
-    bio: null,
+    // Use database value if available, otherwise fall back to auth provider
+    username: profile?.username || user.user_metadata?.username || null,
+    first_name: profile?.first_name || user.user_metadata?.first_name || user.user_metadata?.full_name?.split(' ')[0] || null,
+    last_name: profile?.last_name || user.user_metadata?.last_name || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null,
+    // Prefer database image_url (user-uploaded) over auth provider avatar
+    image_url: profile?.image_url || user.user_metadata?.avatar_url || null,
+    bio: profile?.bio || null,
+    created_at: profile?.created_at,
+    updated_at: profile?.updated_at,
   };
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 pb-20 md:pb-8 max-w-4xl">
-      <div className="mb-4 sm:mb-6">
-        <Button asChild variant="ghost" size="sm" className="mb-3 sm:mb-4 text-xs sm:text-sm h-7 sm:h-8 md:h-9">
+    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-4xl">
+      <div className="mb-8">
+        <Button asChild variant="ghost" size="sm" className="mb-4">
           <Link href="/dashboard">
-            <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+            <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Link>
         </Button>
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-medium mb-2">Profile</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-3">Profile</h1>
+        <p className="text-base sm:text-lg text-muted-foreground">
           Manage your profile information and preferences.
         </p>
       </div>
@@ -176,25 +247,44 @@ export default function ProfilePage() {
           )}
 
           {/* Edit Form */}
-          <Card className="p-4 sm:p-5 md:p-6">
-            <CardHeader className="p-0 pb-4 sm:pb-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <CardTitle className="text-lg sm:text-xl md:text-2xl">{isEditing ? "Edit Profile" : "Profile Information"}</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
+                  <CardTitle className="text-2xl">{isEditing ? "Edit Profile" : "Profile Information"}</CardTitle>
+                  <CardDescription>
                     {isEditing
                       ? "Update your profile information below."
                       : "View and edit your profile information."}
                   </CardDescription>
                 </div>
                 {!isEditing && (
-                  <Button onClick={() => setIsEditing(true)} variant="outline" className="text-xs sm:text-sm h-8 sm:h-9 md:h-10 w-full sm:w-auto">
-                    Edit
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={handleForceSync} 
+                      variant="outline" 
+                      disabled={syncing}
+                    >
+                      {syncing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Syncing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Sync from Auth
+                        </>
+                      )}
+                    </Button>
+                    <Button onClick={() => setIsEditing(true)} variant="outline">
+                      Edit
+                    </Button>
+                  </div>
                 )}
               </div>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent>
               {/* Error Message */}
               {error && (
                 <div className="mb-4 p-3 rounded-md bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
@@ -213,6 +303,120 @@ export default function ProfilePage() {
 
               {isEditing ? (
                 <div className="space-y-6">
+                  {/* Profile Picture Upload */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Profile Picture</label>
+                    <div className="flex items-center gap-4">
+                      <div className="relative">
+                        {(imagePreview || displayProfile.image_url) ? (
+                          <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-border">
+                            <Image
+                              src={imagePreview || displayProfile.image_url || ''}
+                              alt="Profile"
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center border-2 border-border">
+                            <span className="text-2xl font-medium text-muted-foreground">
+                              {user.email?.charAt(0).toUpperCase() || 'U'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          id="profile-picture"
+                          accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file || !user) return;
+
+                            // Validate file size (5MB max)
+                            if (file.size > 5 * 1024 * 1024) {
+                              setError('Image size must be less than 5MB');
+                              return;
+                            }
+
+                            // Create preview
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setImagePreview(reader.result as string);
+                            };
+                            reader.readAsDataURL(file);
+
+                            // Upload to Supabase Storage
+                            setUploadingImage(true);
+                            setError(null);
+                            try {
+                              const imageUrl = await uploadProfilePicture(file, user.id, supabase);
+                              if (imageUrl) {
+                                // Update profile with new image URL
+                                await updateUserProfile(
+                                  user.id,
+                                  { image_url: imageUrl },
+                                  user.email || '',
+                                  supabase
+                                );
+                                // Reload profile
+                                const updatedProfile = await getUserProfile(user.id, user.email || undefined, supabase);
+                                if (updatedProfile) {
+                                  setProfile(updatedProfile);
+                                  setImagePreview(null);
+                                }
+                              } else {
+                                setError('Failed to upload image. Please try again.');
+                                setImagePreview(null);
+                              }
+                            } catch (err) {
+                              console.error('Error uploading image:', err);
+                              setError('Failed to upload image. Please try again.');
+                              setImagePreview(null);
+                            } finally {
+                              setUploadingImage(false);
+                            }
+                          }}
+                          disabled={uploadingImage}
+                        />
+                        <label
+                          htmlFor="profile-picture"
+                          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-border rounded-md cursor-pointer hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {uploadingImage ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4" />
+                              {displayProfile.image_url ? 'Change Picture' : 'Upload Picture'}
+                            </>
+                          )}
+                        </label>
+                        {imagePreview && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="ml-2"
+                            onClick={() => setImagePreview(null)}
+                            disabled={uploadingImage}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      JPG, PNG, GIF or WEBP. Max 5MB.
+                    </p>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label htmlFor="first_name" className="text-sm font-medium">
@@ -294,6 +498,7 @@ export default function ProfilePage() {
                       variant="outline"
                       onClick={() => {
                         setIsEditing(false);
+                        setImagePreview(null);
                         // Reset form data to current profile
                         if (profile) {
                           setFormData({
