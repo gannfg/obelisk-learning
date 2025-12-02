@@ -10,8 +10,37 @@ import { Target, BookOpen } from "lucide-react";
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
+      {/* Hero Section */}
+      <section className="container mx-auto px-4 sm:px-6 pt-16 sm:pt-20 md:pt-24 pb-8 sm:pb-12">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 
+            className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6 leading-tight"
+            style={{ color: 'var(--foreground)' }}
+          >
+            Your Vision, Our{" "}
+            <span className="text-[#3d1d9c]">Expertise</span>
+            <br className="hidden sm:block" />
+            <span className="block sm:inline mt-2 sm:mt-0">— Let's Build </span>
+            <span className="text-[#3d1d9c] underline decoration-[#3d1d9c]">Together</span>
+          </h1>
+          <p 
+            className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-6 sm:mb-8 leading-relaxed opacity-70"
+            style={{ color: 'var(--foreground)' }}
+          >
+            We're here to help you master the skills you need for your next big project. Whether it's software development, web design, or building something entirely new—we'll craft a platform that elevates your vision to something truly remarkable. Ready to make it happen?
+          </p>
+          <Link
+            href="/academy"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#3d1d9c] hover:bg-[#2f1675] text-white font-semibold rounded-lg transition-colors duration-200"
+          >
+            Start Today
+            <span className="text-lg">→</span>
+          </Link>
+        </div>
+      </section>
+
       {/* Main Content - 2 Boxes */}
-      <section className="flex-1 container mx-auto px-4 sm:px-6 py-12 sm:py-16 md:py-24">
+      <section className="flex-1 container mx-auto px-4 sm:px-6 py-8 sm:py-12 md:py-16">
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10">
             {/* Missions Box */}
