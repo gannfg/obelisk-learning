@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getUserProfile } from "@/lib/profile";
+import { ThemeToggle } from "@/components/theme-toggle";
  
  export function Header() {
    const { user, loading } = useAuth();
@@ -201,6 +202,9 @@ import { getUserProfile } from "@/lib/profile";
             <>
               {user ? (
                 <>
+                  {/* Theme Toggle */}
+                  <ThemeToggle />
+
                   {/* Lessons Submission / Notifications */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
