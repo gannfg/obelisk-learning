@@ -21,19 +21,19 @@ This file contains seed data for 3 dummy missions that you can add to your datab
 - **Difficulty:** Beginner
 - **Stack:** Next.js
 - **Time:** 30 minutes
-- **ID:** `mission-1`
+- **ID:** `550e8400-e29b-41d4-a716-446655440001`
 
 ### Mission 2: Create a REST API with Python
 - **Difficulty:** Intermediate
 - **Stack:** Python
 - **Time:** 45 minutes
-- **ID:** `mission-2`
+- **ID:** `550e8400-e29b-41d4-a716-446655440002`
 
 ### Mission 3: Deploy Your First Solana Program
 - **Difficulty:** Advanced
 - **Stack:** Solana
 - **Time:** 60 minutes
-- **ID:** `mission-3`
+- **ID:** `550e8400-e29b-41d4-a716-446655440003`
 
 ## Adding Images Later
 
@@ -48,7 +48,7 @@ When you're ready to add images for the missions:
    ```sql
    UPDATE missions 
    SET image_url = '/path/to/your/image.png' 
-   WHERE id = 'mission-1'::uuid;
+   WHERE id = '550e8400-e29b-41d4-a716-446655440001'::uuid;
    ```
 
 2. **Option 2: Store images in Supabase Storage**

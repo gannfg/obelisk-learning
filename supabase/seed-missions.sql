@@ -14,7 +14,7 @@ INSERT INTO missions (
   estimated_time,
   order_index
 ) VALUES (
-  'mission-1'::uuid,
+  '550e8400-e29b-41d4-a716-446655440001'::uuid,
   'Build Your First Next.js App',
   'Create a simple Next.js application with a home page and navigation',
   'Learn the fundamentals of Next.js by building a basic application. This mission will introduce you to the Next.js file-based routing system, components, and basic styling.',
@@ -40,7 +40,7 @@ INSERT INTO missions (
   estimated_time,
   order_index
 ) VALUES (
-  'mission-2'::uuid,
+  '550e8400-e29b-41d4-a716-446655440002'::uuid,
   'Create a REST API with Python',
   'Build a RESTful API using Python and Flask that handles CRUD operations',
   'Master backend development by creating a fully functional REST API. You''ll learn about HTTP methods, request handling, JSON responses, and database integration.',
@@ -66,7 +66,7 @@ INSERT INTO missions (
   estimated_time,
   order_index
 ) VALUES (
-  'mission-3'::uuid,
+  '550e8400-e29b-41d4-a716-446655440003'::uuid,
   'Deploy Your First Solana Program',
   'Write and deploy a Solana smart contract (program) that handles basic token operations',
   'Dive into Web3 development by creating a Solana program. Learn about accounts, instructions, and the Solana program model. This mission will teach you the fundamentals of blockchain development on Solana.',
@@ -88,8 +88,8 @@ INSERT INTO mission_content (
   checklist,
   advanced_tips
 ) VALUES (
-  'mission-content-1'::uuid,
-  'mission-1'::uuid,
+  '550e8400-e29b-41d4-a716-446655440101'::uuid,
+  '550e8400-e29b-41d4-a716-446655440001'::uuid,
   '# Build Your First Next.js App
 
 ## Overview
@@ -133,8 +133,8 @@ INSERT INTO mission_content (
   checklist,
   advanced_tips
 ) VALUES (
-  'mission-content-2'::uuid,
-  'mission-2'::uuid,
+  '550e8400-e29b-41d4-a716-446655440102'::uuid,
+  '550e8400-e29b-41d4-a716-446655440002'::uuid,
   '# Create a REST API with Python
 
 ## Overview
@@ -185,8 +185,8 @@ INSERT INTO mission_content (
   checklist,
   advanced_tips
 ) VALUES (
-  'mission-content-3'::uuid,
-  'mission-3'::uuid,
+  '550e8400-e29b-41d4-a716-446655440103'::uuid,
+  '550e8400-e29b-41d4-a716-446655440003'::uuid,
   '# Deploy Your First Solana Program
 
 ## Overview
