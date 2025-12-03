@@ -6,11 +6,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Calendar, FolderKanban, UserPlus, Loader2 } from "lucide-react";
-import { getTeamById, TeamWithDetails } from "@/lib/teams";
+import { Users, Calendar, FolderKanban, UserPlus, Loader2, Trash2, Edit } from "lucide-react";
+import { getTeamById, TeamWithDetails, deleteTeam, updateTeam } from "@/lib/teams";
 import { getProjectById } from "@/lib/projects";
 import { createClient } from "@/lib/supabase/client";
 import { getUserProfile } from "@/lib/profile";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { useAdmin } from "@/lib/hooks/use-admin";
 
 export default function TeamPage() {
   const params = useParams();
@@ -21,6 +23,12 @@ export default function TeamPage() {
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [teamProjects, setTeamProjects] = useState<Array<{ id: string; title: string; status: string }>>([]);
   const supabase = createClient();
+  const { user } = useAuth();
+  const { isAdmin } = useAdmin();
+  const [saving, setSaving] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
   useEffect(() => {
     const loadTeam = async () => {
@@ -32,6 +40,8 @@ export default function TeamPage() {
           return;
         }
         setTeam(data);
+        setEditName(data.name);
+        setEditDescription(data.description || "");
 
         // Fetch member names
         if (data.members && data.members.length > 0) {
@@ -101,6 +111,63 @@ export default function TeamPage() {
     );
   }
 
+  const canManageTeam =
+    !!user &&
+    (isAdmin ||
+      team.createdBy === user.id ||
+      team.members.some(
+        (m) =>
+          m.userId === user.id && (m.role === "owner" || m.role === "admin")
+      ));
+
+  const handleDeleteTeam = async () => {
+    if (!canManageTeam) return;
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this team? This cannot be undone."
+    );
+    if (!confirmed) return;
+
+    setSaving(true);
+    try {
+      const ok = await deleteTeam(team.id, supabase);
+      if (ok) {
+        window.location.href = "/academy/teams";
+      } else {
+        setSaving(false);
+      }
+    } catch (e) {
+      console.error("Error deleting team:", e);
+      setSaving(false);
+    }
+  };
+
+  const handleSaveTeam = async () => {
+    if (!canManageTeam) return;
+    setSaving(true);
+    try {
+      const ok = await updateTeam(
+        team.id,
+        {
+          name: editName,
+          description: editDescription,
+        },
+        supabase
+      );
+      if (ok) {
+        setTeam({
+          ...team,
+          name: editName,
+          description: editDescription || undefined,
+        });
+        setEditMode(false);
+      }
+    } catch (e) {
+      console.error("Error updating team:", e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
       <div className="mb-8">
@@ -113,14 +180,66 @@ export default function TeamPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="mb-3 text-3xl sm:text-4xl font-bold flex items-center gap-3">
-              {team.name}
+              {editMode ? (
+                <input
+                  className="rounded-md border border-border bg-background px-2 py-1 text-lg font-semibold"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
+              ) : (
+                team.name
+              )}
             </h1>
-            <p className="text-base sm:text-lg text-muted-foreground">{team.description}</p>
+            {editMode ? (
+              <textarea
+                className="w-full rounded-md border border-border bg-background p-2 text-sm"
+                rows={3}
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            ) : (
+              <p className="text-base sm:text-lg text-muted-foreground">
+                {team.description}
+              </p>
+            )}
           </div>
-          <Button>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Invite Members
-          </Button>
+          <div className="flex gap-2">
+            <Button>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Invite Members
+            </Button>
+            {canManageTeam && (
+              <>
+                {editMode && (
+                  <Button
+                    size="sm"
+                    onClick={handleSaveTeam}
+                    disabled={saving}
+                  >
+                    {saving ? "Saving..." : "Save Changes"}
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditMode((v) => !v)}
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  {editMode ? "Cancel" : "Edit Team"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                  onClick={handleDeleteTeam}
+                  disabled={saving}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  {saving ? "Deleting..." : "Delete"}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -178,6 +297,19 @@ export default function TeamPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="flex justify-end mb-3">
+              {canManageTeam && (
+                <Button
+                  asChild
+                  size="sm"
+                >
+                  <Link href={`/academy/projects/new?teamId=${team.id}`}>
+                    <FolderKanban className="h-4 w-4 mr-1" />
+                    Create Project in Team
+                  </Link>
+                </Button>
+              )}
+            </div>
             <div className="space-y-3">
               {teamProjects.length > 0 ? (
                 teamProjects.map((project) => (

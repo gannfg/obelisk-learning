@@ -74,6 +74,7 @@ export type Mission = {
   title: string;
   goal: string;
   description?: string;
+  imageUrl?: string;
   initialFiles: Record<string, string>;
   stackType: "nextjs" | "python" | "solana" | "node" | "react" | "other";
   difficulty: "beginner" | "intermediate" | "advanced";
@@ -168,6 +169,7 @@ export type Project = {
   updatedAt: Date;
   repositoryUrl?: string;
   liveUrl?: string;
+  progressLog?: string;
   members?: ProjectMember[];
 };
 

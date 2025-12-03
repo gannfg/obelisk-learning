@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FolderKanban, Plus, Loader2 } from "lucide-react";
+import { FolderKanban, Plus, Loader2, Users } from "lucide-react";
 import { getAllProjects, ProjectWithMembers } from "@/lib/projects";
 import { createClient } from "@/lib/supabase/client";
 
@@ -60,7 +61,20 @@ export default function ProjectsPage() {
       ) : projects.length > 0 ? (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <Card key={project.id} className="overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl">
+            <Card
+              key={project.id}
+              className="overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl"
+            >
+              {project.thumbnail && (
+                <div className="relative w-full h-40 overflow-hidden">
+                  <Image
+                    src={project.thumbnail}
+                    alt={project.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              )}
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-xl">{project.title}</CardTitle>
@@ -89,7 +103,7 @@ export default function ProjectsPage() {
                     </span>
                   ))}
                 </div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <FolderKanban className="h-4 w-4" />
@@ -98,6 +112,25 @@ export default function ProjectsPage() {
                     <span className="capitalize">{project.difficulty}</span>
                   </div>
                 </div>
+                {project.members && project.members.length > 0 && (
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="flex -space-x-2">
+                      {project.members.slice(0, 5).map((member) => (
+                        <div
+                          key={member.userId}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-primary/10 text-xs font-medium text-primary"
+                        >
+                          <Users className="h-4 w-4" />
+                        </div>
+                      ))}
+                    </div>
+                    {project.members.length > 5 && (
+                      <span className="text-xs text-muted-foreground">
+                        +{project.members.length - 5} more
+                      </span>
+                    )}
+                  </div>
+                )}
                 <Button variant="outline" size="sm" className="w-full" asChild>
                   <Link href={`/academy/projects/${project.id}`}>View Project</Link>
                 </Button>

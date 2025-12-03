@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
+import { uploadMissionImage } from "@/lib/storage";
 import { Loader2, Target } from "lucide-react";
 
 export default function AdminMissionsPage() {
@@ -29,13 +30,38 @@ export default function AdminMissionsPage() {
   const { isAdmin, loading } = useAdmin();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [missions, setMissions] = useState<any[]>([]);
+  const [missionsLoading, setMissionsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
     if (!loading && !isAdmin) {
       router.replace("/");
+      return;
     }
-  }, [loading, isAdmin, router]);
+    if (!loading && isAdmin) {
+      loadMissions();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, isAdmin]);
+
+  const loadMissions = async () => {
+    setMissionsLoading(true);
+    const { data, error } = await supabase
+      .from("missions")
+      .select("*")
+      .order("order_index", { ascending: true });
+
+    if (error) {
+      console.error("Error loading missions for admin:", error);
+      setError(error.message || "Failed to load missions.");
+      setMissions([]);
+    } else {
+      setMissions(data || []);
+    }
+    setMissionsLoading(false);
+  };
 
   if (loading || !isAdmin) {
     return (
@@ -62,6 +88,7 @@ export default function AdminMissionsPage() {
     const stackType = formData.get("stackType") as string;
     const estimatedTimeRaw = formData.get("estimatedTime") as string;
     const orderIndexRaw = formData.get("orderIndex") as string;
+    const imageFile = formData.get("image") as File | null;
 
     const estimatedTime = estimatedTimeRaw
       ? Number.parseInt(estimatedTimeRaw, 10)
@@ -71,6 +98,12 @@ export default function AdminMissionsPage() {
       : 0;
 
     try {
+      let imageUrl: string | null = null;
+
+      if (imageFile && imageFile instanceof File && imageFile.size > 0) {
+        imageUrl = await uploadMissionImage(imageFile, null, supabase);
+      }
+
       const { data, error: insertError } = await supabase
         .from("missions")
         .insert({
@@ -81,13 +114,19 @@ export default function AdminMissionsPage() {
           stack_type: stackType,
           estimated_time: estimatedTime,
           order_index: orderIndex,
+          image_url: imageUrl,
           initial_files: {}, // start with empty files; can be edited later via IDE
         })
         .select("id")
         .single();
 
       if (insertError) {
-        console.error("Error creating mission:", insertError);
+        console.error("Error creating mission:", {
+          message: insertError.message,
+          code: insertError.code,
+          details: insertError.details,
+          hint: insertError.hint,
+        });
         setError(
           insertError.message ||
             "Failed to create mission. Check RLS policies for missions table."
@@ -97,6 +136,7 @@ export default function AdminMissionsPage() {
       }
 
       if (data?.id) {
+        await loadMissions();
         router.push(`/missions/${data.id}`);
       } else {
         setError("Mission created but no ID returned from Supabase.");
@@ -109,6 +149,29 @@ export default function AdminMissionsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    const mission = missions.find((m) => m.id === id);
+    const title = mission?.title || "this mission";
+
+    if (!window.confirm(`Are you sure you want to delete "${title}"? This cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingId(id);
+    setError(null);
+
+    const { error } = await supabase.from("missions").delete().eq("id", id);
+
+    if (error) {
+      console.error("Error deleting mission:", error);
+      setError(error.message || "Failed to delete mission.");
+    } else {
+      setMissions((prev) => prev.filter((m) => m.id !== id));
+    }
+
+    setDeletingId(null);
   };
 
   return (
@@ -241,6 +304,21 @@ export default function AdminMissionsPage() {
               />
             </div>
 
+            <div className="space-y-2">
+              <label htmlFor="image" className="text-sm font-medium">
+                Mission Image (optional)
+              </label>
+              <Input
+                id="image"
+                name="image"
+                type="file"
+                accept="image/*"
+              />
+              <p className="text-xs text-muted-foreground">
+                This image will be used as the mission thumbnail on the Mission Board.
+              </p>
+            </div>
+
             <div className="flex gap-4">
               <Button type="submit" className="flex-1" disabled={saving}>
                 {saving ? (
@@ -257,6 +335,62 @@ export default function AdminMissionsPage() {
               </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Existing missions list */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Existing Missions</CardTitle>
+          <CardDescription>
+            Manage missions currently available on the Mission Board.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {missionsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading missions...</p>
+          ) : missions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No missions created yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {missions.map((mission) => (
+                <div
+                  key={mission.id}
+                  className="flex items-center justify-between gap-4 rounded-md border border-border px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{mission.title}</p>
+                    <p className="text-xs text-muted-foreground flex gap-2">
+                      <span>{mission.difficulty}</span>
+                      <span>•</span>
+                      <span>{mission.stack_type}</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/missions/${mission.id}`}>View</Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-red-500 text-red-600 hover:bg-red-500/10"
+                      onClick={() => handleDelete(mission.id)}
+                      disabled={deletingId === mission.id}
+                    >
+                      {deletingId === mission.id ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        "Delete"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

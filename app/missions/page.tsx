@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Target, Clock, CheckCircle2, Circle, Trophy, Filter, Sparkles, Code2 } from "lucide-react";
@@ -43,7 +44,24 @@ export default function MissionBoardPage() {
         return;
       }
 
-      setMissions((missionsData as Mission[]) || []);
+      // Normalize Supabase (snake_case) payload into Mission type (camelCase)
+      const normalizedMissions: Mission[] =
+        (missionsData || []).map((m: any) => ({
+          id: m.id,
+          lessonId: m.lesson_id ?? undefined,
+          title: m.title,
+          goal: m.goal,
+          description: m.description ?? undefined,
+          imageUrl: m.image_url ?? undefined,
+          initialFiles: m.initial_files ?? {},
+          stackType: m.stack_type,
+          difficulty: m.difficulty,
+          estimatedTime: m.estimated_time ?? undefined,
+          orderIndex: m.order_index,
+          badgeId: m.badge_id ?? undefined,
+        })) || [];
+
+      setMissions(normalizedMissions);
 
       // Fetch progress for authenticated users
       if (user) {
@@ -83,7 +101,9 @@ export default function MissionBoardPage() {
     );
   }
 
-  const stackTypes = Array.from(new Set(missions.map((m) => m.stackType)));
+  const stackTypes = Array.from(
+    new Set(missions.map((m) => m.stackType).filter((stack) => Boolean(stack)))
+  );
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
@@ -111,7 +131,7 @@ export default function MissionBoardPage() {
 
       {/* Filters */}
       <Card className="p-4 mb-6">
-        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -172,11 +192,21 @@ export default function MissionBoardPage() {
             return (
               <Link key={mission.id} href={`/missions/${mission.id}`}>
                 <Card
-                  className={`p-6 h-full transition-all duration-300 ease-out cursor-pointer hover:scale-105 hover:shadow-xl hover:-translate-y-1 ${
+                  className={`overflow-hidden h-full transition-all duration-300 ease-out cursor-pointer hover:scale-105 hover:shadow-xl hover:-translate-y-1 ${
                     isCompleted ? "border-green-500/50 bg-green-500/5" : ""
                   }`}
                 >
-                  <div className="flex items-start gap-3 mb-4">
+                  {mission.imageUrl && (
+                    <div className="relative w-full h-36 mb-4">
+                      <Image
+                        src={mission.imageUrl}
+                        alt={mission.title}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex items-start gap-3 mb-4 px-6">
                     <div className={`p-2 rounded-lg shrink-0 ${isCompleted ? "bg-green-500/20" : "bg-primary/10"}`}>
                       <Target className={`h-5 w-5 ${isCompleted ? "text-green-600" : "text-primary"}`} />
                     </div>
@@ -197,9 +227,10 @@ export default function MissionBoardPage() {
                     )}
                   </div>
 
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                    {mission.goal}
-                  </p>
+                  <div className="px-6">
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                      {mission.goal}
+                    </p>
 
                   {totalItems > 0 && (
                     <div className="mb-4">
@@ -218,17 +249,18 @@ export default function MissionBoardPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Code2 className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs px-2 py-1 rounded bg-muted font-medium">
-                        {mission.stackType}
-                      </span>
+                    <div className="flex items-center justify-between px-6 pb-4">
+                      <div className="flex items-center gap-2">
+                        <Code2 className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs px-2 py-1 rounded bg-muted font-medium">
+                          {mission.stackType}
+                        </span>
+                      </div>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        {isCompleted ? "Review" : "Start"}
+                        <Circle className="h-3 w-3" />
+                      </Button>
                     </div>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      {isCompleted ? "Review" : "Start"}
-                      <Circle className="h-3 w-3" />
-                    </Button>
                   </div>
                 </Card>
               </Link>

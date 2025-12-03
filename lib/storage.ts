@@ -160,6 +160,51 @@ export async function uploadCourseImage(
 }
 
 /**
+ * Upload a mission image to Supabase Storage.
+ * Reuses the public `course-images` bucket so missions and courses share the same image space.
+ * @param file - The file to upload
+ * @param missionId - The mission ID (optional, for organizing files)
+ * @param supabaseClient - Authenticated Supabase client
+ * @returns The public URL of the uploaded image, or null if upload failed
+ */
+export async function uploadMissionImage(
+  file: File,
+  missionId: string | null,
+  supabaseClient: any
+): Promise<string | null> {
+  try {
+    const fileExt = file.name.split(".").pop();
+    const timestamp = Date.now();
+    const fileName = missionId
+      ? `${missionId}/${timestamp}.${fileExt}`
+      : `${timestamp}.${fileExt}`;
+
+    const filePath = `missions/${fileName}`;
+
+    const { error } = await supabaseClient.storage
+      .from("course-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("Error uploading mission image:", error);
+      return null;
+    }
+
+    const { data: urlData } = supabaseClient.storage
+      .from("course-images")
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error("Error in uploadMissionImage:", error);
+    return null;
+  }
+}
+
+/**
  * Delete a course image from Supabase Storage
  * @param filePath - The path to the file (e.g., "course-images/course-id/filename.jpg")
  * @param supabaseClient - Authenticated Supabase client
@@ -188,6 +233,88 @@ export async function deleteCourseImage(
   } catch (error) {
     console.error('Error in deleteCourseImage:', error);
     return false;
+  }
+}
+
+/**
+ * Upload a project image (thumbnail) to Supabase Storage (Auth Supabase)
+ * Stored in the public "project-images" bucket.
+ */
+export async function uploadProjectImage(
+  file: File,
+  projectId: string | null,
+  supabaseClient: any
+): Promise<string | null> {
+  try {
+    const fileExt = file.name.split(".").pop();
+    const timestamp = Date.now();
+    const fileName = projectId
+      ? `${projectId}/${timestamp}.${fileExt}`
+      : `${timestamp}.${fileExt}`;
+
+    const filePath = `projects/${fileName}`;
+
+    const { error } = await supabaseClient.storage
+      .from("project-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("Error uploading project image:", error);
+      return null;
+    }
+
+    const { data: urlData } = supabaseClient.storage
+      .from("project-images")
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error("Error in uploadProjectImage:", error);
+    return null;
+  }
+}
+
+/**
+ * Upload a team avatar image to Supabase Storage (Auth Supabase)
+ * Stored in the public "team-avatars" bucket.
+ */
+export async function uploadTeamAvatar(
+  file: File,
+  teamId: string | null,
+  supabaseClient: any
+): Promise<string | null> {
+  try {
+    const fileExt = file.name.split(".").pop();
+    const timestamp = Date.now();
+    const fileName = teamId
+      ? `${teamId}/${timestamp}.${fileExt}`
+      : `${timestamp}.${fileExt}`;
+
+    const filePath = `teams/${fileName}`;
+
+    const { error } = await supabaseClient.storage
+      .from("team-avatars")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("Error uploading team avatar:", error);
+      return null;
+    }
+
+    const { data: urlData } = supabaseClient.storage
+      .from("team-avatars")
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error("Error in uploadTeamAvatar:", error);
+    return null;
   }
 }
 
