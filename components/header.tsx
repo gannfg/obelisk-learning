@@ -1,9 +1,9 @@
  "use client";
  
- import Link from "next/link";
- import Image from "next/image";
+import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
- import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
  import {
    DropdownMenu,
    DropdownMenuContent,
@@ -32,11 +32,13 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getUserProfile } from "@/lib/profile";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAdmin } from "@/lib/hooks/use-admin";
  
  export function Header() {
-   const { user, loading } = useAuth();
+  const { user, loading } = useAuth();
   const pathname = usePathname();
   const supabase = createClient();
+  const { isAdmin } = useAdmin();
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("");
   const [notificationCount, setNotificationCount] = useState(0);
@@ -124,12 +126,16 @@ import { ThemeToggle } from "@/components/theme-toggle";
     window.location.href = "/";
   };
 
-  const navItems = [
+  const baseNavItems = [
     { href: "/missions", label: "Missions" },
     { href: "/academy", label: "Academy" },
     { href: "/instructors", label: "Mentors" },
     { href: "/mentor-chat", label: "Chat" },
   ];
+
+  const navItems = isAdmin
+    ? [...baseNavItems, { href: "/admin", label: "Admin" }]
+    : baseNavItems;
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";

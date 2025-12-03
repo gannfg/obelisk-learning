@@ -22,8 +22,12 @@ export function useAdmin() {
 
       try {
         const profile = await getUserProfile(user.id, user.email || undefined, supabase);
-        // Fallback: treat configured email as admin even if profile missing flag
-        const isEmailAdmin = user.email === "gany.wicaksono@gmail.com";
+        // Fallback: treat specific emails as admin even if profile is missing flag
+        const adminEmails = new Set([
+          "gany.wicaksono@gmail.com",
+          "amirsafruddin99@gmail.com",
+        ]);
+        const isEmailAdmin = user.email ? adminEmails.has(user.email) : false;
         setIsAdmin(Boolean(profile?.is_admin) || isEmailAdmin);
       } catch (err) {
         console.error("Error checking admin status:", err);

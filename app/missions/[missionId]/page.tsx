@@ -6,12 +6,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, Circle, Target, Clock, Trophy, ChevronLeft } from "lucide-react";
-import LiteIDE from "@/components/lite-ide";
-import EnhancedLiteIDE from "@/components/enhanced-lite-ide";
+// Code playground is currently disabled on mission page for a cleaner MVP experience
+// import EnhancedLiteIDE from "@/components/enhanced-lite-ide";
 import { MarkdownContent } from "@/components/markdown-content";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import type { Mission, MissionContent, MissionProgress } from "@/types";
+import Image from "next/image";
 
 export default function MissionPage() {
   const params = useParams();
@@ -44,8 +45,24 @@ export default function MissionPage() {
         return;
       }
 
-      setMission(missionData as Mission);
-      setFiles(missionData.initial_files || {});
+      // Normalize Supabase payload into Mission type shape
+      const normalizedMission: Mission = {
+        id: missionData.id,
+        lessonId: missionData.lesson_id ?? undefined,
+        title: missionData.title,
+        goal: missionData.goal,
+        description: missionData.description ?? undefined,
+        imageUrl: missionData.image_url ?? undefined,
+        initialFiles: missionData.initial_files ?? {},
+        stackType: missionData.stack_type,
+        difficulty: missionData.difficulty,
+        estimatedTime: missionData.estimated_time ?? undefined,
+        orderIndex: missionData.order_index,
+        badgeId: missionData.badge_id ?? undefined,
+      };
+
+      setMission(normalizedMission);
+      setFiles(normalizedMission.initialFiles || {});
 
       // Fetch mission content
       const { data: contentData } = await supabase
@@ -172,36 +189,48 @@ export default function MissionPage() {
       </div>
 
       {/* Mission Header */}
-      <Card className="p-6 mb-8">
-        <div className="flex items-start gap-4 mb-4">
-          <div className="p-3 bg-primary/10 rounded-lg">
-            <Target className="h-6 w-6 text-primary" />
+      <Card className="overflow-hidden mb-8">
+        {mission.imageUrl && (
+          <div className="relative w-full h-[60vh]">
+            <Image
+              src={mission.imageUrl}
+              alt={mission.title}
+              fill
+              className="object-contain"
+            />
           </div>
-          <div className="flex-1">
-            <h1 className="text-3xl sm:text-4xl font-bold mb-3">{mission.title}</h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                {mission.estimatedTime || "?"} min
+        )}
+        <div className="p-6">
+          <div className="flex items-start gap-4 mb-4">
+            <div className="p-3 bg-primary/10 rounded-lg">
+              <Target className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h1 className="text-3xl sm:text-4xl font-bold mb-3">{mission.title}</h1>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  {mission.estimatedTime || "?"} min
+                </div>
+                <div className="px-2 py-1 rounded-md bg-muted text-xs">
+                  {mission.difficulty}
+                </div>
+                <div className="px-2 py-1 rounded-md bg-muted text-xs">
+                  {mission.stackType}
+                </div>
               </div>
-              <div className="px-2 py-1 rounded-md bg-muted text-xs">
-                {mission.difficulty}
-              </div>
-              <div className="px-2 py-1 rounded-md bg-muted text-xs">
-                {mission.stackType}
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="font-semibold text-lg mb-1">Mission Goal:</p>
+                <p className="text-foreground">{mission.goal}</p>
               </div>
             </div>
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <p className="font-semibold text-lg mb-1">Mission Goal:</p>
-              <p className="text-foreground">{mission.goal}</p>
-            </div>
+            {progress?.completed && (
+              <div className="flex items-center gap-2 text-green-600">
+                <Trophy className="h-6 w-6" />
+                <span className="font-semibold">Completed!</span>
+              </div>
+            )}
           </div>
-          {progress?.completed && (
-            <div className="flex items-center gap-2 text-green-600">
-              <Trophy className="h-6 w-6" />
-              <span className="font-semibold">Completed!</span>
-            </div>
-          )}
         </div>
       </Card>
 
@@ -260,21 +289,11 @@ export default function MissionPage() {
           )}
         </div>
 
-        {/* Right: Playground */}
+        {/* Right: Playground (temporarily hidden for MVP) */}
         <div className="lg:col-span-2">
-          <EnhancedLiteIDE
-            initialFiles={files}
-            lessonId={mission.lessonId}
-            missionId={missionId}
-            userId={user?.id}
-            stackType={mission.stackType}
-            onFilesChange={handleFilesChange}
-            onRunComplete={(output, error) => {
-              if (!error && output) {
-                console.log("Run completed:", output);
-              }
-            }}
-          />
+          <Card className="p-6 h-full flex items-center justify-center text-muted-foreground text-sm">
+            Coding playground coming soon for this mission.
+          </Card>
         </div>
       </div>
     </div>

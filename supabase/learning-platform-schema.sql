@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS missions (
   title TEXT NOT NULL,
   goal TEXT NOT NULL, -- Short mission goal (e.g., "Add server-side validation to the API")
   description TEXT,
+  image_url TEXT, -- Optional thumbnail / cover image for mission
   initial_files JSONB DEFAULT '{}', -- { "file.js": "// code", "package.json": "{}" }
   stack_type TEXT NOT NULL CHECK (stack_type IN ('nextjs', 'python', 'solana', 'node', 'react', 'other')),
   difficulty TEXT DEFAULT 'beginner' CHECK (difficulty IN ('beginner', 'intermediate', 'advanced')),
