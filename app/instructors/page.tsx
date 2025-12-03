@@ -29,7 +29,7 @@ export default function InstructorsPage() {
                       alt={instructor.name}
                       width={64}
                       height={64}
-                      className="rounded-full w-16 h-16"
+                      className="rounded-full w-16 h-16 object-cover object-top"
                       unoptimized
                     />
                     <div className="flex-1 min-w-0">
