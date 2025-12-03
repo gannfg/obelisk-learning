@@ -56,6 +56,7 @@ export async function getAllProjects(supabaseClient?: any): Promise<ProjectWithM
       updatedAt: new Date(project.updated_at),
       repositoryUrl: project.repository_url || undefined,
       liveUrl: project.live_url || undefined,
+      progressLog: project.progress_log || undefined,
       members: project.project_members?.map((m: any) => ({
         userId: m.user_id,
         role: m.role,
@@ -118,6 +119,7 @@ export async function getProjectById(
       updatedAt: new Date(data.updated_at),
       repositoryUrl: data.repository_url || undefined,
       liveUrl: data.live_url || undefined,
+      progressLog: data.progress_log || undefined,
       members: data.project_members?.map((m: any) => ({
         userId: m.user_id,
         role: m.role,
@@ -141,9 +143,11 @@ export async function createProject(
     status: Project['status'];
     difficulty: Project['difficulty'];
     tags: string[];
+    thumbnail?: string;
     teamId?: string;
     repositoryUrl?: string;
     liveUrl?: string;
+    progressLog?: string;
   },
   userId: string,
   supabaseClient?: any
@@ -164,10 +168,12 @@ export async function createProject(
         status: projectData.status,
         difficulty: projectData.difficulty,
         tags: projectData.tags,
+        thumbnail: projectData.thumbnail || null,
         team_id: projectData.teamId || null,
         created_by: userId,
         repository_url: projectData.repositoryUrl || null,
         live_url: projectData.liveUrl || null,
+        progress_log: projectData.progressLog || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -203,6 +209,7 @@ export async function createProject(
       updatedAt: new Date(data.updated_at),
       repositoryUrl: data.repository_url || undefined,
       liveUrl: data.live_url || undefined,
+      progressLog: data.progress_log || undefined,
     };
   } catch (error) {
     console.error('Error in createProject:', error);
@@ -224,6 +231,7 @@ export async function updateProject(
     teamId: string;
     repositoryUrl: string;
     liveUrl: string;
+    progressLog: string;
   }>,
   supabaseClient?: any
 ): Promise<boolean> {
@@ -247,6 +255,7 @@ export async function updateProject(
     if (updates.teamId !== undefined) updateData.team_id = updates.teamId || null;
     if (updates.repositoryUrl !== undefined) updateData.repository_url = updates.repositoryUrl || null;
     if (updates.liveUrl !== undefined) updateData.live_url = updates.liveUrl || null;
+    if (updates.progressLog !== undefined) updateData.progress_log = updates.progressLog || null;
 
     const { error } = await supabase
       .from('projects')

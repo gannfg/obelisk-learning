@@ -34,6 +34,28 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- Create storage bucket for project images (used by teams/projects in Auth Supabase)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'project-images',
+  'project-images',
+  true,
+  10485760,
+  ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Create storage bucket for team avatars
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'team-avatars',
+  'team-avatars',
+  true,
+  5242880,
+  ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- Storage policies for avatars bucket
 -- Drop existing policies if they exist
 DROP POLICY IF EXISTS "Public Avatar Access" ON storage.objects;
@@ -159,8 +181,78 @@ USING (
   AND auth.uid() IS NOT NULL
 );
 
+-- Storage policies for project-images bucket
+DROP POLICY IF EXISTS "Public Project Image Access" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated can upload project images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated can update project images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated can delete project images" ON storage.objects;
+
+CREATE POLICY "Public Project Image Access"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'project-images');
+
+CREATE POLICY "Authenticated can upload project images"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'project-images' 
+  AND auth.uid() IS NOT NULL
+);
+
+CREATE POLICY "Authenticated can update project images"
+ON storage.objects FOR UPDATE
+USING (
+  bucket_id = 'project-images' 
+  AND auth.uid() IS NOT NULL
+)
+WITH CHECK (
+  bucket_id = 'project-images' 
+  AND auth.uid() IS NOT NULL
+);
+
+CREATE POLICY "Authenticated can delete project images"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'project-images' 
+  AND auth.uid() IS NOT NULL
+);
+
+-- Storage policies for team-avatars bucket
+DROP POLICY IF EXISTS "Public Team Avatar Access" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated can upload team avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated can update team avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated can delete team avatars" ON storage.objects;
+
+CREATE POLICY "Public Team Avatar Access"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'team-avatars');
+
+CREATE POLICY "Authenticated can upload team avatars"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'team-avatars' 
+  AND auth.uid() IS NOT NULL
+);
+
+CREATE POLICY "Authenticated can update team avatars"
+ON storage.objects FOR UPDATE
+USING (
+  bucket_id = 'team-avatars' 
+  AND auth.uid() IS NOT NULL
+)
+WITH CHECK (
+  bucket_id = 'team-avatars' 
+  AND auth.uid() IS NOT NULL
+);
+
+CREATE POLICY "Authenticated can delete team avatars"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'team-avatars' 
+  AND auth.uid() IS NOT NULL
+);
+
 -- Verify buckets were created
 SELECT id, name, public, file_size_limit, allowed_mime_types 
 FROM storage.buckets 
-WHERE id IN ('avatars', 'user-uploads', 'course-images');
+WHERE id IN ('avatars', 'user-uploads', 'course-images', 'project-images', 'team-avatars');
 
