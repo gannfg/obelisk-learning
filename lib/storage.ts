@@ -236,3 +236,85 @@ export async function deleteCourseImage(
   }
 }
 
+/**
+ * Upload a project image (thumbnail) to Supabase Storage (Auth Supabase)
+ * Stored in the public "project-images" bucket.
+ */
+export async function uploadProjectImage(
+  file: File,
+  projectId: string | null,
+  supabaseClient: any
+): Promise<string | null> {
+  try {
+    const fileExt = file.name.split(".").pop();
+    const timestamp = Date.now();
+    const fileName = projectId
+      ? `${projectId}/${timestamp}.${fileExt}`
+      : `${timestamp}.${fileExt}`;
+
+    const filePath = `projects/${fileName}`;
+
+    const { error } = await supabaseClient.storage
+      .from("project-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("Error uploading project image:", error);
+      return null;
+    }
+
+    const { data: urlData } = supabaseClient.storage
+      .from("project-images")
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error("Error in uploadProjectImage:", error);
+    return null;
+  }
+}
+
+/**
+ * Upload a team avatar image to Supabase Storage (Auth Supabase)
+ * Stored in the public "team-avatars" bucket.
+ */
+export async function uploadTeamAvatar(
+  file: File,
+  teamId: string | null,
+  supabaseClient: any
+): Promise<string | null> {
+  try {
+    const fileExt = file.name.split(".").pop();
+    const timestamp = Date.now();
+    const fileName = teamId
+      ? `${teamId}/${timestamp}.${fileExt}`
+      : `${timestamp}.${fileExt}`;
+
+    const filePath = `teams/${fileName}`;
+
+    const { error } = await supabaseClient.storage
+      .from("team-avatars")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("Error uploading team avatar:", error);
+      return null;
+    }
+
+    const { data: urlData } = supabaseClient.storage
+      .from("team-avatars")
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error("Error in uploadTeamAvatar:", error);
+    return null;
+  }
+}
+

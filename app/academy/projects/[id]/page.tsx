@@ -10,6 +10,10 @@ import { Users, Calendar, Code, ExternalLink, Github, Loader2 } from "lucide-rea
 import { getProjectById, ProjectWithMembers } from "@/lib/projects";
 import { createClient } from "@/lib/supabase/client";
 import { getUserProfile } from "@/lib/profile";
+import Image from "next/image";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { useAdmin } from "@/lib/hooks/use-admin";
+import { deleteProject, updateProject } from "@/lib/projects";
 
 export default function ProjectPage() {
   const params = useParams();
@@ -18,8 +22,16 @@ export default function ProjectPage() {
   const [project, setProject] = useState<ProjectWithMembers | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
+  const [memberProfiles, setMemberProfiles] = useState<
+    Record<string, { name: string; avatarUrl?: string | null }>
+  >({});
   const supabase = createClient();
+  const { user } = useAuth();
+  const { isAdmin } = useAdmin();
+  const [saving, setSaving] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editDescription, setEditDescription] = useState("");
+  const [editProgressLog, setEditProgressLog] = useState("");
 
   useEffect(() => {
     const loadProject = async () => {
@@ -31,19 +43,28 @@ export default function ProjectPage() {
           return;
         }
         setProject(data);
+        setEditDescription(data.description);
+        setEditProgressLog(data.progressLog || "");
 
-        // Fetch member names
+        // Fetch member profiles (name + avatar)
         if (data.members && data.members.length > 0) {
-          const names: Record<string, string> = {};
+          const profiles: Record<string, { name: string; avatarUrl?: string | null }> = {};
+
           for (const member of data.members) {
             const profile = await getUserProfile(member.userId, undefined, supabase);
             if (profile) {
-              names[member.userId] = profile.first_name && profile.last_name
-                ? `${profile.first_name} ${profile.last_name}`
-                : profile.username || profile.email.split('@')[0] || 'User';
+              const name =
+                (profile.first_name && profile.last_name
+                  ? `${profile.first_name} ${profile.last_name}`
+                  : profile.username || profile.email.split("@")[0]) || "User";
+              profiles[member.userId] = {
+                name,
+                avatarUrl: profile.image_url || null,
+              };
             }
           }
-          setMemberNames(names);
+
+          setMemberProfiles(profiles);
         }
       } catch (error) {
         console.error("Error loading project:", error);
@@ -78,6 +99,57 @@ export default function ProjectPage() {
       </div>
     );
   }
+
+  const canManage =
+    !!user && (isAdmin || project.createdBy === user.id);
+
+  const handleDelete = async () => {
+    if (!canManage) return;
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this project? This cannot be undone."
+    );
+    if (!confirmed) return;
+
+    setSaving(true);
+    try {
+      const ok = await deleteProject(project.id, supabase);
+      if (ok) {
+        router.push("/academy/projects");
+      } else {
+        setSaving(false);
+      }
+    } catch (e) {
+      console.error("Error deleting project:", e);
+      setSaving(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!canManage) return;
+    setSaving(true);
+    try {
+      const ok = await updateProject(
+        project.id,
+        {
+          description: editDescription,
+          progressLog: editProgressLog,
+        },
+        supabase
+      );
+      if (ok) {
+        setProject({
+          ...project,
+          description: editDescription,
+          progressLog: editProgressLog,
+        });
+        setEditMode(false);
+      }
+    } catch (e) {
+      console.error("Error updating project:", e);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
@@ -134,6 +206,29 @@ export default function ProjectPage() {
         </div>
       </div>
 
+      <div className="flex justify-end gap-3 mb-4">
+        {canManage && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditMode((v) => !v)}
+            >
+              {editMode ? "Cancel" : "Edit Project"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+              onClick={handleDelete}
+              disabled={saving}
+            >
+              {saving ? "Deleting..." : "Delete Project"}
+            </Button>
+          </>
+        )}
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -146,8 +241,31 @@ export default function ProjectPage() {
             <div className="space-y-2">
               {project.members && project.members.length > 0 ? (
                 project.members.map((member) => (
-                  <div key={member.userId} className="flex items-center justify-between">
-                    <span className="text-sm">{memberNames[member.userId] || 'Unknown User'}</span>
+                  <div
+                    key={member.userId}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      {memberProfiles[member.userId]?.avatarUrl ? (
+                        <div className="relative h-8 w-8 rounded-full overflow-hidden">
+                          <Image
+                            src={memberProfiles[member.userId].avatarUrl as string}
+                            alt={memberProfiles[member.userId].name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
+                          {memberProfiles[member.userId]?.name
+                            ?.charAt(0)
+                            .toUpperCase() || "U"}
+                        </div>
+                      )}
+                      <span className="text-sm">
+                        {memberProfiles[member.userId]?.name || "Unknown User"}
+                      </span>
+                    </div>
                     <Badge variant="secondary" className="text-xs capitalize">
                       {member.role}
                     </Badge>
@@ -176,6 +294,46 @@ export default function ProjectPage() {
               <p className="text-sm text-muted-foreground mb-1">Created</p>
               <p className="font-medium">{project.createdAt.toLocaleDateString()}</p>
             </div>
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Description</p>
+              {editMode ? (
+                <textarea
+                  className="w-full rounded-md border border-border bg-background p-2 text-sm"
+                  rows={4}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                />
+              ) : (
+                <p className="text-sm">{project.description}</p>
+              )}
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Progress Log</p>
+              {editMode ? (
+                <textarea
+                  className="w-full rounded-md border border-border bg-background p-2 text-sm"
+                  rows={4}
+                  value={editProgressLog}
+                  onChange={(e) => setEditProgressLog(e.target.value)}
+                  placeholder="Add notes, milestones, or progress updates..."
+                />
+              ) : project.progressLog ? (
+                <p className="whitespace-pre-wrap text-sm">
+                  {project.progressLog}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No progress log yet.
+                </p>
+              )}
+            </div>
+            {editMode && (
+              <div className="flex justify-end">
+                <Button size="sm" onClick={handleSave} disabled={saving}>
+                  {saving ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

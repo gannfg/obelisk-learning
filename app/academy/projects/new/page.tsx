@@ -11,14 +11,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createProject } from "@/lib/projects";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, Image as ImageIcon, X } from "lucide-react";
+import { uploadProjectImage } from "@/lib/storage";
 
-export default function NewProjectPage() {
+interface NewProjectPageProps {
+  searchParams?: {
+    teamId?: string;
+  };
+}
+
+export default function NewProjectPage({ searchParams }: NewProjectPageProps) {
   const router = useRouter();
   const { user } = useAuth();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const initialTeamId = (searchParams?.teamId as string) || undefined;
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -34,12 +44,24 @@ export default function NewProjectPage() {
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const difficulty = formData.get("difficulty") as "beginner" | "intermediate" | "advanced";
+    const progressLog = formData.get("progressLog") as string;
     const tagsInput = formData.get("tags") as string;
     const tags = tagsInput
       ? tagsInput.split(",").map((tag) => tag.trim()).filter(Boolean)
       : [];
 
     try {
+      let thumbnailUrl: string | undefined;
+      if (thumbnailFile) {
+        const uploaded = await uploadProjectImage(thumbnailFile, null, supabase);
+        if (!uploaded) {
+          setError("Failed to upload project image. Please try again.");
+          setLoading(false);
+          return;
+        }
+        thumbnailUrl = uploaded;
+      }
+
       const project = await createProject(
         {
           title,
@@ -47,6 +69,9 @@ export default function NewProjectPage() {
           status: "planning",
           difficulty,
           tags,
+          thumbnail: thumbnailUrl,
+          teamId: initialTeamId,
+          progressLog: progressLog || undefined,
         },
         user.id,
         supabase
@@ -108,6 +133,73 @@ export default function NewProjectPage() {
                   placeholder="Describe your project..."
                   rows={4}
                   required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Project Image
+                </label>
+                {thumbnailPreview && (
+                  <div className="relative w-full max-w-xs aspect-video rounded-lg overflow-hidden border border-border mb-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={thumbnailPreview}
+                      alt="Project image preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setThumbnailFile(null);
+                        setThumbnailPreview(null);
+                      }}
+                      className="absolute top-2 right-2 rounded-full bg-background border border-border p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <label
+                    htmlFor="thumbnail-upload"
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-md cursor-pointer hover:bg-muted transition-colors text-sm"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    {thumbnailFile ? "Change Image" : "Upload Image"}
+                  </label>
+                  <input
+                    id="thumbnail-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setThumbnailFile(file);
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setThumbnailPreview(reader.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Upload an image to use on the project card (optional).
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="progressLog" className="text-sm font-medium">
+                  Progress Log
+                </label>
+                <Textarea
+                  id="progressLog"
+                  name="progressLog"
+                  placeholder="Notes, milestones, or progress updates for this project..."
+                  rows={4}
                 />
               </div>
 

@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS projects (
   title TEXT NOT NULL,
   description TEXT NOT NULL,
   thumbnail TEXT,
+  -- progress_log column may be added later via ALTER TABLE for existing installs
   status TEXT NOT NULL CHECK (status IN ('planning', 'in-progress', 'completed', 'archived')),
   difficulty TEXT NOT NULL CHECK (difficulty IN ('beginner', 'intermediate', 'advanced')),
   tags TEXT[] DEFAULT '{}',
@@ -39,6 +40,10 @@ CREATE TABLE IF NOT EXISTS projects (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Ensure progress_log column exists for existing databases
+ALTER TABLE projects
+ADD COLUMN IF NOT EXISTS progress_log TEXT;
 
 -- Project members table (depends on projects)
 CREATE TABLE IF NOT EXISTS project_members (
@@ -60,7 +65,6 @@ CREATE INDEX IF NOT EXISTS idx_teams_created_by ON teams(created_by);
 CREATE INDEX IF NOT EXISTS idx_team_members_team_id ON team_members(team_id);
 CREATE INDEX IF NOT EXISTS idx_team_members_user_id ON team_members(user_id);
 
--- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -70,11 +74,13 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Triggers to automatically update updated_at
+DROP TRIGGER IF EXISTS update_projects_updated_at ON projects;
 CREATE TRIGGER update_projects_updated_at
   BEFORE UPDATE ON projects
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_teams_updated_at ON teams;
 CREATE TRIGGER update_teams_updated_at
   BEFORE UPDATE ON teams
   FOR EACH ROW
@@ -88,30 +94,44 @@ ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
 
 -- Policies for projects
+DROP POLICY IF EXISTS "Users can view all projects" ON projects;
 CREATE POLICY "Users can view all projects"
   ON projects FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Users can create projects" ON projects;
 CREATE POLICY "Users can create projects"
   ON projects FOR INSERT
   WITH CHECK (auth.uid() = created_by);
 
+DROP POLICY IF EXISTS "Users can update their own projects" ON projects;
 CREATE POLICY "Users can update their own projects"
   ON projects FOR UPDATE
-  USING (auth.uid() = created_by OR auth.uid() IN (
-    SELECT user_id FROM project_members 
-    WHERE project_id = projects.id AND role IN ('owner', 'admin')
-  ));
+  USING (
+    -- Global admins (users.is_admin = true)
+    auth.uid() IN (SELECT id FROM users WHERE is_admin = TRUE)
+    OR auth.uid() = created_by
+    OR auth.uid() IN (
+      SELECT user_id FROM project_members 
+      WHERE project_id = projects.id AND role IN ('owner', 'admin')
+    )
+  );
 
+DROP POLICY IF EXISTS "Users can delete their own projects" ON projects;
 CREATE POLICY "Users can delete their own projects"
   ON projects FOR DELETE
-  USING (auth.uid() = created_by);
+  USING (
+    auth.uid() IN (SELECT id FROM users WHERE is_admin = TRUE)
+    OR auth.uid() = created_by
+  );
 
 -- Policies for project_members
+DROP POLICY IF EXISTS "Users can view project members" ON project_members;
 CREATE POLICY "Users can view project members"
   ON project_members FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Project owners/admins can add members" ON project_members;
 CREATE POLICY "Project owners/admins can add members"
   ON project_members FOR INSERT
   WITH CHECK (
@@ -123,6 +143,7 @@ CREATE POLICY "Project owners/admins can add members"
     )
   );
 
+DROP POLICY IF EXISTS "Users can leave projects" ON project_members;
 CREATE POLICY "Users can leave projects"
   ON project_members FOR DELETE
   USING (auth.uid() = user_id OR auth.uid() IN (
@@ -133,30 +154,43 @@ CREATE POLICY "Users can leave projects"
   ));
 
 -- Policies for teams
+DROP POLICY IF EXISTS "Users can view all teams" ON teams;
 CREATE POLICY "Users can view all teams"
   ON teams FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Users can create teams" ON teams;
 CREATE POLICY "Users can create teams"
   ON teams FOR INSERT
   WITH CHECK (auth.uid() = created_by);
 
+DROP POLICY IF EXISTS "Team owners/admins can update teams" ON teams;
 CREATE POLICY "Team owners/admins can update teams"
   ON teams FOR UPDATE
-  USING (auth.uid() = created_by OR auth.uid() IN (
-    SELECT user_id FROM team_members 
-    WHERE team_id = teams.id AND role IN ('owner', 'admin')
-  ));
+  USING (
+    auth.uid() IN (SELECT id FROM users WHERE is_admin = TRUE)
+    OR auth.uid() = created_by
+    OR auth.uid() IN (
+      SELECT user_id FROM team_members 
+      WHERE team_id = teams.id AND role IN ('owner', 'admin')
+    )
+  );
 
+DROP POLICY IF EXISTS "Team owners can delete teams" ON teams;
 CREATE POLICY "Team owners can delete teams"
   ON teams FOR DELETE
-  USING (auth.uid() = created_by);
+  USING (
+    auth.uid() IN (SELECT id FROM users WHERE is_admin = TRUE)
+    OR auth.uid() = created_by
+  );
 
 -- Policies for team_members
+DROP POLICY IF EXISTS "Users can view team members" ON team_members;
 CREATE POLICY "Users can view team members"
   ON team_members FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Team owners/admins can add members" ON team_members;
 CREATE POLICY "Team owners/admins can add members"
   ON team_members FOR INSERT
   WITH CHECK (
@@ -168,6 +202,7 @@ CREATE POLICY "Team owners/admins can add members"
     )
   );
 
+DROP POLICY IF EXISTS "Users can leave teams" ON team_members;
 CREATE POLICY "Users can leave teams"
   ON team_members FOR DELETE
   USING (auth.uid() = user_id OR auth.uid() IN (

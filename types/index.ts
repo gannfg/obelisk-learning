@@ -169,6 +169,7 @@ export type Project = {
   updatedAt: Date;
   repositoryUrl?: string;
   liveUrl?: string;
+  progressLog?: string;
   members?: ProjectMember[];
 };
 
