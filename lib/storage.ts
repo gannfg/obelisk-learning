@@ -111,3 +111,83 @@ export function getProfilePictureUrl(
   return data.publicUrl;
 }
 
+/**
+ * Upload a course thumbnail image to Supabase Storage
+ * @param file - The file to upload
+ * @param courseId - The course ID (optional, for organizing files)
+ * @param supabaseClient - Authenticated Supabase client (from learning database)
+ * @returns The public URL of the uploaded image, or null if upload failed
+ */
+export async function uploadCourseImage(
+  file: File,
+  courseId: string | null,
+  supabaseClient: any
+): Promise<string | null> {
+  try {
+    // Generate a unique filename
+    const fileExt = file.name.split('.').pop();
+    const timestamp = Date.now();
+    const fileName = courseId 
+      ? `${courseId}/${timestamp}.${fileExt}`
+      : `${timestamp}.${fileExt}`;
+    
+    // Path relative to bucket (not including bucket name)
+    const filePath = `courses/${fileName}`;
+
+    // Upload the file
+    const { data, error } = await supabaseClient.storage
+      .from('course-images')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true, // Replace existing file if it exists
+      });
+
+    if (error) {
+      console.error('Error uploading course image:', error);
+      return null;
+    }
+
+    // Get the public URL
+    const { data: urlData } = supabaseClient.storage
+      .from('course-images')
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error('Error in uploadCourseImage:', error);
+    return null;
+  }
+}
+
+/**
+ * Delete a course image from Supabase Storage
+ * @param filePath - The path to the file (e.g., "course-images/course-id/filename.jpg")
+ * @param supabaseClient - Authenticated Supabase client
+ * @returns true if deletion was successful
+ */
+export async function deleteCourseImage(
+  filePath: string,
+  supabaseClient: any
+): Promise<boolean> {
+  try {
+    // Extract the path relative to the bucket
+    const relativePath = filePath.includes('course-images/') 
+      ? filePath.split('course-images/')[1] 
+      : filePath;
+
+    const { error } = await supabaseClient.storage
+      .from('course-images')
+      .remove([relativePath]);
+
+    if (error) {
+      console.error('Error deleting course image:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in deleteCourseImage:', error);
+    return false;
+  }
+}
+

@@ -4,7 +4,10 @@ import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LessonSidebar } from "@/components/lesson-sidebar";
-import { getCourseById, getInstructorById } from "@/lib/mock-data";
+import { CourseActionButton } from "@/components/course-action-button";
+import { getCourseById } from "@/lib/courses";
+import { createLearningServerClient } from "@/lib/supabase/server";
+import { getInstructorById } from "@/lib/mock-data";
 
 interface CoursePageProps {
   params: Promise<{ id: string }>;
@@ -12,22 +15,48 @@ interface CoursePageProps {
 
 export default async function CoursePage({ params }: CoursePageProps) {
   const { id } = await params;
-  const course = getCourseById(id);
+  const learningSupabase = createLearningServerClient();
+  const course = await getCourseById(learningSupabase, id);
 
   if (!course) {
     notFound();
   }
 
-  const instructor = getInstructorById(course.instructorId);
-  const totalLessons = course.modules.reduce(
-    (total, module) => total + module.lessons.length,
+  // Try to fetch instructor from Supabase, fallback to mock data
+  let instructor;
+  try {
+    const { data: instructorData } = await learningSupabase
+      .from("instructors")
+      .select("*")
+      .eq("id", course.instructorId)
+      .single();
+    
+    if (instructorData) {
+      instructor = {
+        id: instructorData.id,
+        name: instructorData.name,
+        avatar: instructorData.avatar,
+        bio: instructorData.bio,
+        specializations: instructorData.specializations || [],
+        socials: instructorData.socials || {},
+      };
+    } else {
+      // Fallback to mock data
+      instructor = getInstructorById(course.instructorId);
+    }
+  } catch (error) {
+    // Fallback to mock data if Supabase fetch fails
+    instructor = getInstructorById(course.instructorId);
+  }
+  const totalLessons = course.modules?.reduce(
+    (total, module) => total + (module.lessons?.length || 0),
     0
-  );
+  ) || 0;
 
   // Get first lesson for "Start Learning" button
-  const firstModule = course.modules[0];
-  const firstLesson = firstModule?.lessons[0];
-  const startUrl = firstLesson
+  const firstModule = course.modules?.[0];
+  const firstLesson = firstModule?.lessons?.[0];
+  const startUrl = firstLesson && firstModule
     ? `/academy/courses/${course.id}/${firstModule.id}/${firstLesson.id}`
     : "#";
 
@@ -81,13 +110,15 @@ export default async function CoursePage({ params }: CoursePageProps) {
               Course Content
             </p>
             <p className="font-medium text-base">
-              {course.modules.length} modules • {totalLessons} lessons
+              {course.modules?.length || 0} modules • {totalLessons} lessons
             </p>
           </div>
         </div>
-        <Button asChild size="lg">
-          <Link href={startUrl}>Start Learning</Link>
-        </Button>
+        <CourseActionButton
+          courseId={course.id}
+          totalLessons={totalLessons}
+          startUrl={startUrl}
+        />
       </div>
 
       <div className="flex flex-col gap-8 md:flex-row">
@@ -111,27 +142,35 @@ export default async function CoursePage({ params }: CoursePageProps) {
             </TabsContent>
             <TabsContent value="modules" className="space-y-4">
               <h2 className="text-2xl font-semibold">Course Modules</h2>
-              <div className="space-y-4">
-                {course.modules.map((module, index) => (
-                  <div
-                    key={module.id}
-                    className="rounded-lg border border-border p-4 bg-card"
-                  >
-                    <h3 className="mb-2 font-semibold">
-                      Module {index + 1}: {module.title}
-                    </h3>
-                    {module.description && (
-                      <p className="mb-3 text-sm text-muted-foreground">
-                        {module.description}
+              {course.modules && course.modules.length > 0 ? (
+                <div className="space-y-4">
+                  {course.modules.map((module, index) => (
+                    <div
+                      key={module.id}
+                      className="rounded-lg border border-border p-4 bg-card"
+                    >
+                      <h3 className="mb-2 font-semibold">
+                        Module {index + 1}: {module.title}
+                      </h3>
+                      {module.description && (
+                        <p className="mb-3 text-sm text-muted-foreground">
+                          {module.description}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground">
+                        {module.lessons?.length || 0} lesson
+                        {(module.lessons?.length || 0) !== 1 ? "s" : ""}
                       </p>
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      {module.lessons.length} lesson
-                      {module.lessons.length !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                ))}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground">
+                    No modules available yet. Check back soon!
+                  </p>
+                </div>
+              )}
             </TabsContent>
             <TabsContent value="instructor" className="space-y-4">
               <h2 className="text-2xl font-semibold">Meet Your Instructor</h2>
@@ -155,7 +194,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
                     {instructor.specializations &&
                       instructor.specializations.length > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          {instructor.specializations.map((spec) => (
+                          {instructor.specializations.map((spec: string) => (
                             <span
                               key={spec}
                               className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"

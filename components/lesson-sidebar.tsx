@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Course } from "@/types";
@@ -11,6 +12,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { createClient } from "@/lib/supabase/client";
+import { createLearningClient } from "@/lib/supabase/learning-client";
+import { getCompletedLessons } from "@/lib/progress";
 
 interface LessonSidebarProps {
   course: Course;
@@ -18,10 +22,53 @@ interface LessonSidebarProps {
 
 export function LessonSidebar({ course }: LessonSidebarProps) {
   const pathname = usePathname();
+  const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCompletedLessons = async () => {
+      try {
+        // Get current user
+        const authSupabase = createClient();
+        const {
+          data: { user },
+        } = await authSupabase.auth.getUser();
+
+        if (user) {
+          const learningSupabase = createLearningClient();
+          const completed = await getCompletedLessons(
+            learningSupabase,
+            user.id,
+            course.id
+          );
+          setCompletedLessons(completed);
+        }
+      } catch (error) {
+        console.error("Error fetching completed lessons:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCompletedLessons();
+  }, [course.id, pathname]); // Refetch when course or pathname changes
+
+  if (!course.modules || course.modules.length === 0) {
+    return (
+      <div className="w-full space-y-4 md:w-64">
+        <div className="sticky top-20">
+          <h3 className="mb-4 text-lg font-semibold">Course Content</h3>
+          <p className="text-sm text-muted-foreground">
+            No modules available yet.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Find which module contains the active lesson
   const activeModuleId = course.modules.find((module) =>
-    module.lessons.some((lesson) => {
+    module.lessons?.some((lesson) => {
       const lessonPath = `/academy/courses/${course.id}/${module.id}/${lesson.id}`;
       return pathname === lessonPath;
     })
@@ -45,12 +92,12 @@ export function LessonSidebar({ course }: LessonSidebarProps) {
                 Module {moduleIndex + 1}: {module.title}
               </AccordionTrigger>
               <AccordionContent>
-                <ul className="space-y-1">
-                  {module.lessons.map((lesson, lessonIndex) => {
+                {module.lessons && module.lessons.length > 0 ? (
+                  <ul className="space-y-1">
+                    {module.lessons.map((lesson, lessonIndex) => {
                     const lessonPath = `/academy/courses/${course.id}/${module.id}/${lesson.id}`;
                     const isActive = pathname === lessonPath;
-                    // TODO: Replace with actual progress tracking
-                    const isCompleted = false;
+                    const isCompleted = completedLessons.has(lesson.id);
 
                     return (
                       <li key={lesson.id}>
@@ -64,9 +111,9 @@ export function LessonSidebar({ course }: LessonSidebarProps) {
                           )}
                         >
                           {isCompleted ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600 dark:text-green-400 fill-green-600 dark:fill-green-400" />
                           ) : (
-                            <Circle className="h-4 w-4 text-muted-foreground" />
+                            <Circle className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                           )}
                           <span>
                             {lessonIndex + 1}. {lesson.title}
@@ -79,8 +126,13 @@ export function LessonSidebar({ course }: LessonSidebarProps) {
                         </Link>
                       </li>
                     );
-                  })}
-                </ul>
+                    })}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground px-3 py-2">
+                    No lessons in this module yet.
+                  </p>
+                )}
               </AccordionContent>
             </AccordionItem>
           ))}

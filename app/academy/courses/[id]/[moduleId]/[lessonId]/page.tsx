@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { LessonSidebar } from "@/components/lesson-sidebar";
 import { MarkdownContent } from "@/components/markdown-content";
 import { VideoPlayer } from "@/components/video-player";
 import { LessonLiteIDEShell } from "@/components/lesson-lite-ide-shell";
-import { getCourseById } from "@/lib/mock-data";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { QuizComponent } from "@/components/quiz-component";
+import { LessonNavigation } from "@/components/lesson-navigation";
+import { getCourseById } from "@/lib/courses";
+import { createLearningServerClient } from "@/lib/supabase/server";
 
 interface LessonPageProps {
   params: Promise<{ id: string; moduleId: string; lessonId: string }>;
@@ -14,18 +15,19 @@ interface LessonPageProps {
 
 export default async function LessonPage({ params }: LessonPageProps) {
   const { id, moduleId, lessonId } = await params;
-  const course = getCourseById(id);
+  const learningSupabase = createLearningServerClient();
+  const course = await getCourseById(learningSupabase, id);
 
   if (!course) {
     notFound();
   }
 
-  const module = course.modules.find((m) => m.id === moduleId);
+  const module = course.modules?.find((m) => m.id === moduleId);
   if (!module) {
     notFound();
   }
 
-  const lesson = module.lessons.find((l) => l.id === lessonId);
+  const lesson = module.lessons?.find((l) => l.id === lessonId);
   if (!lesson) {
     notFound();
   }
@@ -40,8 +42,8 @@ export default async function LessonPage({ params }: LessonPageProps) {
     lessonId: string;
   }> = [];
 
-  course.modules.forEach((mod) => {
-    mod.lessons.forEach((les) => {
+  course.modules?.forEach((mod) => {
+    mod.lessons?.forEach((les) => {
       allLessons.push({
         courseId: course.id,
         moduleId: mod.id,
@@ -60,6 +62,12 @@ export default async function LessonPage({ params }: LessonPageProps) {
   if (currentIndex < allLessons.length - 1) {
     nextLesson = allLessons[currentIndex + 1];
   }
+
+  // Calculate total lessons count
+  const totalLessons = course.modules?.reduce(
+    (total, module) => total + (module.lessons?.length || 0),
+    0
+  ) || 0;
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
@@ -85,59 +93,49 @@ export default async function LessonPage({ params }: LessonPageProps) {
             {module.title}
           </p>
 
-          {lesson.videoUrl && (
+          {/* Determine lesson type: quiz takes priority if quizId exists */}
+          {lesson.quizId ? (
+            /* Quiz Lesson */
             <div className="mb-8">
-              <VideoPlayer url={lesson.videoUrl} />
+              <QuizComponent quizId={lesson.quizId} lessonId={lesson.id} />
             </div>
+          ) : (
+            <>
+              {/* Video can be shown with or without markdown */}
+              {lesson.videoUrl && lesson.videoUrl.trim() && (
+                <div className="mb-8">
+                  <VideoPlayer url={lesson.videoUrl.trim()} />
+                </div>
+              )}
+              
+              {/* Markdown content can be shown with or without video */}
+              {lesson.markdownContent && (
+                <div className="mb-8">
+                  <MarkdownContent content={lesson.markdownContent} />
+                </div>
+              )}
+
+              {/* Show message if no content at all */}
+              {!lesson.videoUrl && !lesson.markdownContent && (
+                <div className="mb-8 rounded-lg border border-border bg-muted p-6">
+                  <p className="text-sm text-muted-foreground">
+                    This lesson doesn't have content yet. Check back soon!
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
-          {lesson.markdownContent && (
-            <div className="mb-8">
-              <MarkdownContent content={lesson.markdownContent} />
-            </div>
-          )}
-
-          {/* Progress Placeholder */}
-          <div className="mb-8 rounded-lg border border-border bg-muted p-6">
-            <p className="text-sm text-muted-foreground mb-4">
-              Progress tracking will be implemented with Supabase integration.
-            </p>
-            <Button size="sm">
-              Mark as Complete
-            </Button>
-          </div>
-
-          {/* Navigation */}
-          <div className="mt-6 flex items-center justify-between border-t border-border pt-6">
-            {prevLesson ? (
-              <Button asChild variant="outline">
-                <Link
-                  href={`/academy/courses/${prevLesson.courseId}/${prevLesson.moduleId}/${prevLesson.lessonId}`}
-                  className="flex items-center gap-2"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Link>
-              </Button>
-            ) : (
-              <div />
-            )}
-            {nextLesson ? (
-              <Button asChild>
-                <Link
-                  href={`/academy/courses/${nextLesson.courseId}/${nextLesson.moduleId}/${nextLesson.lessonId}`}
-                  className="flex items-center gap-2"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            ) : (
-              <Button asChild variant="outline">
-                <Link href={`/academy/courses/${course.id}`}>Back to Course</Link>
-              </Button>
-            )}
-          </div>
+          {/* Navigation - automatically marks lesson as complete when clicking Next */}
+          <LessonNavigation
+            prevLesson={prevLesson}
+            nextLesson={nextLesson}
+            currentCourseId={course.id}
+            currentLessonId={lesson.id}
+            backToCourseUrl={`/academy/courses/${course.id}`}
+            courseName={course.title}
+            totalLessons={totalLessons}
+          />
         </div>
 
         {/* Right: Lite IDE (collapsible) */}
