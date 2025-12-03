@@ -5,8 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CourseCard } from "@/components/course-card";
 import { CategoryFilter } from "@/components/category-filter";
-import { mockCourses } from "@/lib/mock-data";
-import { CourseCategory } from "@/types";
+import { CourseCategory, Course } from "@/types";
 import { BookOpen, FolderKanban, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,9 @@ import {
 } from "@/components/ui/card";
 import { getAllProjects, ProjectWithMembers } from "@/lib/projects";
 import { getAllTeams, TeamWithDetails } from "@/lib/teams";
+import { getAllCourses, CourseWithModules } from "@/lib/courses";
 import { createClient } from "@/lib/supabase/client";
+import { createLearningClient } from "@/lib/supabase/learning-client";
 import { Loader2 } from "lucide-react";
 
 export function AcademyPageClient() {
@@ -31,16 +32,28 @@ export function AcademyPageClient() {
 
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
   const [teams, setTeams] = useState<TeamWithDetails[]>([]);
+  const [courses, setCourses] = useState<CourseWithModules[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingTeams, setLoadingTeams] = useState(false);
+  const [loadingCourses, setLoadingCourses] = useState(false);
   const supabase = createClient();
+  const learningSupabase = createLearningClient();
 
   const filteredCourses = selectedCategory
-    ? mockCourses.filter((course) => course.category === selectedCategory)
-    : mockCourses;
+    ? courses.filter((course) => course.category === selectedCategory)
+    : courses;
 
   useEffect(() => {
-    if (activeTab === "projects") {
+    if (activeTab === "courses") {
+      setLoadingCourses(true);
+      getAllCourses(learningSupabase)
+        .then(setCourses)
+        .catch((error) => {
+          console.error("Error loading courses:", error);
+          setCourses([]);
+        })
+        .finally(() => setLoadingCourses(false));
+    } else if (activeTab === "projects") {
       setLoadingProjects(true);
       getAllProjects(supabase)
         .then(setProjects)
@@ -53,7 +66,7 @@ export function AcademyPageClient() {
         .catch(console.error)
         .finally(() => setLoadingTeams(false));
     }
-  }, [activeTab, supabase]);
+  }, [activeTab, supabase, learningSupabase]);
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
@@ -88,7 +101,11 @@ export function AcademyPageClient() {
         {/* Courses Tab */}
         <TabsContent value="courses" className="space-y-6">
           <CategoryFilter />
-          {filteredCourses.length > 0 ? (
+          {loadingCourses ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredCourses.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredCourses.map((course) => (
                 <CourseCard key={course.id} course={course} />
@@ -97,7 +114,9 @@ export function AcademyPageClient() {
           ) : (
             <div className="py-8 sm:py-12 text-center">
               <p className="text-base sm:text-lg text-muted-foreground">
-                No courses found in this category.
+                {courses.length === 0
+                  ? "No courses available yet. Check back soon!"
+                  : "No courses found in this category."}
               </p>
             </div>
           )}

@@ -5,10 +5,14 @@
 ALTER TABLE users
 ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
 
--- 2. Make specific account an admin
+-- 2. Make specific accounts admins
 UPDATE users
 SET is_admin = TRUE
 WHERE email = 'gany.wicaksono@gmail.com';
+
+UPDATE users
+SET is_admin = TRUE
+WHERE email = 'amirsafruddin99@gmail.com';
 
 -- You can add more admins like this:
 -- UPDATE users SET is_admin = TRUE WHERE email = 'someone@example.com';
