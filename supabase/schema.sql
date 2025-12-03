@@ -108,12 +108,28 @@ ALTER TABLE lesson_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE course_progress ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies: Allow public read access to courses, instructors, modules, and lessons
+-- Drop existing policies if they exist (to allow re-running this script)
+DROP POLICY IF EXISTS "Public can view instructors" ON instructors;
+DROP POLICY IF EXISTS "Public can view courses" ON courses;
+DROP POLICY IF EXISTS "Public can view modules" ON modules;
+DROP POLICY IF EXISTS "Public can view lessons" ON lessons;
+
 CREATE POLICY "Public can view instructors" ON instructors FOR SELECT USING (true);
 CREATE POLICY "Public can view courses" ON courses FOR SELECT USING (true);
 CREATE POLICY "Public can view modules" ON modules FOR SELECT USING (true);
 CREATE POLICY "Public can view lessons" ON lessons FOR SELECT USING (true);
 
 -- RLS Policies: Users can only see their own enrollments and progress
+-- Drop existing policies if they exist (to allow re-running this script)
+DROP POLICY IF EXISTS "Users can view own enrollments" ON enrollments;
+DROP POLICY IF EXISTS "Users can insert own enrollments" ON enrollments;
+DROP POLICY IF EXISTS "Users can view own lesson progress" ON lesson_progress;
+DROP POLICY IF EXISTS "Users can insert own lesson progress" ON lesson_progress;
+DROP POLICY IF EXISTS "Users can update own lesson progress" ON lesson_progress;
+DROP POLICY IF EXISTS "Users can view own course progress" ON course_progress;
+DROP POLICY IF EXISTS "Users can insert own course progress" ON course_progress;
+DROP POLICY IF EXISTS "Users can update own course progress" ON course_progress;
+
 CREATE POLICY "Users can view own enrollments" ON enrollments FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own enrollments" ON enrollments FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can view own lesson progress" ON lesson_progress FOR SELECT USING (auth.uid() = user_id);
@@ -133,6 +149,14 @@ END;
 $$ language 'plpgsql';
 
 -- Triggers to automatically update updated_at
+-- Drop existing triggers if they exist (to allow re-running this script)
+DROP TRIGGER IF EXISTS update_instructors_updated_at ON instructors;
+DROP TRIGGER IF EXISTS update_courses_updated_at ON courses;
+DROP TRIGGER IF EXISTS update_modules_updated_at ON modules;
+DROP TRIGGER IF EXISTS update_lessons_updated_at ON lessons;
+DROP TRIGGER IF EXISTS update_lesson_progress_updated_at ON lesson_progress;
+DROP TRIGGER IF EXISTS update_course_progress_updated_at ON course_progress;
+
 CREATE TRIGGER update_instructors_updated_at BEFORE UPDATE ON instructors
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 

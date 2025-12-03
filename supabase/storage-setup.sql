@@ -23,6 +23,17 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- Create storage bucket for course images
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'course-images',
+  'course-images',
+  true, -- Public bucket so images can be accessed directly
+  10485760, -- 10MB file size limit
+  ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- Storage policies for avatars bucket
 -- Drop existing policies if they exist
 DROP POLICY IF EXISTS "Public Avatar Access" ON storage.objects;
@@ -107,8 +118,49 @@ USING (
   AND auth.uid()::text = (string_to_array(name, '/'))[1]
 );
 
+-- Storage policies for course-images bucket
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Public Course Image Access" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated can upload course images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated can update course images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated can delete course images" ON storage.objects;
+
+-- Policy: Anyone can view course images (public bucket)
+CREATE POLICY "Public Course Image Access"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'course-images');
+
+-- Policy: Authenticated users can upload course images
+-- Files are stored as: courses/{courseId}/{filename} or courses/{filename}
+CREATE POLICY "Authenticated can upload course images"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'course-images' 
+  AND auth.uid() IS NOT NULL
+);
+
+-- Policy: Authenticated users can update course images
+CREATE POLICY "Authenticated can update course images"
+ON storage.objects FOR UPDATE
+USING (
+  bucket_id = 'course-images' 
+  AND auth.uid() IS NOT NULL
+)
+WITH CHECK (
+  bucket_id = 'course-images' 
+  AND auth.uid() IS NOT NULL
+);
+
+-- Policy: Authenticated users can delete course images
+CREATE POLICY "Authenticated can delete course images"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'course-images' 
+  AND auth.uid() IS NOT NULL
+);
+
 -- Verify buckets were created
 SELECT id, name, public, file_size_limit, allowed_mime_types 
 FROM storage.buckets 
-WHERE id IN ('avatars', 'user-uploads');
+WHERE id IN ('avatars', 'user-uploads', 'course-images');
 

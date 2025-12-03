@@ -46,10 +46,10 @@ export function CourseCard({ course, priority }: CourseCardProps) {
         </CardContent>
         <CardFooter className="p-6 pt-0">
           <span className="text-sm font-medium text-foreground">
-            {course.modules.reduce(
-              (total, module) => total + module.lessons.length,
+            {course.modules?.reduce(
+              (total, module) => total + (module.lessons?.length || 0),
               0
-            )}{" "}
+            ) || 0}{" "}
             lessons
           </span>
         </CardFooter>

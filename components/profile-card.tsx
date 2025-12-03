@@ -1,11 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserProfile } from "@/lib/profile";
-import { User, Mail, Calendar, Edit } from "lucide-react";
+import { User, Mail, Calendar, Edit, Trophy } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { createLearningClient } from "@/lib/supabase/learning-client";
+import { getUserBadges, Badge } from "@/lib/badges";
 
 interface ProfileCardProps {
   profile: UserProfile;
@@ -13,6 +17,32 @@ interface ProfileCardProps {
 }
 
 export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps) {
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [loadingBadges, setLoadingBadges] = useState(true);
+
+  useEffect(() => {
+    const fetchBadges = async () => {
+      try {
+        const authSupabase = createClient();
+        const {
+          data: { user },
+        } = await authSupabase.auth.getUser();
+
+        if (user) {
+          const learningSupabase = createLearningClient();
+          const userBadges = await getUserBadges(learningSupabase, user.id);
+          setBadges(userBadges);
+        }
+      } catch (error) {
+        console.error("Error fetching badges:", error);
+      } finally {
+        setLoadingBadges(false);
+      }
+    };
+
+    fetchBadges();
+  }, [profile.id]);
+
   const fullName = profile.first_name || profile.last_name
     ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
     : profile.username || 'User';
@@ -85,6 +115,27 @@ export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps
                       month: 'long',
                     })}
                   </span>
+                </div>
+              )}
+
+              {/* Badges Section */}
+              {badges.length > 0 && (
+                <div className="pt-4 border-t border-border">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Trophy className="h-4 w-4 text-yellow-500 dark:text-yellow-400" />
+                    <span className="text-sm font-medium">Achievements</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {badges.map((badge) => (
+                      <div
+                        key={badge.id}
+                        className="flex items-center gap-2 rounded-full bg-gradient-to-r from-yellow-400/20 to-orange-500/20 dark:from-yellow-500/20 dark:to-orange-600/20 border border-yellow-500/30 dark:border-yellow-400/30 px-3 py-1.5"
+                      >
+                        <Trophy className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
+                        <span className="text-xs font-medium">{badge.badge_name}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
