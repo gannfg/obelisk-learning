@@ -583,3 +583,50 @@ export async function getTeamAttendanceKPIs(
   }
 }
 
+/**
+ * Get all workshops a user is registered for
+ */
+export async function getUserRegisteredWorkshops(
+  userId: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<Workshop[]> {
+  try {
+    const supabase = supabaseClient || createLearningClient();
+    
+    // Get all registrations for the user
+    const { data: registrations, error: regError } = await supabase
+      .from("workshop_registrations")
+      .select("workshop_id")
+      .eq("user_id", userId);
+
+    if (regError) {
+      console.error("Error fetching registrations:", regError);
+      return [];
+    }
+
+    if (!registrations || registrations.length === 0) {
+      return [];
+    }
+
+    // Get workshop IDs
+    const workshopIds = registrations.map((r) => r.workshop_id);
+
+    // Fetch workshops
+    const { data: workshops, error: workshopsError } = await supabase
+      .from("workshops")
+      .select("*")
+      .in("id", workshopIds)
+      .order("datetime", { ascending: true });
+
+    if (workshopsError) {
+      console.error("Error fetching workshops:", workshopsError);
+      return [];
+    }
+
+    return (workshops || []).map(normalizeWorkshop);
+  } catch (error) {
+    console.error("Error in getUserRegisteredWorkshops:", error);
+    return [];
+  }
+}
+

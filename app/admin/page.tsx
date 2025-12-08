@@ -44,16 +44,21 @@ export default function AdminPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
-              Classes
+              Semester Classes
             </CardTitle>
             <CardDescription>
-              Create and manage academy classes. (Uses learning database schema)
+              Manage semester-based classes with modules, sessions, enrollments, assignments, and announcements.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild className="w-full">
-              <Link href="/admin/courses">Open Classes Admin</Link>
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button asChild>
+                <Link href="/admin/classes">Open Classes Admin</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/admin/courses">Legacy Classes (Old)</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

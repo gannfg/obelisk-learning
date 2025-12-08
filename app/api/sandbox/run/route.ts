@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAuthServerClient, createLearningServerClient } from "@/lib/supabase/server";
 
 // For MVP: This is a stub that will be replaced with actual sandbox execution
 // In production, this would:
@@ -10,8 +10,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const authSupabase = await createAuthServerClient();
+    const learningSupabase = await createLearningServerClient();
+    const { data: { user } } = await authSupabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -49,7 +50,7 @@ To implement:
     // Log the run attempt (even if not executed)
     if (missionId) {
       try {
-        await supabase.from("sandbox_runs").insert({
+        await learningSupabase.from("sandbox_runs").insert({
           user_id: user.id,
           mission_id: missionId,
           files_snapshot: files,

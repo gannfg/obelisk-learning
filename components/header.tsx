@@ -69,8 +69,8 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
   };
 
   const baseNavItems = [
-    { href: "/missions", label: "Missions" },
     { href: "/academy", label: "Academy" },
+    { href: "/missions", label: "Missions" },
     { href: "/workshops", label: "Workshops" },
     { href: "/instructors", label: "Mentors" },
   ];

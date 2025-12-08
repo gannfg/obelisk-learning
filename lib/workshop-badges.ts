@@ -123,32 +123,30 @@ export async function checkWorkshopMilestones(
         .single();
 
       if (badge) {
-        await learningSupabase
-          .from("user_badges")
-          .insert({
+        try {
+          await learningSupabase.from("user_badges").insert({
             user_id: userId,
             badge_id: badge.id,
             mission_id: null,
-          })
-          .then(() => {
-            createNotification(
-              {
-                userId,
-                type: "badge",
-                title: "Badge Earned! 🏆",
-                message: `You earned the "Workshop Enthusiast" badge for attending 5+ workshops!`,
-                link: "/profile",
-                metadata: {
-                  badge_name: "Workshop Enthusiast",
-                  milestone: "5_workshops",
-                },
-              },
-              authSupabase
-            );
-          })
-          .catch(() => {
-            // Ignore duplicate errors
           });
+
+          await createNotification(
+            {
+              userId,
+              type: "badge",
+              title: "Badge Earned! 🏆",
+              message: `You earned the "Workshop Enthusiast" badge for attending 5+ workshops!`,
+              link: "/profile",
+              metadata: {
+                badge_name: "Workshop Enthusiast",
+                milestone: "5_workshops",
+              },
+            },
+            authSupabase
+          );
+        } catch {
+          // Ignore duplicate errors
+        }
       }
     }
 
@@ -161,32 +159,30 @@ export async function checkWorkshopMilestones(
         .single();
 
       if (badge) {
-        await learningSupabase
-          .from("user_badges")
-          .insert({
+        try {
+          await learningSupabase.from("user_badges").insert({
             user_id: userId,
             badge_id: badge.id,
             mission_id: null,
-          })
-          .then(() => {
-            createNotification(
-              {
-                userId,
-                type: "badge",
-                title: "Badge Earned! 🏆",
-                message: `You earned the "Workshop Master" badge for attending 10+ workshops!`,
-                link: "/profile",
-                metadata: {
-                  badge_name: "Workshop Master",
-                  milestone: "10_workshops",
-                },
-              },
-              authSupabase
-            );
-          })
-          .catch(() => {
-            // Ignore duplicate errors
           });
+
+          await createNotification(
+            {
+              userId,
+              type: "badge",
+              title: "Badge Earned! 🏆",
+              message: `You earned the "Workshop Master" badge for attending 10+ workshops!`,
+              link: "/profile",
+              metadata: {
+                badge_name: "Workshop Master",
+                milestone: "10_workshops",
+              },
+            },
+            authSupabase
+          );
+        } catch {
+          // Ignore duplicate errors
+        }
       }
     }
   } catch (error) {

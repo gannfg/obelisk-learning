@@ -31,6 +31,12 @@ export default function WorkshopsPage() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [countryFilter, setCountryFilter] = useState<string | null>(null);
+  const [myWorkshops, setMyWorkshops] = useState<{
+    attending: Workshop[];
+    attended: Workshop[];
+  }>({ attending: [], attended: [] });
+  const [myWorkshopsLoading, setMyWorkshopsLoading] = useState(false);
+  const [myWorkshopsTab, setMyWorkshopsTab] = useState<"attending" | "attended">("attending");
 
   useEffect(() => {
     async function loadWorkshops() {
@@ -59,6 +65,35 @@ export default function WorkshopsPage() {
 
     loadWorkshops();
   }, [filter]);
+
+  useEffect(() => {
+    async function loadMyWorkshops() {
+      if (!user) {
+        setMyWorkshops({ attending: [], attended: [] });
+        return;
+      }
+
+      try {
+        setMyWorkshopsLoading(true);
+        const response = await fetch("/api/workshops/my-registrations");
+        if (!response.ok) {
+          console.error("Failed to fetch my workshops:", response.status);
+          return;
+        }
+        const data = await response.json();
+        setMyWorkshops({
+          attending: data.attending || [],
+          attended: data.attended || [],
+        });
+      } catch (error) {
+        console.error("Error loading my workshops:", error);
+      } finally {
+        setMyWorkshopsLoading(false);
+      }
+    }
+
+    loadMyWorkshops();
+  }, [user]);
 
   // Extract unique countries from workshops
   const countries = useMemo(() => {
@@ -364,12 +399,117 @@ export default function WorkshopsPage() {
               }}
             />
 
-            {/* World Map Placeholder */}
+            {/* My Workshops - Attending/Attended */}
             <Card className="p-4">
-              <h3 className="text-lg font-bold mb-4">Global Events</h3>
-              <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                <p className="text-sm text-muted-foreground">World Map Coming Soon</p>
-              </div>
+              <h3 className="text-lg font-bold mb-4">My Workshops</h3>
+              
+              {!user ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Sign in to see your registered workshops
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Tabs */}
+                  <div className="flex gap-2 mb-4">
+                    <Button
+                      variant={myWorkshopsTab === "attending" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setMyWorkshopsTab("attending")}
+                      className="flex-1"
+                    >
+                      Attending ({myWorkshops.attending.length})
+                    </Button>
+                    <Button
+                      variant={myWorkshopsTab === "attended" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setMyWorkshopsTab("attended")}
+                      className="flex-1"
+                    >
+                      Attended ({myWorkshops.attended.length})
+                    </Button>
+                  </div>
+
+                  {/* Workshop List */}
+                  {myWorkshopsLoading ? (
+                    <div className="space-y-2">
+                      {[1, 2].map((i) => (
+                        <div key={i} className="animate-pulse">
+                          <div className="h-16 bg-muted rounded" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                      {(myWorkshopsTab === "attending"
+                        ? myWorkshops.attending
+                        : myWorkshops.attended
+                      ).length === 0 ? (
+                        <div className="text-center py-8">
+                          <p className="text-sm text-muted-foreground">
+                            {myWorkshopsTab === "attending"
+                              ? "No upcoming workshops registered"
+                              : "No past workshops attended"}
+                          </p>
+                        </div>
+                      ) : (
+                        (myWorkshopsTab === "attending"
+                          ? myWorkshops.attending
+                          : myWorkshops.attended
+                        ).map((workshop) => {
+                          const endTime = getEndTime(workshop.datetime);
+                          return (
+                            <Link
+                              key={workshop.id}
+                              href={`/workshops/${workshop.id}`}
+                            >
+                              <Card className="p-3 hover:bg-muted/50 transition-colors cursor-pointer">
+                                <div className="flex gap-3">
+                                  {workshop.imageUrl && (
+                                    <div className="relative w-16 h-16 rounded overflow-hidden flex-shrink-0">
+                                      <Image
+                                        src={workshop.imageUrl}
+                                        alt={workshop.title}
+                                        fill
+                                        className="object-cover"
+                                        sizes="64px"
+                                      />
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold text-sm mb-1 line-clamp-1">
+                                      {workshop.title}
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground mb-1">
+                                      {format(workshop.datetime, "MMM d, h:mm a")}
+                                    </p>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      {workshop.locationType === "online" ? (
+                                        <>
+                                          <Video className="h-3 w-3" />
+                                          <span>Online</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <MapPin className="h-3 w-3" />
+                                          <span className="truncate">
+                                            {workshop.venueName || "Offline"}
+                                          </span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </Card>
+                            </Link>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </Card>
           </div>
         </div>

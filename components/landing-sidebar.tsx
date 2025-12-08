@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { CheckCircle2, Trophy, Activity, Users, Target, BookOpen, FolderKanban, Award } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
@@ -196,11 +197,24 @@ export function LandingSidebar() {
           ) : recentAchievements.length > 0 ? (
             recentAchievements.map((achievement, index) => (
               <div key={index} className="flex items-start gap-3">
-                <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  {achievement.type === "badge" && <Award className="h-3.5 w-3.5 text-primary" />}
-                  {achievement.type === "course" && <BookOpen className="h-3.5 w-3.5 text-primary" />}
-                  {achievement.type === "mission" && <Target className="h-3.5 w-3.5 text-primary" />}
-                </div>
+                {achievement.userAvatar ? (
+                  <div className="relative h-8 w-8 rounded-full overflow-hidden flex-shrink-0 mt-0.5 border border-border">
+                    <Image
+                      src={achievement.userAvatar}
+                      alt={achievement.userName}
+                      fill
+                      className="object-cover"
+                      sizes="32px"
+                      unoptimized
+                    />
+                  </div>
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    {achievement.type === "badge" && <Award className="h-3.5 w-3.5 text-primary" />}
+                    {achievement.type === "course" && <BookOpen className="h-3.5 w-3.5 text-primary" />}
+                    {achievement.type === "mission" && <Target className="h-3.5 w-3.5 text-primary" />}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0 space-y-1">
                   <p className="text-sm leading-snug">
                     <span className="font-medium text-foreground">{achievement.userName}</span>{" "}
@@ -242,9 +256,22 @@ export function LandingSidebar() {
           ) : recentActivities.length > 0 ? (
             recentActivities.map((activity, index) => (
               <div key={index} className="flex items-start gap-3">
-                <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                </div>
+                {activity.userAvatar ? (
+                  <div className="relative h-8 w-8 rounded-full overflow-hidden flex-shrink-0 mt-0.5 border border-border">
+                    <Image
+                      src={activity.userAvatar}
+                      alt={activity.userName}
+                      fill
+                      className="object-cover"
+                      sizes="32px"
+                      unoptimized
+                    />
+                  </div>
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0 space-y-1">
                   <p className="text-sm leading-snug">
                     <span className="font-medium text-foreground">{activity.userName}</span>{" "}

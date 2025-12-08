@@ -123,26 +123,70 @@ export async function getRecentAchievements(limit: number = 5): Promise<RecentAc
     const achievements: RecentAchievement[] = [];
 
     // Fetch recent badges
+    // Use a minimal select to avoid 400 errors if the FK name differs; Supabase will follow badge_id FK automatically
     const badgesRes = await learningSupabase
       .from("user_badges")
-      .select("*, badges(*)")
+      .select("user_id, badge_id, earned_at, badges(name)")
       .order("earned_at", { ascending: false })
       .limit(limit);
+
+    // Collect all user IDs to batch fetch
+    const userIds = new Set<string>();
+    if (badgesRes.data) {
+      badgesRes.data.forEach((userBadge: any) => {
+        if (userBadge.user_id) userIds.add(userBadge.user_id);
+      });
+    }
+
+    // Batch fetch all users at once
+    let usersMap = new Map<string, { username?: string | null; email?: string; image_url?: string | null }>();
+    if (userIds.size > 0) {
+      const userIdsArray = Array.from(userIds);
+      const { data: usersData, error: usersError } = await authSupabase
+        .from("users")
+        .select("id, username, email, image_url")
+        .in("id", userIdsArray);
+      
+      if (usersError) {
+        console.error("Error batch fetching users for achievements:", usersError);
+      }
+      
+      if (usersData) {
+        usersData.forEach((user: any) => {
+          usersMap.set(user.id, {
+            username: user.username,
+            email: user.email,
+            image_url: user.image_url,
+          });
+        });
+        
+        // Log if some users weren't found
+        const foundUserIds = new Set(usersData.map((u: any) => u.id));
+        const missingUserIds = userIdsArray.filter(id => !foundUserIds.has(id));
+        if (missingUserIds.length > 0) {
+          console.warn(`Users not found in users table (may need profile sync):`, missingUserIds);
+        }
+      }
+    }
 
     if (badgesRes.data) {
       for (const userBadge of badgesRes.data) {
         const badge = (userBadge as any).badges;
         if (badge) {
-          // Get user email from auth Supabase
-          const { data: userData } = await authSupabase
-            .from("users")
-            .select("email")
-            .eq("id", userBadge.user_id)
-            .single();
+          const userData = usersMap.get(userBadge.user_id);
+          // Try to get username, fallback to email prefix, fallback to user ID prefix
+          let userName = "User";
+          if (userData) {
+            userName = userData.username || userData.email?.split("@")[0] || userBadge.user_id.substring(0, 8);
+          } else {
+            // User not found in users table - use ID prefix as fallback
+            userName = userBadge.user_id.substring(0, 8);
+          }
           
           achievements.push({
             userId: userBadge.user_id,
-            userName: userData?.email?.split("@")[0] || "User",
+            userName,
+            userAvatar: userData?.image_url || undefined,
             type: "badge",
             title: `earned badge: ${badge.name}`,
             timestamp: new Date(userBadge.earned_at),
@@ -166,25 +210,59 @@ export async function getRecentAchievements(limit: number = 5): Promise<RecentAc
     // Fetch recent mission completions
     const missionProgressRes = await learningSupabase
       .from("mission_progress")
-      .select("*, users!mission_progress_user_id_fkey(email), missions(title)")
+      .select("*, missions!mission_progress_mission_id_fkey(title)")
       .eq("completed", true)
       .order("completed_at", { ascending: false })
       .limit(limit);
+
+    // Collect user IDs from mission progress (add to existing set)
+    if (missionProgressRes.data) {
+      missionProgressRes.data.forEach((progress: any) => {
+        if (progress.user_id) userIds.add(progress.user_id);
+      });
+    }
+
+    // Batch fetch all users at once (including new IDs from missions)
+    if (userIds.size > 0 && userIds.size > usersMap.size) {
+      const userIdsArray = Array.from(userIds);
+      const { data: usersData, error: usersError } = await authSupabase
+        .from("users")
+        .select("id, username, email, image_url")
+        .in("id", userIdsArray);
+      
+      if (usersError) {
+        console.error("Error fetching users for achievements:", usersError);
+      }
+      
+      if (usersData) {
+        usersData.forEach((user: any) => {
+          usersMap.set(user.id, {
+            username: user.username,
+            email: user.email,
+            image_url: user.image_url,
+          });
+        });
+      }
+    }
 
     if (missionProgressRes.data) {
       for (const progress of missionProgressRes.data) {
         const mission = (progress as any).missions;
         if (mission) {
-          // Get user email from auth Supabase
-          const { data: userData } = await authSupabase
-            .from("users")
-            .select("email")
-            .eq("id", progress.user_id)
-            .single();
+          const userData = usersMap.get(progress.user_id);
+          // Try to get username, fallback to email prefix, fallback to user ID prefix
+          let userName = "User";
+          if (userData) {
+            userName = userData.username || userData.email?.split("@")[0] || progress.user_id.substring(0, 8);
+          } else {
+            // User not found in users table - use ID prefix as fallback
+            userName = progress.user_id.substring(0, 8);
+          }
           
           achievements.push({
             userId: progress.user_id,
-            userName: userData?.email?.split("@")[0] || "User",
+            userName,
+            userAvatar: userData?.image_url || undefined,
             type: "mission",
             title: `completed mission: ${mission.title}`,
             timestamp: new Date(progress.completed_at),
@@ -216,24 +294,67 @@ export async function getRecentActivity(limit: number = 5): Promise<RecentActivi
     // Fetch recent project submissions
     const submissionsRes = await learningSupabase
       .from("mission_submissions")
-      .select("*, missions(title)")
+      .select("*, missions!mission_submissions_mission_id_fkey(title)")
       .order("created_at", { ascending: false })
       .limit(limit);
+
+    // Collect all user IDs to batch fetch
+    const userIds = new Set<string>();
+    if (submissionsRes.data) {
+      submissionsRes.data.forEach((submission: any) => {
+        if (submission.user_id) userIds.add(submission.user_id);
+      });
+    }
+
+    // Batch fetch all users at once
+    let usersMap = new Map<string, { username?: string | null; email?: string; image_url?: string | null }>();
+    if (userIds.size > 0) {
+      const userIdsArray = Array.from(userIds);
+      const { data: usersData, error: usersError } = await authSupabase
+        .from("users")
+        .select("id, username, email, image_url")
+        .in("id", userIdsArray);
+      
+      if (usersError) {
+        console.error("Error batch fetching users for activity:", usersError);
+      }
+      
+      if (usersData) {
+        usersData.forEach((user: any) => {
+          usersMap.set(user.id, {
+            username: user.username,
+            email: user.email,
+            image_url: user.image_url,
+          });
+        });
+        
+        // Log if some users weren't found
+        const foundUserIds = new Set(usersData.map((u: any) => u.id));
+        const missingUserIds = userIdsArray.filter(id => !foundUserIds.has(id));
+        if (missingUserIds.length > 0) {
+          console.warn(`Users not found in users table (may need profile sync):`, missingUserIds);
+        }
+      }
+    }
 
     if (submissionsRes.data) {
       for (const submission of submissionsRes.data) {
         const mission = (submission as any).missions;
         if (mission) {
-          // Get user email from auth Supabase
-          const { data: userData } = await authSupabase
-            .from("users")
-            .select("email")
-            .eq("id", submission.user_id)
-            .single();
+          const userData = usersMap.get(submission.user_id);
+          // Try to get username, fallback to email prefix, fallback to user ID prefix
+          let userName = "User";
+          if (userData) {
+            userName = userData.username || userData.email?.split("@")[0] || submission.user_id.substring(0, 8);
+          } else {
+            // User not found in users table - use ID prefix as fallback
+            userName = submission.user_id.substring(0, 8);
+          }
           
           activities.push({
             userId: submission.user_id,
-            userName: userData?.email?.split("@")[0] || "User",
+            userName,
+            userAvatar: userData?.image_url || undefined,
             action: `submitted project for "${mission.title}"`,
             timestamp: new Date(submission.created_at),
           });
@@ -244,25 +365,70 @@ export async function getRecentActivity(limit: number = 5): Promise<RecentActivi
     // Fetch recent mission completions
     const missionProgressRes = await learningSupabase
       .from("mission_progress")
-      .select("*, users!mission_progress_user_id_fkey(email), missions(title)")
+      .select("*, missions!mission_progress_mission_id_fkey(title)")
       .eq("completed", true)
       .order("completed_at", { ascending: false })
       .limit(limit);
 
+    // Collect user IDs from mission progress
+    if (missionProgressRes.data) {
+      missionProgressRes.data.forEach((progress: any) => {
+        if (progress.user_id) userIds.add(progress.user_id);
+      });
+    }
+
+    // Fetch recent badges for activity
+    const badgesRes = await learningSupabase
+      .from("user_badges")
+      .select("user_id, badge_id, earned_at, badges(name)")
+      .order("earned_at", { ascending: false })
+      .limit(limit);
+
+    // Collect user IDs from badges
+    if (badgesRes.data) {
+      badgesRes.data.forEach((userBadge: any) => {
+        if (userBadge.user_id) userIds.add(userBadge.user_id);
+      });
+    }
+
+    // Batch fetch all users at once (if we have new IDs)
+    if (userIds.size > 0) {
+      const userIdsArray = Array.from(userIds);
+      const { data: usersData } = await authSupabase
+        .from("users")
+        .select("id, username, email, image_url")
+        .in("id", userIdsArray);
+      
+      if (usersData) {
+        usersData.forEach((user: any) => {
+          usersMap.set(user.id, {
+            username: user.username,
+            email: user.email,
+            image_url: user.image_url,
+          });
+        });
+      }
+    }
+
+    // Process mission completions
     if (missionProgressRes.data) {
       for (const progress of missionProgressRes.data) {
         const mission = (progress as any).missions;
         if (mission) {
-          // Get user email from auth Supabase
-          const { data: userData } = await authSupabase
-            .from("users")
-            .select("email")
-            .eq("id", progress.user_id)
-            .single();
+          const userData = usersMap.get(progress.user_id);
+          // Try to get username, fallback to email prefix, fallback to user ID prefix
+          let userName = "User";
+          if (userData) {
+            userName = userData.username || userData.email?.split("@")[0] || progress.user_id.substring(0, 8);
+          } else {
+            // User not found in users table - use ID prefix as fallback
+            userName = progress.user_id.substring(0, 8);
+          }
           
           activities.push({
             userId: progress.user_id,
-            userName: userData?.email?.split("@")[0] || "User",
+            userName,
+            userAvatar: userData?.image_url || undefined,
             action: `completed mission "${mission.title}"`,
             timestamp: new Date(progress.completed_at),
           });
@@ -270,27 +436,25 @@ export async function getRecentActivity(limit: number = 5): Promise<RecentActivi
       }
     }
 
-    // Fetch recent badges for activity
-    const badgesRes = await learningSupabase
-      .from("user_badges")
-      .select("*, badges(name)")
-      .order("earned_at", { ascending: false })
-      .limit(limit);
-
+    // Process badges
     if (badgesRes.data) {
       for (const userBadge of badgesRes.data) {
         const badge = (userBadge as any).badges;
         if (badge) {
-          // Get user email from auth Supabase
-          const { data: userData } = await authSupabase
-            .from("users")
-            .select("email")
-            .eq("id", userBadge.user_id)
-            .single();
+          const userData = usersMap.get(userBadge.user_id);
+          // Try to get username, fallback to email prefix, fallback to user ID prefix
+          let userName = "User";
+          if (userData) {
+            userName = userData.username || userData.email?.split("@")[0] || userBadge.user_id.substring(0, 8);
+          } else {
+            // User not found in users table - use ID prefix as fallback
+            userName = userBadge.user_id.substring(0, 8);
+          }
           
           activities.push({
             userId: userBadge.user_id,
-            userName: userData?.email?.split("@")[0] || "User",
+            userName,
+            userAvatar: userData?.image_url || undefined,
             action: `earned badge "${badge.name}"`,
             timestamp: new Date(userBadge.earned_at),
           });
