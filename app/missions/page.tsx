@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Target, Clock, CheckCircle2, Circle, Trophy, Filter, Sparkles, Code2 } from "lucide-react";
 import { MissionCardSkeleton } from "@/components/mission-card-skeleton";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { createClient } from "@/lib/supabase/client";
+import { createLearningClient } from "@/lib/supabase/learning-client";
 import type { Mission, MissionProgress } from "@/types";
 
 export default function MissionBoardPage() {
@@ -23,7 +23,7 @@ export default function MissionBoardPage() {
     if (authLoading) return;
 
     async function loadMissions() {
-      const supabase = createClient();
+      const supabase = createLearningClient();
 
       // Fetch all missions
       let query = supabase.from("missions").select("*").order("order_index");
@@ -57,6 +57,7 @@ export default function MissionBoardPage() {
           stackType: m.stack_type,
           difficulty: m.difficulty,
           estimatedTime: m.estimated_time ?? undefined,
+          submissionDeadline: m.submission_deadline ? new Date(m.submission_deadline) : undefined,
           orderIndex: m.order_index,
           badgeId: m.badge_id ?? undefined,
         })) || [];
@@ -213,10 +214,14 @@ export default function MissionBoardPage() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-lg mb-1 leading-tight">{mission.title}</h3>
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {mission.estimatedTime || "?"} min
-                        </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      <span>
+                        {mission.submissionDeadline
+                          ? mission.submissionDeadline.toLocaleDateString()
+                          : "No submission date"}
+                      </span>
+                    </div>
                         <span className="px-2 py-0.5 rounded bg-muted text-xs">
                           {mission.difficulty}
                         </span>

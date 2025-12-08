@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createLearningServerClient } from "@/lib/supabase/server";
 import { randomBytes } from "crypto";
 
 // Save/restore workspace snapshots
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
+    // Get user from auth Supabase first
+    const { createClient } = await import("@/lib/supabase/server");
+    const authSupabase = await createClient();
+    const { data: { user } } = await authSupabase.auth.getUser();
+    
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    
+    // Use Learning Supabase for sandboxes/snapshots
+    const supabase = createLearningServerClient();
 
     const body = await request.json();
     const { files, missionId, userId, name, description } = body;
@@ -94,7 +99,13 @@ export async function POST(request: NextRequest) {
 // GET: Retrieve a snapshot (by ID or share token)
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // Get user from auth Supabase first
+    const { createClient } = await import("@/lib/supabase/server");
+    const authSupabase = await createClient();
+    const { data: { user } } = await authSupabase.auth.getUser();
+    
+    // Use Learning Supabase for snapshots
+    const supabase = createLearningServerClient();
     const { searchParams } = new URL(request.url);
     const snapshotId = searchParams.get("id");
     const shareToken = searchParams.get("token");
@@ -118,7 +129,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Check access: user owns it OR it has a share token
-    const { data: { user } } = await supabase.auth.getUser();
     if (!shareToken && (!user || snapshot.user_id !== user.id)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }

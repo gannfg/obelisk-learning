@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { updateUserProfile } from '@/lib/profile';
 import { createClient } from '@/lib/supabase/client';
+import { notifyWelcome } from '@/lib/notifications-helpers';
 
 export function UserSync() {
   const { user, loading } = useAuth();
@@ -53,11 +54,22 @@ export function UserSync() {
         }
         
         // Only sync if there are updates to make
+        const isNewUser = !existingProfile;
         if (Object.keys(updates).length > 1 || (updates.email && !existingProfile)) {
           const success = await updateUserProfile(user.id, updates, email, supabase);
 
           if (success) {
             console.log('✅ User synced to Supabase users table', Object.keys(updates));
+            
+            // Create welcome notification for new users
+            if (isNewUser) {
+              try {
+                await notifyWelcome(user.id, supabase);
+              } catch (notifError) {
+                console.error('Error creating welcome notification:', notifError);
+                // Don't fail user sync if notification fails
+              }
+            }
           } else {
             console.debug('User sync completed (profile may already exist or sync not needed)');
           }
