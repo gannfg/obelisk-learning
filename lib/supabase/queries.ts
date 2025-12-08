@@ -1,9 +1,9 @@
-import { createClient } from "./server";
+import { createLearningServerClient } from "./server";
 import { Course, Instructor, CourseCategory, CourseProgress, LessonProgress } from "@/types";
 
 // Instructors
 export async function getInstructors(): Promise<Instructor[]> {
-  const supabase = await createClient();
+  const supabase = await createLearningServerClient();
   const { data, error } = await supabase
     .from("instructors")
     .select("*")
@@ -25,7 +25,7 @@ export async function getInstructors(): Promise<Instructor[]> {
 }
 
 export async function getInstructorById(id: string): Promise<Instructor | null> {
-  const supabase = await createClient();
+  const supabase = await createLearningServerClient();
   const { data, error } = await supabase
     .from("instructors")
     .select("*")
@@ -48,7 +48,7 @@ export async function getInstructorById(id: string): Promise<Instructor | null> 
 
 // Courses
 export async function getCourses(): Promise<Course[]> {
-  const supabase = await createClient();
+  const supabase = await createLearningServerClient();
   const { data: courses, error } = await supabase
     .from("courses")
     .select(`
@@ -90,7 +90,7 @@ export async function getCourses(): Promise<Course[]> {
 }
 
 export async function getCourseById(id: string): Promise<Course | null> {
-  const supabase = await createClient();
+  const supabase = await createLearningServerClient();
   const { data: course, error } = await supabase
     .from("courses")
     .select(`
@@ -132,7 +132,7 @@ export async function getCourseById(id: string): Promise<Course | null> {
 }
 
 export async function getCoursesByCategory(category: CourseCategory): Promise<Course[]> {
-  const supabase = await createClient();
+  const supabase = await createLearningServerClient();
   const { data: courses, error } = await supabase
     .from("courses")
     .select(`
@@ -175,7 +175,7 @@ export async function getCoursesByCategory(category: CourseCategory): Promise<Co
 }
 
 export async function getFeaturedCourses(): Promise<Course[]> {
-  const supabase = await createClient();
+  const supabase = await createLearningServerClient();
   const { data: courses, error } = await supabase
     .from("courses")
     .select(`
@@ -218,7 +218,7 @@ export async function getFeaturedCourses(): Promise<Course[]> {
 }
 
 export async function getCoursesByInstructor(instructorId: string): Promise<Course[]> {
-  const supabase = await createClient();
+  const supabase = await createLearningServerClient();
   const { data: courses, error } = await supabase
     .from("courses")
     .select(`
@@ -265,7 +265,7 @@ export async function getCourseProgress(
   userId: string,
   courseId: string
 ): Promise<CourseProgress | null> {
-  const supabase = await createClient();
+  const supabase = await createLearningServerClient();
   const { data, error } = await supabase
     .from("lesson_progress")
     .select("*")
@@ -292,7 +292,7 @@ export async function markLessonComplete(
   courseId: string,
   lessonId: string
 ): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createLearningServerClient();
   
   // Upsert lesson progress
   const { error: progressError } = await supabase
@@ -321,7 +321,7 @@ export async function markLessonComplete(
 }
 
 export async function getCompletedLessons(userId: string): Promise<Set<string>> {
-  const supabase = await createClient();
+  const supabase = await createLearningServerClient();
   const { data, error } = await supabase
     .from("lesson_progress")
     .select("lesson_id")
@@ -336,7 +336,7 @@ export async function getCompletedLessons(userId: string): Promise<Set<string>> 
 }
 
 export async function isEnrolled(userId: string, courseId: string): Promise<boolean> {
-  const supabase = await createClient();
+  const supabase = await createLearningServerClient();
   const { data, error } = await supabase
     .from("enrollments")
     .select("id")
@@ -348,7 +348,7 @@ export async function isEnrolled(userId: string, courseId: string): Promise<bool
 }
 
 export async function enrollInCourse(userId: string, courseId: string): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createLearningServerClient();
   const { error } = await supabase
     .from("enrollments")
     .insert({

@@ -1085,7 +1085,7 @@ export default function AdminCoursesPage() {
         <div>
           <h1 className="text-3xl sm:text-4xl font-bold mb-2">Academy Admin</h1>
           <p className="text-base sm:text-lg text-muted-foreground">
-            Create and manage courses, modules, and lessons for the Web3 Coding Academy.
+            Create and manage classes, modules, and lessons for the Web3 Coding Academy.
           </p>
         </div>
         <Button variant="outline" asChild>
@@ -1282,11 +1282,11 @@ export default function AdminCoursesPage() {
           {/* Course List */}
           <Card>
             <CardHeader>
-              <CardTitle>All Courses</CardTitle>
+              <CardTitle>All Classes</CardTitle>
               <CardDescription>
                 {loadingCourses
                   ? "Loading courses..."
-                  : `${courses.length} course${courses.length !== 1 ? "s" : ""} found`}
+                  : `${courses.length} class${courses.length !== 1 ? "es" : ""} found`}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1296,7 +1296,7 @@ export default function AdminCoursesPage() {
                 </div>
               ) : courses.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  No courses found. Create your first course above.
+                  No classes found. Create your first class above.
                 </p>
               ) : (
                 <div className="space-y-4">

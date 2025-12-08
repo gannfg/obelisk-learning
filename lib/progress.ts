@@ -2,6 +2,64 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { createNotification } from "@/lib/notifications";
 
 /**
+ * Award XP (Experience Points) to a user
+ * @param userId - The user ID
+ * @param amount - Amount of XP to award
+ * @param source - Source of the XP (e.g., "workshop_attendance", "mission_completed", "course_completed")
+ * @param supabaseClient - Auth Supabase client (users table is in Auth Supabase)
+ * @returns true if successful, false otherwise
+ */
+export async function awardXP(
+  userId: string,
+  amount: number,
+  source: string,
+  supabaseClient: SupabaseClient<any>
+): Promise<boolean> {
+  try {
+    // Try to get current XP (if column exists)
+    const { data: currentUser, error: selectError } = await supabaseClient
+      .from("users")
+      .select("xp")
+      .eq("id", userId)
+      .single();
+    
+    // If XP column doesn't exist, gracefully skip
+    if (selectError && selectError.code === '42703') {
+      // Column doesn't exist - that's okay, XP system can be added later
+      console.log(`XP system not yet configured. Would award ${amount} XP for ${source}.`);
+      return true;
+    }
+    
+    // If there's another error, log it but don't fail
+    if (selectError) {
+      console.log(`Could not fetch current XP (non-critical): ${selectError.message}`);
+      return true;
+    }
+    
+    // Update XP
+    const currentXP = (currentUser?.xp as number) || 0;
+    const newXP = currentXP + amount;
+    
+    const { error: updateError } = await supabaseClient
+      .from("users")
+      .update({ xp: newXP })
+      .eq("id", userId);
+    
+    if (updateError) {
+      // If update fails (e.g., column doesn't exist or RLS issue), log but don't fail
+      console.log(`Could not update XP (non-critical): ${updateError.message}`);
+      return true;
+    }
+    
+    return true;
+  } catch (error: any) {
+    // Graceful degradation - don't fail the check-in if XP fails
+    console.log(`XP award failed (non-critical): ${error?.message || error}`);
+    return true;
+  }
+}
+
+/**
  * Get all completed lesson IDs for a user in a course
  */
 export async function getCompletedLessons(

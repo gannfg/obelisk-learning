@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, Search, Users, User, Target, MessageCircle } from "lucide-react";
+import { Home, BookOpen, Search, Users, User, Target, MessageCircle, Calendar } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -15,18 +15,23 @@ const navItems = [
     icon: Home,
   },
   {
-    href: "/missions",
-    label: "Missions",
-    icon: Target,
-  },
-  {
     href: "/academy",
     label: "Academy",
     icon: BookOpen,
   },
   {
-    href: "/mentor-chat",
-    label: "Mentor",
+    href: "/missions",
+    label: "Missions",
+    icon: Target,
+  },
+  {
+    href: "/workshops",
+    label: "Workshops",
+    icon: Calendar,
+  },
+  {
+    href: "/instructors",
+    label: "Mentors",
     icon: MessageCircle,
   },
   {

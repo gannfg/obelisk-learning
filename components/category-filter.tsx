@@ -19,7 +19,7 @@ export function CategoryFilter() {
   return (
     <div className="mb-12 flex flex-wrap gap-4">
       <Link
-        href="/academy?tab=courses"
+        href="/academy?tab=classes"
         className={cn(
           "text-sm font-medium transition-all duration-200 hover:text-foreground hover:scale-105 active:scale-95",
           !selectedCategory
@@ -27,14 +27,14 @@ export function CategoryFilter() {
             : "text-muted-foreground"
         )}
       >
-        All Courses
+        All Classes
       </Link>
       {COURSE_CATEGORIES.map((category) => {
         const isActive = selectedCategory === category;
         return (
           <Link
             key={category}
-            href={`/academy?category=${encodeURIComponent(category)}&tab=courses`}
+            href={`/academy?category=${encodeURIComponent(category)}&tab=classes`}
             className={cn(
               "text-sm font-medium transition-all duration-200 hover:text-foreground hover:scale-105 active:scale-95",
               isActive

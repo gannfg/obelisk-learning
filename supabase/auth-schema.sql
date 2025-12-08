@@ -72,7 +72,7 @@ BEGIN
     COALESCE(NEW.email, ''),
     COALESCE(NEW.raw_user_meta_data->>'first_name', NEW.raw_user_meta_data->>'full_name', NULL),
     COALESCE(NEW.raw_user_meta_data->>'last_name', NULL),
-    COALESCE(NEW.raw_user_meta_data->>'avatar_url', NEW.avatar_url, NULL),
+    COALESCE(NEW.raw_user_meta_data->>'avatar_url', NULL),
     NOW(),
     NOW()
   )
@@ -120,6 +120,19 @@ CREATE POLICY "Users can insert own profile"
   ON users
   FOR INSERT
   WITH CHECK (auth.uid() = id);
+
+-- Policy: Users can view other users' basic info (username, email, image_url)
+-- This is needed for displaying usernames and avatars in activity feeds, leaderboards, etc.
+CREATE POLICY "Users can view other users' basic info"
+  ON users
+  FOR SELECT
+  USING (
+    auth.uid() IS NOT NULL  -- Must be authenticated
+    AND (
+      auth.uid() = id  -- Can view own full profile
+      OR true  -- Can view basic info (username, email, image_url) of other users
+    )
+  );
 
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated;

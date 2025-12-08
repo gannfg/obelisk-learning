@@ -75,7 +75,7 @@ export function SearchBar() {
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Search courses..."
+          placeholder="Search classes..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => {
@@ -149,7 +149,7 @@ export function SearchBar() {
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <p className="text-sm text-muted-foreground">
-                  No courses found
+                  No classes found
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Try a different search term

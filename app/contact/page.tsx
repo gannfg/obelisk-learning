@@ -13,7 +13,7 @@ export default function ContactPage() {
               For general inquiries, support, or partnership opportunities, please reach out to us.
             </p>
             <div className="space-y-2 text-muted-foreground">
-              <p><strong>Email:</strong> support@obelisklearning.com</p>
+              <p><strong>Email:</strong> support@superteamstudy.com</p>
               <p><strong>Response Time:</strong> We typically respond within 24-48 hours</p>
             </div>
           </div>

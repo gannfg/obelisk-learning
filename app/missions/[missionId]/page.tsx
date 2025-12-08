@@ -10,6 +10,8 @@ import { MarkdownContent } from "@/components/markdown-content";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useAdmin } from "@/lib/hooks/use-admin";
 import { createLearningClient } from "@/lib/supabase/learning-client";
+import { createClient } from "@/lib/supabase/client";
+import { notifyProjectSubmitted } from "@/lib/notifications-helpers";
 import type { Mission, MissionContent, MissionProgress, MissionSubmission } from "@/types";
 import Image from "next/image";
 import LiteIDE from "@/components/lite-ide";
@@ -234,6 +236,17 @@ export default function MissionPage() {
         updatedAt: new Date(s.updated_at),
       };
       setSubmission(mapped);
+
+      // Send notification to user that project was submitted
+      if (mission) {
+        try {
+          const authSupabase = createClient();
+          await notifyProjectSubmitted(user.id, missionId, mission.title, authSupabase);
+        } catch (notifError) {
+          console.error("Error sending submission notification:", notifError);
+          // Don't fail the submission if notification fails
+        }
+      }
     } finally {
       setIsSubmitting(false);
     }

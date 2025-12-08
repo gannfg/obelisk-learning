@@ -1,6 +1,6 @@
 # Notifications System Setup Guide
 
-This guide explains how to set up and use the comprehensive notification system for the Obelisk Learning Platform.
+This guide explains how to set up and use the comprehensive notification system for the Superteam Study Platform.
 
 ## Overview
 
@@ -165,6 +165,11 @@ The following notifications are created automatically:
    - Created in `lib/progress.ts` → `awardCourseBadge()`
    - Called from `components/lesson-navigation.tsx`
 
+3. **Mission Submission Feedback**
+   - Triggered when an admin/mentor reviews a mission submission
+   - Created in `app/admin/missions/page.tsx` → `handleUpdateSubmission()`
+   - Sends notification when feedback or status is updated
+
 ## Manual Integration Points
 
 To add notifications for other events, integrate the helper functions:
@@ -208,6 +213,8 @@ await notifySubmissionFeedback(
   authSupabase
 );
 ```
+
+**Note**: This is already integrated in `app/admin/missions/page.tsx` - notifications are automatically sent when admins review mission submissions.
 
 ### New Course Announcements
 When an admin publishes a new course:

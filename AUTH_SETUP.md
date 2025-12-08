@@ -1,6 +1,6 @@
 # Authentication Setup Guide
 
-This guide will help you set up `lantaidua-universal-auth` with Clerk for Obelisk Learning.
+This guide will help you set up `lantaidua-universal-auth` with Clerk for Superteam Study.
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@ This guide will help you set up `lantaidua-universal-auth` with Clerk for Obelis
 1. Go to [Clerk Dashboard](https://dashboard.clerk.com)
 2. Click "Create Application"
 3. Fill in your application details:
-   - **Name**: Obelisk Learning (or your preferred name)
+   - **Name**: Superteam Study (or your preferred name)
    - **Authentication**: Choose your preferred authentication methods
 4. Click "Create Application"
 

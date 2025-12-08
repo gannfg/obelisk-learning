@@ -46,7 +46,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Search Courses</DialogTitle>
+          <DialogTitle>Search Classes</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="relative">
@@ -109,7 +109,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <BookOpen className="mb-4 h-12 w-12 text-zinc-400" />
                   <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                    No courses found
+                    No classes found
                   </p>
                   <p className="mt-1 text-xs text-zinc-500">
                     Try a different search term
@@ -122,7 +122,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Search className="mb-4 h-12 w-12 text-zinc-400" />
               <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                Start typing to search courses
+                Start typing to search classes
               </p>
             </div>
           )}

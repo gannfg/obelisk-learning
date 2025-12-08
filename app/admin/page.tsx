@@ -35,7 +35,7 @@ export default function AdminPage() {
       <div>
         <h1 className="text-3xl sm:text-4xl font-bold mb-3">Admin Panel</h1>
         <p className="text-base sm:text-lg text-muted-foreground">
-          Welcome{user?.email ? `, ${user.email}` : ""}. Manage courses, missions, projects, and teams for the academy.
+          Welcome{user?.email ? `, ${user.email}` : ""}. Manage classes, missions, projects, and teams for the academy.
         </p>
       </div>
 
@@ -47,7 +47,7 @@ export default function AdminPage() {
               Academy
             </CardTitle>
             <CardDescription>
-              Create and manage academy courses. (Uses learning database schema)
+              Manage semester-based classes with modules, sessions, enrollments, assignments, and announcements.
             </CardDescription>
           </CardHeader>
           <CardContent>

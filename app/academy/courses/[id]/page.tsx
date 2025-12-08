@@ -15,7 +15,7 @@ interface CoursePageProps {
 
 export default async function CoursePage({ params }: CoursePageProps) {
   const { id } = await params;
-  const learningSupabase = createLearningServerClient();
+  const learningSupabase = await createLearningServerClient();
   const course = await getCourseById(learningSupabase, id);
 
   if (!course) {

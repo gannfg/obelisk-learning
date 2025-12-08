@@ -105,7 +105,7 @@ export default async function InstructorPage({ params }: InstructorPageProps) {
         <div className="rounded-lg border border-border bg-muted p-6">
           <div className="text-3xl font-bold">{courses.length}</div>
           <div className="text-sm text-muted-foreground">
-            Course{courses.length !== 1 ? "s" : ""}
+            Class{courses.length !== 1 ? "es" : ""}
           </div>
         </div>
         <div className="rounded-lg border border-border bg-muted p-6">
@@ -136,7 +136,7 @@ export default async function InstructorPage({ params }: InstructorPageProps) {
 
       <div>
         <h2 className="mb-6 text-2xl font-semibold">
-          Courses by {instructor.name}
+          Classes by {instructor.name}
         </h2>
         {courses.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -146,7 +146,7 @@ export default async function InstructorPage({ params }: InstructorPageProps) {
           </div>
         ) : (
           <p className="text-muted-foreground">
-            No courses available yet.
+            No classes available yet.
           </p>
         )}
       </div>

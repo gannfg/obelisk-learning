@@ -9,13 +9,13 @@ export default function TermsPage() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Acceptance of Terms</h2>
           <p className="text-muted-foreground">
-            By accessing and using Obelisk Learning, you accept and agree to be bound by the terms and provision of this agreement.
+            By accessing and using Superteam Study, you accept and agree to be bound by the terms and provision of this agreement.
           </p>
         </section>
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Use License</h2>
           <p className="text-muted-foreground mb-4">
-            Permission is granted to temporarily access the materials on Obelisk Learning for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:
+            Permission is granted to temporarily access the materials on Superteam Study for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:
           </p>
           <ul className="list-disc list-inside space-y-2 text-muted-foreground mb-4">
             <li>Modify or copy the materials</li>
@@ -39,19 +39,19 @@ export default function TermsPage() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Content and Intellectual Property</h2>
           <p className="text-muted-foreground">
-            All content on Obelisk Learning, including courses, text, graphics, logos, and software, is the property of Obelisk Learning or its content suppliers and is protected by copyright and other intellectual property laws.
+            All content on Superteam Study, including classes, text, graphics, logos, and software, is the property of Superteam Study or its content suppliers and is protected by copyright and other intellectual property laws.
           </p>
         </section>
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Limitation of Liability</h2>
           <p className="text-muted-foreground">
-            In no event shall Obelisk Learning or its suppliers be liable for any damages arising out of the use or inability to use the materials on the platform.
+            In no event shall Superteam Study or its suppliers be liable for any damages arising out of the use or inability to use the materials on the platform.
           </p>
         </section>
         <section>
           <h2 className="text-2xl font-semibold mb-4">Contact Us</h2>
           <p className="text-muted-foreground">
-            If you have questions about these Terms of Service, please contact us at support@obelisklearning.com
+            If you have questions about these Terms of Service, please contact us at support@superteamstudy.com
           </p>
         </section>
       </div>

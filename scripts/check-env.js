@@ -21,7 +21,7 @@ const lines = envContent.split('\n').filter(line => {
 });
 
 const requiredVars = [
-  // Obelisk Learning Auth Supabase
+  // Superteam Study Auth Supabase
   'NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL',
   'NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY',
 ];
@@ -95,7 +95,7 @@ const hasAuthSupabase = authSupabaseVars.every(v => foundVars.has(v));
 const hasLearningSupabase = learningSupabaseVars.every(v => foundVars.has(v));
 
 console.log('\n📊 Summary:');
-console.log(`  Obelisk Learning Auth Supabase: ${hasAuthSupabase ? '✅ Configured' : '❌ Not configured (required)'}`);
+console.log(`  Superteam Study Auth Supabase: ${hasAuthSupabase ? '✅ Configured' : '❌ Not configured (required)'}`);
 console.log(`  Learning Supabase (optional): ${hasLearningSupabase ? '✅ Configured' : '○ Not configured'}`);
 console.log(`  Ollama AI: ${foundVars.has('OLLAMA_URL') || foundVars.has('OLLAMA_MODEL') ? '✅ Configured' : '○ Using defaults (localhost:11434, llama3)'}`);
 
