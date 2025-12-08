@@ -21,15 +21,21 @@ CREATE TABLE IF NOT EXISTS missions (
   title TEXT NOT NULL,
   goal TEXT NOT NULL, -- Short mission goal (e.g., "Add server-side validation to the API")
   description TEXT,
+  image_url TEXT, -- Optional thumbnail / cover image for mission
   initial_files JSONB DEFAULT '{}', -- { "file.js": "// code", "package.json": "{}" }
   stack_type TEXT NOT NULL CHECK (stack_type IN ('nextjs', 'python', 'solana', 'node', 'react', 'other')),
   difficulty TEXT DEFAULT 'beginner' CHECK (difficulty IN ('beginner', 'intermediate', 'advanced')),
-  estimated_time INTEGER, -- in minutes
+  estimated_time INTEGER, -- in minutes (legacy, kept for compatibility)
+  submission_deadline TIMESTAMP WITH TIME ZONE, -- Optional submission date/deadline
   order_index INTEGER NOT NULL DEFAULT 0,
   badge_id UUID, -- Reference to badges table (optional)
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
+
+-- Ensure submission_deadline column exists for existing databases
+ALTER TABLE missions
+ADD COLUMN IF NOT EXISTS submission_deadline TIMESTAMP WITH TIME ZONE;
 
 -- Add foreign key constraint only if lessons table exists
 DO $$
@@ -196,7 +202,6 @@ CREATE TABLE IF NOT EXISTS sandbox_runs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Mentor reviews: Instructors can review snapshots and provide feedback
 CREATE TABLE IF NOT EXISTS mentor_reviews (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   mentor_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -208,6 +213,23 @@ CREATE TABLE IF NOT EXISTS mentor_reviews (
   rating INTEGER CHECK (rating >= 1 AND rating <= 5),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+-- Mission submissions: Users submit Git repositories for review
+CREATE TABLE IF NOT EXISTS mission_submissions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  mission_id UUID NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+  git_url TEXT NOT NULL,
+  repo_directory TEXT, -- Optional subdirectory inside the repo
+  status TEXT NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted', 'under_review', 'approved', 'changes_requested')),
+  feedback TEXT,
+  reviewer_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMP WITH TIME ZONE,
+  is_winner BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  UNIQUE(user_id, mission_id)
 );
 
 -- User quotas: Track resource usage for cost control
@@ -259,9 +281,36 @@ ALTER TABLE badges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sandbox_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mentor_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mission_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_quotas ENABLE ROW LEVEL SECURITY;
 
+-- Basic privileges for anon/authenticated roles
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON missions TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON mission_content TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON sandboxes TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON snapshots TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON micro_checks TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON micro_check_results TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ai_prompt_templates TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ai_interactions TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON saved_prompts TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON mission_progress TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON badges TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON user_badges TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON sandbox_runs TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON mentor_reviews TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON mission_submissions TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON user_quotas TO anon, authenticated;
+
 -- RLS Policies: Public read access to missions and content
+-- Drop existing policies if they exist (to allow re-running this script)
+DROP POLICY IF EXISTS "Public can view missions" ON missions;
+DROP POLICY IF EXISTS "Public can view mission_content" ON mission_content;
+DROP POLICY IF EXISTS "Public can view micro_checks" ON micro_checks;
+DROP POLICY IF EXISTS "Public can view ai_prompt_templates" ON ai_prompt_templates;
+DROP POLICY IF EXISTS "Public can view badges" ON badges;
+
 CREATE POLICY "Public can view missions" ON missions FOR SELECT USING (true);
 CREATE POLICY "Public can view mission_content" ON mission_content FOR SELECT USING (true);
 CREATE POLICY "Public can view micro_checks" ON micro_checks FOR SELECT USING (true);
@@ -269,6 +318,25 @@ CREATE POLICY "Public can view ai_prompt_templates" ON ai_prompt_templates FOR S
 CREATE POLICY "Public can view badges" ON badges FOR SELECT USING (true);
 
 -- RLS Policies: Users can only access their own sandboxes, snapshots, and progress
+-- Drop existing policies if they exist (to allow re-running this script)
+DROP POLICY IF EXISTS "Users can manage own sandboxes" ON sandboxes;
+DROP POLICY IF EXISTS "Users can manage own snapshots" ON snapshots;
+DROP POLICY IF EXISTS "Users can view own micro_check_results" ON micro_check_results;
+DROP POLICY IF EXISTS "Users can insert own micro_check_results" ON micro_check_results;
+DROP POLICY IF EXISTS "Users can manage own ai_interactions" ON ai_interactions;
+DROP POLICY IF EXISTS "Users can manage own saved_prompts" ON saved_prompts;
+DROP POLICY IF EXISTS "Users can manage own mission_progress" ON mission_progress;
+DROP POLICY IF EXISTS "Users can view own user_badges" ON user_badges;
+DROP POLICY IF EXISTS "Users can view own sandbox_runs" ON sandbox_runs;
+DROP POLICY IF EXISTS "Users can manage own user_quotas" ON user_quotas;
+DROP POLICY IF EXISTS "Public can view shared snapshots" ON snapshots;
+DROP POLICY IF EXISTS "Mentors can view reviews" ON mentor_reviews;
+DROP POLICY IF EXISTS "Mentors can create reviews" ON mentor_reviews;
+DROP POLICY IF EXISTS "Users can view own mission_submissions" ON mission_submissions;
+DROP POLICY IF EXISTS "Users can insert own mission_submissions" ON mission_submissions;
+DROP POLICY IF EXISTS "Users can update own mission_submissions" ON mission_submissions;
+DROP POLICY IF EXISTS "Mentors can review mission_submissions" ON mission_submissions;
+
 CREATE POLICY "Users can manage own sandboxes" ON sandboxes
   FOR ALL USING (auth.uid() = user_id);
 
@@ -311,6 +379,26 @@ CREATE POLICY "Mentors can view reviews" ON mentor_reviews
 CREATE POLICY "Mentors can create reviews" ON mentor_reviews
   FOR INSERT WITH CHECK (auth.uid() = mentor_id);
 
+-- RLS Policies: Mission submissions
+-- Users can manage their own submissions
+CREATE POLICY "Users can view own mission_submissions" ON mission_submissions
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own mission_submissions" ON mission_submissions
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own mission_submissions" ON mission_submissions
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- Temporarily allow mentors/admins to review any submission.
+-- NOTE: For production, tighten this to check a mentor/admin role.
+-- Mentors/admins can view and review any submission (temporary, for admin tools)
+CREATE POLICY "Mentors can view mission_submissions" ON mission_submissions
+  FOR SELECT USING (true);
+
+CREATE POLICY "Mentors can review mission_submissions" ON mission_submissions
+  FOR UPDATE USING (true) WITH CHECK (true);
+
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -321,6 +409,15 @@ END;
 $$ language 'plpgsql';
 
 -- Triggers to automatically update updated_at
+-- Drop existing triggers if they exist (to allow re-running this script)
+DROP TRIGGER IF EXISTS update_missions_updated_at ON missions;
+DROP TRIGGER IF EXISTS update_mission_content_updated_at ON mission_content;
+DROP TRIGGER IF EXISTS update_sandboxes_updated_at ON sandboxes;
+DROP TRIGGER IF EXISTS update_saved_prompts_updated_at ON saved_prompts;
+DROP TRIGGER IF EXISTS update_mission_progress_updated_at ON mission_progress;
+DROP TRIGGER IF EXISTS update_mentor_reviews_updated_at ON mentor_reviews;
+DROP TRIGGER IF EXISTS update_user_quotas_updated_at ON user_quotas;
+
 CREATE TRIGGER update_missions_updated_at BEFORE UPDATE ON missions
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 

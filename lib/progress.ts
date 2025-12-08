@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { createNotification } from "@/lib/notifications";
 
 /**
  * Get all completed lesson IDs for a user in a course
@@ -72,12 +73,15 @@ export async function wouldCompleteCourse(
 
 /**
  * Award a completion badge for a course
+ * @param supabaseClient - Learning Supabase client (for badges table)
+ * @param authSupabaseClient - Auth Supabase client (for notifications)
  */
 export async function awardCourseBadge(
   supabaseClient: SupabaseClient<any>,
   userId: string,
   courseId: string,
-  courseName: string
+  courseName: string,
+  authSupabaseClient?: SupabaseClient<any>
 ): Promise<boolean> {
   try {
     const badgeName = `${courseName} Mastery`;
@@ -98,6 +102,47 @@ export async function awardCourseBadge(
     if (error) {
       console.error("Error awarding badge:", error);
       return false;
+    }
+
+    // Create notification if auth client is provided
+    if (authSupabaseClient) {
+      try {
+        await createNotification(
+          {
+            userId,
+            type: "badge",
+            title: "Badge Earned! 🏆",
+            message: `You earned the "${badgeName}" badge for completing "${courseName}"!`,
+            link: `/profile`,
+            metadata: {
+              course_id: courseId,
+              course_name: courseName,
+              badge_name: badgeName,
+            },
+          },
+          authSupabaseClient
+        );
+
+        // Also create course completion notification
+        await createNotification(
+          {
+            userId,
+            type: "course",
+            title: "Course Completed! 🎉",
+            message: `Congratulations! You completed the course "${courseName}" and earned the "${badgeName}" badge!`,
+            link: `/academy/courses/${courseId}`,
+            metadata: {
+              course_id: courseId,
+              course_name: courseName,
+              badge_name: badgeName,
+            },
+          },
+          authSupabaseClient
+        );
+      } catch (notifError) {
+        console.error("Error creating completion notification:", notifError);
+        // Don't fail badge award if notification fails
+      }
     }
 
     return true;

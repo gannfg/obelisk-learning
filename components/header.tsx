@@ -1,9 +1,9 @@
  "use client";
  
- import Link from "next/link";
- import Image from "next/image";
+import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
- import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
  import {
    DropdownMenu,
    DropdownMenuContent,
@@ -15,14 +15,9 @@ import { usePathname } from "next/navigation";
  import { SearchBar } from "@/components/search-bar";
 import {
   Menu,
-  Bell,
   ChevronDown,
   User,
   LogOut,
-  CheckCircle2,
-  FileText,
-  MessageSquare,
-  Award,
   FolderKanban,
   Users as UsersIcon,
   HelpCircle,
@@ -32,23 +27,16 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getUserProfile } from "@/lib/profile";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAdmin } from "@/lib/hooks/use-admin";
+import { NotificationsDropdown } from "@/components/notifications-dropdown";
  
  export function Header() {
-   const { user, loading } = useAuth();
+  const { user, loading } = useAuth();
   const pathname = usePathname();
   const supabase = createClient();
+  const { isAdmin } = useAdmin();
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("");
-  const [notificationCount, setNotificationCount] = useState(0);
-  const [notifications, setNotifications] = useState<Array<{
-    id: string;
-    type: "submission" | "feedback" | "achievement" | "message";
-    title: string;
-    message: string;
-    time: string;
-    read: boolean;
-    link?: string;
-  }>>([]);
 
   // Fetch user profile
   useEffect(() => {
@@ -74,62 +62,22 @@ import { ThemeToggle } from "@/components/theme-toggle";
     loadProfile();
   }, [user, loading, supabase]);
 
-  // Mock notifications (replace with real data later)
-  useEffect(() => {
-    // TODO: Replace with actual notification fetching
-    const mockNotifications = [
-      {
-        id: "1",
-        type: "submission" as const,
-        title: "Lesson Submission Reviewed",
-        message: "Your submission for 'Understanding Context Windows' has been reviewed",
-        time: "2 hours ago",
-        read: false,
-        link: "/dashboard?tab=submissions",
-      },
-      {
-        id: "2",
-        type: "feedback" as const,
-        title: "New Feedback Received",
-        message: "You received feedback on your DeFi project submission",
-        time: "5 hours ago",
-        read: false,
-        link: "/academy/projects/1",
-      },
-      {
-        id: "3",
-        type: "achievement" as const,
-        title: "Achievement Unlocked!",
-        message: "You completed 10 lessons in Solana Development course",
-        time: "1 day ago",
-        read: true,
-        link: "/dashboard",
-      },
-      {
-        id: "4",
-        type: "message" as const,
-        title: "New Message from Mentor",
-        message: "Your mentor replied to your question about smart contracts",
-        time: "2 days ago",
-        read: true,
-        link: "/mentor-chat",
-      },
-    ];
-    setNotifications(mockNotifications);
-    setNotificationCount(mockNotifications.filter(n => !n.read).length);
-  }, []);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     window.location.href = "/";
   };
 
-  const navItems = [
+  const baseNavItems = [
     { href: "/missions", label: "Missions" },
     { href: "/academy", label: "Academy" },
     { href: "/instructors", label: "Mentors" },
     { href: "/mentor-chat", label: "Chat" },
   ];
+
+  const navItems = isAdmin
+    ? [...baseNavItems, { href: "/admin", label: "Admin" }]
+    : baseNavItems;
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -205,117 +153,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
               {user ? (
                 <>
-                  {/* Lessons Submission / Notifications */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="relative h-9 w-9 p-0"
-                      >
-                        <Bell className="h-5 w-5" />
-                        {notificationCount > 0 && (
-                          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
-                            {notificationCount > 9 ? "9+" : notificationCount}
-                          </span>
-                        )}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-80 sm:w-96">
-                      <div className="px-3 py-2 border-b border-border">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-semibold">Notifications</h3>
-                          {notificationCount > 0 && (
-                            <span className="text-xs text-muted-foreground">
-                              {notificationCount} new
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="max-h-[400px] overflow-y-auto">
-                        {notifications.length > 0 ? (
-                          <div className="py-1">
-                            {notifications.map((notification) => {
-                              const getIcon = () => {
-                                switch (notification.type) {
-                                  case "submission":
-                                    return <FileText className="h-4 w-4 text-blue-500" />;
-                                  case "feedback":
-                                    return <MessageSquare className="h-4 w-4 text-green-500" />;
-                                  case "achievement":
-                                    return <Award className="h-4 w-4 text-yellow-500" />;
-                                  case "message":
-                                    return <MessageSquare className="h-4 w-4 text-purple-500" />;
-                                  default:
-                                    return <Bell className="h-4 w-4" />;
-                                }
-                              };
-
-                              return (
-                                <DropdownMenuItem
-                                  key={notification.id}
-                                  asChild
-                                  className={cn(
-                                    "flex items-start gap-3 px-3 py-3 cursor-pointer",
-                                    !notification.read && "bg-muted/50"
-                                  )}
-                                >
-                                  <Link
-                                    href={notification.link || "#"}
-                                    className="flex items-start gap-3 w-full"
-                                  >
-                                    <div className={cn(
-                                      "mt-0.5 flex-shrink-0",
-                                      !notification.read && "relative"
-                                    )}>
-                                      {getIcon()}
-                                      {!notification.read && (
-                                        <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
-                                      )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className={cn(
-                                        "text-sm font-medium mb-0.5",
-                                        !notification.read && "font-semibold"
-                                      )}>
-                                        {notification.title}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground line-clamp-2 mb-1">
-                                        {notification.message}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {notification.time}
-                                      </p>
-                                    </div>
-                                  </Link>
-                                </DropdownMenuItem>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center py-8 text-center">
-                            <Bell className="h-8 w-8 text-muted-foreground mb-2" />
-                            <p className="text-sm text-muted-foreground">
-                              No notifications
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                      {notifications.length > 0 && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem asChild>
-                            <Link
-                              href="/dashboard?tab=submissions"
-                              className="flex items-center justify-center w-full text-sm font-medium"
-                            >
-                              View All Notifications
-                            </Link>
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {/* Notifications */}
+                  <NotificationsDropdown userId={user.id} supabase={supabase} />
 
                   {/* Profile Picture + Username + Dropdown */}
                   <DropdownMenu>
