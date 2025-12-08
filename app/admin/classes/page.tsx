@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAdmin } from "@/lib/hooks/use-admin";
 import { createLearningClient } from "@/lib/supabase/learning-client";
+import { createClient } from "@/lib/supabase/client";
 import {
   getAllClasses,
   getClassById,
@@ -250,17 +251,20 @@ export default function AdminClassesPage() {
     setError(null);
 
     try {
-      const supabase = createLearningClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      // Use Auth Supabase for authentication
+      const authSupabase = createClient();
+      const { data: { user } } = await authSupabase.auth.getUser();
       if (!user) {
         setError("Not authenticated.");
         setSaving(false);
         return;
       }
 
+      // Use Learning Supabase for database operations
+      const learningSupabase = createLearningClient();
       let thumbnailUrl = classForm.thumbnail;
       if (imageFile) {
-        thumbnailUrl = await uploadCourseImage(imageFile, null, supabase) || "";
+        thumbnailUrl = await uploadCourseImage(imageFile, null, learningSupabase) || "";
       }
 
       const startDateTime = new Date(`${classForm.startDate}T00:00:00`);
@@ -281,7 +285,7 @@ export default function AdminClassesPage() {
           instructorId: classForm.instructorId || user.id,
         },
         user.id,
-        supabase
+        learningSupabase
       );
 
       if (newClass) {
@@ -384,8 +388,9 @@ export default function AdminClassesPage() {
     setError(null);
 
     try {
-      const supabase = createLearningClient();
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      // Use Auth Supabase for authentication and user lookup
+      const authSupabase = createClient();
+      const { data: { user: currentUser } } = await authSupabase.auth.getUser();
       if (!currentUser) {
         setError("Not authenticated.");
         setSaving(false);
@@ -400,8 +405,8 @@ export default function AdminClassesPage() {
       if (uuidRegex.test(userIdentifier)) {
         userId = userIdentifier;
       } else {
-        // Try to find by email
-        const { data: userData } = await supabase
+        // Try to find by email (users table is in Auth Supabase)
+        const { data: userData } = await authSupabase
           .from("users")
           .select("id")
           .eq("email", userIdentifier)
@@ -433,7 +438,9 @@ export default function AdminClassesPage() {
         return;
       }
 
-      const enrollment = await enrollUser(selectedClass.id, userId, currentUser.id, supabase);
+      // Use Learning Supabase for enrollment operations
+      const learningSupabase = createLearningClient();
+      const enrollment = await enrollUser(selectedClass.id, userId, currentUser.id, learningSupabase);
 
       if (enrollment) {
         setSuccess("Student enrolled successfully!");
@@ -1548,10 +1555,13 @@ export default function AdminClassesPage() {
                 if (!assignmentForm.title || !assignmentForm.dueDate || !selectedModuleId || !selectedClass) return;
                 setSaving(true);
                 try {
-                  const supabase = createLearningClient();
-                  const { data: { user } } = await supabase.auth.getUser();
+                  // Use Auth Supabase for authentication
+                  const authSupabase = createClient();
+                  const { data: { user } } = await authSupabase.auth.getUser();
                   if (!user) return;
 
+                  // Use Learning Supabase for database operations
+                  const learningSupabase = createLearningClient();
                   const dueDateTime = new Date(
                     `${assignmentForm.dueDate}T${assignmentForm.dueTime || "23:59"}`
                   );
@@ -1569,7 +1579,7 @@ export default function AdminClassesPage() {
                       lockAfterDeadline: assignmentForm.lockAfterDeadline,
                     },
                     user.id,
-                    supabase
+                    learningSupabase
                   );
                   setAssignmentDialogOpen(false);
                   // Reload assignments
@@ -1663,10 +1673,13 @@ export default function AdminClassesPage() {
                 if (!announcementForm.title || !announcementForm.content || !selectedClass) return;
                 setSaving(true);
                 try {
-                  const supabase = createLearningClient();
-                  const { data: { user } } = await supabase.auth.getUser();
+                  // Use Auth Supabase for authentication
+                  const authSupabase = createClient();
+                  const { data: { user } } = await authSupabase.auth.getUser();
                   if (!user) return;
 
+                  // Use Learning Supabase for database operations
+                  const learningSupabase = createLearningClient();
                   await createAnnouncement(
                     {
                       classId: selectedClass.id,
@@ -1676,7 +1689,7 @@ export default function AdminClassesPage() {
                       pinned: announcementForm.pinned,
                     },
                     user.id,
-                    supabase
+                    learningSupabase
                   );
                   setAnnouncementDialogOpen(false);
                   setAnnouncementForm({ title: "", content: "", pinned: false, moduleId: "" });
@@ -1814,10 +1827,13 @@ export default function AdminClassesPage() {
 
                 setSaving(true);
                 try {
-                  const supabase = createLearningClient();
-                  const { data: { user } } = await supabase.auth.getUser();
+                  // Use Auth Supabase for authentication
+                  const authSupabase = createClient();
+                  const { data: { user } } = await authSupabase.auth.getUser();
                   if (!user) return;
 
+                  // Use Learning Supabase for database operations
+                  const learningSupabase = createLearningClient();
                   const sessionDateTime = new Date(
                     `${sessionForm.sessionDate}T${sessionForm.sessionTime}`
                   );
@@ -1835,7 +1851,7 @@ export default function AdminClassesPage() {
                       attendanceTracking: sessionForm.attendanceTracking,
                     },
                     user.id,
-                    supabase
+                    learningSupabase
                   );
 
                   if (newSession) {
