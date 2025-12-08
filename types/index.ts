@@ -79,6 +79,7 @@ export type Mission = {
   stackType: "nextjs" | "python" | "solana" | "node" | "react" | "other";
   difficulty: "beginner" | "intermediate" | "advanced";
   estimatedTime?: number;
+  submissionDeadline?: Date;
   orderIndex: number;
   badgeId?: string;
 };
@@ -152,6 +153,23 @@ export type MissionProgress = {
   microChecksPassed: number;
   totalMicroChecks: number;
   lastAccessedAt?: Date;
+};
+
+export type MissionSubmissionStatus = "submitted" | "under_review" | "approved" | "changes_requested";
+
+export type MissionSubmission = {
+  id: string;
+  userId: string;
+  missionId: string;
+  gitUrl: string;
+  repoDirectory?: string;
+  status: MissionSubmissionStatus;
+  feedback?: string;
+  reviewerId?: string;
+  reviewedAt?: Date;
+  isWinner?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 // Academy Types

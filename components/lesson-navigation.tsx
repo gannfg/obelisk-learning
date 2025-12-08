@@ -110,12 +110,13 @@ export function LessonNavigation({
         );
 
         if (completed && !isCourseComplete) {
-          // Award badge
+          // Award badge (pass auth client for notifications)
           await awardCourseBadge(
             learningSupabase,
             user.id,
             currentCourseId,
-            courseName
+            courseName,
+            authSupabase
           );
           setIsCourseComplete(true);
           setShowCompletionModal(true);
@@ -162,12 +163,13 @@ export function LessonNavigation({
         );
 
         if (completed) {
-          // Award badge
+          // Award badge (pass auth client for notifications)
           await awardCourseBadge(
             learningSupabase,
             user.id,
             currentCourseId,
-            courseName
+            courseName,
+            authSupabase
           );
           setShowCompletionModal(true);
         }

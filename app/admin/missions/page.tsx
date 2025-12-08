@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useAdmin } from "@/lib/hooks/use-admin";
 import {
   Card,
@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
+import { createLearningClient } from "@/lib/supabase/learning-client";
+import type { MissionSubmission } from "@/types";
 import { uploadMissionImage } from "@/lib/storage";
 import { Loader2, Target } from "lucide-react";
 
@@ -34,6 +36,11 @@ export default function AdminMissionsPage() {
   const [missionsLoading, setMissionsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const supabase = createClient();
+  const learningSupabase = createLearningClient();
+
+  const [submissions, setSubmissions] = useState<MissionSubmission[]>([]);
+  const [submissionsLoading, setSubmissionsLoading] = useState(true);
+  const [updatingSubmissionId, setUpdatingSubmissionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -42,6 +49,7 @@ export default function AdminMissionsPage() {
     }
     if (!loading && isAdmin) {
       loadMissions();
+      loadSubmissions();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, isAdmin]);
@@ -62,6 +70,49 @@ export default function AdminMissionsPage() {
     }
     setMissionsLoading(false);
   };
+
+  const loadSubmissions = async () => {
+    setSubmissionsLoading(true);
+    const { data, error } = await learningSupabase
+      .from("mission_submissions")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading mission submissions for admin:", error);
+      setError(error.message || "Failed to load mission submissions.");
+      setSubmissions([]);
+      setSubmissionsLoading(false);
+      return;
+    }
+
+    const mapped: MissionSubmission[] =
+      (data || []).map((s: any) => ({
+        id: s.id,
+        userId: s.user_id,
+        missionId: s.mission_id,
+        gitUrl: s.git_url,
+        repoDirectory: s.repo_directory ?? undefined,
+        status: s.status,
+        feedback: s.feedback ?? undefined,
+        reviewerId: s.reviewer_id ?? undefined,
+        reviewedAt: s.reviewed_at ? new Date(s.reviewed_at) : undefined,
+        isWinner: s.is_winner ?? false,
+        createdAt: new Date(s.created_at),
+        updatedAt: new Date(s.updated_at),
+      })) || [];
+
+    setSubmissions(mapped);
+    setSubmissionsLoading(false);
+  };
+
+  const missionsById = useMemo(() => {
+    const map: Record<string, any> = {};
+    missions.forEach((m) => {
+      map[m.id] = m;
+    });
+    return map;
+  }, [missions]);
 
   if (loading || !isAdmin) {
     return (
@@ -86,12 +137,12 @@ export default function AdminMissionsPage() {
     const description = (formData.get("description") as string) || "";
     const difficulty = formData.get("difficulty") as string;
     const stackType = formData.get("stackType") as string;
-    const estimatedTimeRaw = formData.get("estimatedTime") as string;
+    const submissionDeadlineRaw = formData.get("submissionDeadline") as string;
     const orderIndexRaw = formData.get("orderIndex") as string;
     const imageFile = formData.get("image") as File | null;
 
-    const estimatedTime = estimatedTimeRaw
-      ? Number.parseInt(estimatedTimeRaw, 10)
+    const submissionDeadline = submissionDeadlineRaw
+      ? new Date(submissionDeadlineRaw).toISOString()
       : null;
     const orderIndex = orderIndexRaw
       ? Number.parseInt(orderIndexRaw, 10)
@@ -112,7 +163,7 @@ export default function AdminMissionsPage() {
           description,
           difficulty,
           stack_type: stackType,
-          estimated_time: estimatedTime,
+          submission_deadline: submissionDeadline,
           order_index: orderIndex,
           image_url: imageUrl,
           initial_files: {}, // start with empty files; can be edited later via IDE
@@ -172,6 +223,33 @@ export default function AdminMissionsPage() {
     }
 
     setDeletingId(null);
+  };
+
+  const handleUpdateSubmission = async (
+    submissionId: string,
+    updates: Partial<MissionSubmission>
+  ) => {
+    setUpdatingSubmissionId(submissionId);
+    setError(null);
+
+    const payload: any = {};
+    if (updates.status) payload.status = updates.status;
+    if (typeof updates.isWinner === "boolean") payload.is_winner = updates.isWinner;
+    if (typeof updates.feedback === "string") payload.feedback = updates.feedback;
+
+    const { error } = await learningSupabase
+      .from("mission_submissions")
+      .update(payload)
+      .eq("id", submissionId);
+
+    if (error) {
+      console.error("Error updating submission:", error);
+      setError(error.message || "Failed to update submission.");
+    } else {
+      await loadSubmissions();
+    }
+
+    setUpdatingSubmissionId(null);
   };
 
   return (
@@ -276,16 +354,14 @@ export default function AdminMissionsPage() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="estimatedTime" className="text-sm font-medium">
-                  Estimated Time (minutes)
+                <label htmlFor="submissionDeadline" className="text-sm font-medium">
+                  Submission Date
                 </label>
                 <Input
-                  id="estimatedTime"
-                  name="estimatedTime"
-                  type="number"
-                  min={5}
-                  step={5}
-                  placeholder="e.g., 30"
+                  id="submissionDeadline"
+                  name="submissionDeadline"
+                  type="date"
+                  placeholder="Select submission date"
                 />
               </div>
             </div>
@@ -389,6 +465,103 @@ export default function AdminMissionsPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Mission submissions manager */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Mission Submissions Manager</CardTitle>
+          <CardDescription>
+            Review mission submissions, update status, and mark winners.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {submissionsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading submissions...</p>
+          ) : submissions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No mission submissions yet. Learners can submit from the mission page.
+            </p>
+          ) : (
+            <div className="space-y-3 max-h-[480px] overflow-y-auto">
+              {submissions.map((sub) => {
+                const mission = missionsById[sub.missionId];
+                return (
+                  <div
+                    key={sub.id}
+                    className="rounded-md border border-border p-3 flex flex-col gap-2"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">
+                          {mission?.title || "Unknown mission"}{" "}
+                          <span className="text-xs text-muted-foreground">
+                            ({sub.missionId})
+                          </span>
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          User: <span className="font-mono">{sub.userId}</span>
+                        </p>
+                        <a
+                          href={sub.gitUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary underline break-all"
+                        >
+                          {sub.gitUrl}
+                        </a>
+                        {sub.repoDirectory && (
+                          <p className="text-[11px] text-muted-foreground">
+                            Directory: <span className="font-mono">{sub.repoDirectory}</span>
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <select
+                          className="rounded-md border border-border bg-background px-2 py-1 text-[11px]"
+                          value={sub.status}
+                          onChange={(e) =>
+                            handleUpdateSubmission(sub.id, {
+                              status: e.target.value as MissionSubmission["status"],
+                            })
+                          }
+                          disabled={updatingSubmissionId === sub.id}
+                        >
+                          <option value="submitted">Submitted</option>
+                          <option value="under_review">Under Review</option>
+                          <option value="approved">Approved</option>
+                          <option value="changes_requested">Changes Requested</option>
+                        </select>
+                        <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(sub.isWinner)}
+                            onChange={(e) =>
+                              handleUpdateSubmission(sub.id, { isWinner: e.target.checked })
+                            }
+                            disabled={updatingSubmissionId === sub.id}
+                          />
+                          Mark as winner
+                        </label>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      {sub.feedback && (
+                        <p className="text-xs text-muted-foreground">
+                          Feedback: {sub.feedback}
+                        </p>
+                      )}
+                      <p className="text-[10px] text-muted-foreground">
+                        Submitted: {sub.createdAt.toLocaleString()}
+                        {sub.reviewedAt && ` • Reviewed: ${sub.reviewedAt.toLocaleString()}`}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>
