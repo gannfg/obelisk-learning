@@ -7,7 +7,7 @@ import { useAdmin } from "@/lib/hooks/use-admin";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, FolderKanban, Users as UsersIcon, Target } from "lucide-react";
+import { BookOpen, FolderKanban, Users as UsersIcon, Target, Calendar } from "lucide-react";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -35,7 +35,7 @@ export default function AdminPage() {
       <div>
         <h1 className="text-3xl sm:text-4xl font-bold mb-3">Admin Panel</h1>
         <p className="text-base sm:text-lg text-muted-foreground">
-          Welcome{user?.email ? `, ${user.email}` : ""}. Manage courses, missions, projects, and teams for the academy.
+          Welcome{user?.email ? `, ${user.email}` : ""}. Manage classes, missions, projects, and teams for the academy.
         </p>
       </div>
 
@@ -44,15 +44,15 @@ export default function AdminPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
-              Courses
+              Classes
             </CardTitle>
             <CardDescription>
-              Create and manage academy courses. (Uses learning database schema)
+              Create and manage academy classes. (Uses learning database schema)
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild className="w-full">
-              <Link href="/admin/courses">Open Courses Admin</Link>
+              <Link href="/admin/courses">Open Classes Admin</Link>
             </Button>
           </CardContent>
         </Card>
@@ -118,6 +118,28 @@ export default function AdminPage() {
               </Button>
               <Button asChild variant="outline">
                 <Link href="/academy/teams">View All Teams</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Workshops
+            </CardTitle>
+            <CardDescription>
+              Create and manage workshops for online and offline events.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              <Button asChild>
+                <Link href="/admin/workshops">Manage Workshops</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/workshops">View Workshop Calendar</Link>
               </Button>
             </div>
           </CardContent>

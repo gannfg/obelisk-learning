@@ -2,7 +2,7 @@
 
 ## What Changed
 
-All references to `LANTAIDUA_UNIVERSAL_AUTH` have been changed to `OBELISK_LEARNING_AUTH` to reflect the Obelisk Learning branding.
+All references to `LANTAIDUA_UNIVERSAL_AUTH` have been changed to `SUPERTEAM_STUDY_AUTH` to reflect the Superteam Study branding.
 
 ## Updated Environment Variables
 

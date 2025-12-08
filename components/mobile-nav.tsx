@@ -25,8 +25,8 @@ const navItems = [
     icon: BookOpen,
   },
   {
-    href: "/mentor-chat",
-    label: "Mentor",
+    href: "/instructors",
+    label: "Mentors",
     icon: MessageCircle,
   },
   {

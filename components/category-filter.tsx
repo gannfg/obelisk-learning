@@ -27,7 +27,7 @@ export function CategoryFilter() {
             : "text-muted-foreground"
         )}
       >
-        All Courses
+        All Classes
       </Link>
       {COURSE_CATEGORIES.map((category) => {
         const isActive = selectedCategory === category;

@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Superteam Study | Web3 Coding Academy",
   description:
-    "Learn Web3, blockchain, and modern web development with expert-led courses and hands-on projects.",
+    "Learn Web3, blockchain, and modern web development with expert-led classes and hands-on projects.",
   icons: {
     icon: "/favicon_tab.svg",
   },

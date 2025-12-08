@@ -88,7 +88,7 @@ export function AcademyPageClient() {
         <TabsList className="grid w-full grid-cols-3 mb-8">
           <TabsTrigger value="courses" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
-            <span className="hidden sm:inline">Courses</span>
+            <span className="hidden sm:inline">Classes</span>
           </TabsTrigger>
           <TabsTrigger value="projects" className="flex items-center gap-2">
             <FolderKanban className="h-4 w-4" />
@@ -117,8 +117,8 @@ export function AcademyPageClient() {
             <div className="py-8 sm:py-12 text-center">
               <p className="text-base sm:text-lg text-muted-foreground">
                 {courses.length === 0
-                  ? "No courses available yet. Check back soon!"
-                  : "No courses found in this category."}
+                  ? "No classes available yet. Check back soon!"
+                  : "No classes found in this category."}
               </p>
             </div>
           )}

@@ -2,7 +2,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 
-// Use Obelisk Learning Auth Supabase for authentication
+// Use Superteam Study Auth Supabase for authentication
 export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY;

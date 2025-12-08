@@ -26,6 +26,7 @@ import { createLearningClient } from "@/lib/supabase/learning-client";
 import type { MissionSubmission } from "@/types";
 import { uploadMissionImage } from "@/lib/storage";
 import { Loader2, Target } from "lucide-react";
+import { notifySubmissionFeedback, notifyProjectReviewed } from "@/lib/notifications-helpers";
 
 export default function AdminMissionsPage() {
   const router = useRouter();
@@ -232,6 +233,14 @@ export default function AdminMissionsPage() {
     setUpdatingSubmissionId(submissionId);
     setError(null);
 
+    // Get submission details before updating
+    const submission = submissions.find((s) => s.id === submissionId);
+    if (!submission) {
+      setError("Submission not found");
+      setUpdatingSubmissionId(null);
+      return;
+    }
+
     const payload: any = {};
     if (updates.status) payload.status = updates.status;
     if (typeof updates.isWinner === "boolean") payload.is_winner = updates.isWinner;
@@ -247,6 +256,45 @@ export default function AdminMissionsPage() {
       setError(error.message || "Failed to update submission.");
     } else {
       await loadSubmissions();
+
+      // Send notification to submitter if feedback or status was updated
+      if (updates.feedback || updates.status) {
+        try {
+          // Get reviewer name (current user)
+          const { data: userData } = await supabase.auth.getUser();
+          const reviewerName = userData?.user?.email?.split("@")[0] || "Admin";
+
+          // Get mission title for notification
+          const mission = missions.find((m) => m.id === submission.missionId);
+          const missionTitle = mission?.title || "mission";
+
+          // Send project reviewed notification if status is approved or changes_requested
+          if (updates.status === "approved" || updates.status === "changes_requested") {
+            await notifyProjectReviewed(
+              submission.userId,
+              submission.missionId,
+              missionTitle,
+              updates.status,
+              reviewerName,
+              updates.feedback || null,
+              supabase
+            );
+          } else {
+            // For other status updates, use the generic submission feedback notification
+            await notifySubmissionFeedback(
+              submission.userId,
+              submissionId,
+              missionTitle,
+              reviewerName,
+              updates.feedback || null,
+              supabase
+            );
+          }
+        } catch (notifError) {
+          console.error("Error sending notification:", notifError);
+          // Don't fail the update if notification fails
+        }
+      }
     }
 
     setUpdatingSubmissionId(null);

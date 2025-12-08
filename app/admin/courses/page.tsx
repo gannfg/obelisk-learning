@@ -1041,9 +1041,9 @@ export default function AdminCoursesPage() {
     <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Courses Admin</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Classes Admin</h1>
           <p className="text-base sm:text-lg text-muted-foreground">
-            Create and manage courses, modules, and lessons for the Web3 Coding Academy.
+            Create and manage classes, modules, and lessons for the Web3 Coding Academy.
           </p>
         </div>
         <Button variant="outline" asChild>
@@ -1065,7 +1065,7 @@ export default function AdminCoursesPage() {
 
       <Tabs defaultValue="courses" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="courses">Courses</TabsTrigger>
+          <TabsTrigger value="courses">Classes</TabsTrigger>
           <TabsTrigger value="modules">Modules</TabsTrigger>
           <TabsTrigger value="lessons">Lessons</TabsTrigger>
         </TabsList>
@@ -1230,7 +1230,7 @@ export default function AdminCoursesPage() {
                     </Button>
                   )}
                   <Button type="button" variant="outline" asChild>
-                    <Link href="/academy?tab=courses">View Courses</Link>
+                    <Link href="/academy?tab=courses">View Classes</Link>
                   </Button>
                 </div>
               </form>
@@ -1240,11 +1240,11 @@ export default function AdminCoursesPage() {
           {/* Course List */}
           <Card>
             <CardHeader>
-              <CardTitle>All Courses</CardTitle>
+              <CardTitle>All Classes</CardTitle>
               <CardDescription>
                 {loadingCourses
                   ? "Loading courses..."
-                  : `${courses.length} course${courses.length !== 1 ? "s" : ""} found`}
+                  : `${courses.length} class${courses.length !== 1 ? "es" : ""} found`}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1254,7 +1254,7 @@ export default function AdminCoursesPage() {
                 </div>
               ) : courses.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  No courses found. Create your first course above.
+                  No classes found. Create your first class above.
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -1335,7 +1335,7 @@ export default function AdminCoursesPage() {
               {!selectedCourse ? (
                 <div className="text-center py-8">
                   <p className="text-sm text-muted-foreground mb-4">
-                    Please select a course from the Courses tab to manage modules.
+                    Please select a class from the Classes tab to manage modules.
                   </p>
                   <Button variant="outline" onClick={() => {
                     const tabs = document.querySelector('[role="tablist"]');
@@ -1433,7 +1433,7 @@ export default function AdminCoursesPage() {
               {!selectedCourse ? (
                 <div className="text-center py-8">
                   <p className="text-sm text-muted-foreground mb-4">
-                    Please select a course from the Courses tab first.
+                    Please select a class from the Classes tab first.
                   </p>
                   <Button variant="outline" onClick={() => {
                     const tabs = document.querySelector('[role="tablist"]');

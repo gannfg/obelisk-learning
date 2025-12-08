@@ -71,8 +71,8 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
   const baseNavItems = [
     { href: "/missions", label: "Missions" },
     { href: "/academy", label: "Academy" },
+    { href: "/workshops", label: "Workshops" },
     { href: "/instructors", label: "Mentors" },
-    { href: "/mentor-chat", label: "Chat" },
   ];
 
   const navItems = isAdmin
@@ -211,7 +211,7 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
-                        <Link href="/mentor-chat" className="flex items-center w-full">
+                        <Link href="/instructors" className="flex items-center w-full">
                           <HelpCircle className="mr-2 h-4 w-4" />
                           Help
                         </Link>

@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Use Learning Supabase for sandboxes/snapshots
-    const supabase = createLearningServerClient();
+    const supabase = await createLearningServerClient();
 
     const body = await request.json();
     const { files, missionId, userId, name, description } = body;
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await authSupabase.auth.getUser();
     
     // Use Learning Supabase for snapshots
-    const supabase = createLearningServerClient();
+    const supabase = await createLearningServerClient();
     const { searchParams } = new URL(request.url);
     const snapshotId = searchParams.get("id");
     const shareToken = searchParams.get("token");
