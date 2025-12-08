@@ -38,6 +38,11 @@ export default function MissionPage() {
 
     async function loadMission() {
       const supabase = createLearningClient();
+      if (!supabase) {
+        console.error("Supabase client not configured.");
+        setLoading(false);
+        return;
+      }
 
       // Fetch mission
       const { data: missionData, error: missionError } = await supabase
@@ -188,6 +193,10 @@ export default function MissionPage() {
     setIsSubmitting(true);
     try {
       const supabase = createLearningClient();
+      if (!supabase) {
+        setIsSubmitting(false);
+        return;
+      }
       const { data, error } = await supabase
         .from("mission_submissions")
         .upsert(
@@ -235,6 +244,9 @@ export default function MissionPage() {
     
     if (user) {
       const supabase = createLearningClient();
+      if (!supabase) {
+        return;
+      }
       await supabase
         .from("sandboxes")
         .upsert({
@@ -254,6 +266,7 @@ export default function MissionPage() {
     checklist[index] = { ...checklist[index], completed: !checklist[index].completed };
 
     const supabase = createLearningClient();
+    if (!supabase) return;
     await supabase
       .from("mission_content")
       .update({ checklist })

@@ -38,6 +38,8 @@ export function AcademyPageClient() {
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingTeams, setLoadingTeams] = useState(false);
   const [loadingCourses, setLoadingCourses] = useState(false);
+  
+  // Create clients safely - they may be placeholders if env vars are missing
   const supabase = createClient();
   const learningSupabase = createLearningClient();
 
@@ -47,6 +49,11 @@ export function AcademyPageClient() {
 
   useEffect(() => {
     if (currentTab === "courses") {
+      if (!learningSupabase) {
+        setCourses([]);
+        setLoadingCourses(false);
+        return;
+      }
       setLoadingCourses(true);
       getAllCourses(learningSupabase)
         .then(setCourses)
@@ -56,16 +63,32 @@ export function AcademyPageClient() {
         })
         .finally(() => setLoadingCourses(false));
     } else if (currentTab === "projects") {
+      if (!supabase) {
+        setProjects([]);
+        setLoadingProjects(false);
+        return;
+      }
       setLoadingProjects(true);
       getAllProjects(supabase)
         .then(setProjects)
-        .catch(console.error)
+        .catch((error) => {
+          console.error("Error loading projects:", error);
+          setProjects([]);
+        })
         .finally(() => setLoadingProjects(false));
     } else if (currentTab === "teams") {
+      if (!supabase) {
+        setTeams([]);
+        setLoadingTeams(false);
+        return;
+      }
       setLoadingTeams(true);
       getAllTeams(supabase)
         .then(setTeams)
-        .catch(console.error)
+        .catch((error) => {
+          console.error("Error loading teams:", error);
+          setTeams([]);
+        })
         .finally(() => setLoadingTeams(false));
     }
   }, [currentTab, supabase, learningSupabase]);

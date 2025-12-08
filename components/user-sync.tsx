@@ -10,6 +10,10 @@ export function UserSync() {
   const { user, loading } = useAuth();
   const supabase = createClient();
 
+  if (!supabase) {
+    return null;
+  }
+
   useEffect(() => {
     const syncUser = async () => {
       if (loading || !user) return;

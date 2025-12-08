@@ -29,6 +29,10 @@ export function UserMenu() {
   const supabase = createClient();
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
+  if (!supabase) {
+    return null;
+  }
+
   // Fetch synced profile to get the latest profile picture
   useEffect(() => {
     const loadProfile = async () => {

@@ -43,6 +43,11 @@ export function QuizComponent({ quizId, lessonId }: QuizComponentProps) {
     const loadQuiz = async () => {
       try {
         const supabase = createLearningClient();
+        if (!supabase) {
+          setError("Supabase client not configured.");
+          setLoading(false);
+          return;
+        }
         const { data, error: fetchError } = await supabase
           .from("quizzes")
           .select("*")

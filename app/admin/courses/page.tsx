@@ -123,6 +123,18 @@ export default function AdminCoursesPage() {
   const [lessonToDelete, setLessonToDelete] = useState<string | null>(null);
   const supabase = createLearningClient();
 
+  // If Supabase client is not configured, render a fallback message
+  if (!supabase) {
+    return (
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <h1 className="text-2xl font-bold mb-2">Admin Panel</h1>
+        <p className="text-muted-foreground">
+          Supabase environment variables are not configured. Please set NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL and NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_ANON_KEY.
+        </p>
+      </div>
+    );
+  }
+
   useEffect(() => {
     if (!loading && !isAdmin) {
       router.replace("/");
@@ -154,6 +166,10 @@ export default function AdminCoursesPage() {
   }, [selectedModule]);
 
   const loadCourses = async () => {
+    if (!supabase) {
+      setLoadingCourses(false);
+      return;
+    }
     try {
       const { data, error } = await supabase
         .from("courses")
@@ -176,6 +192,9 @@ export default function AdminCoursesPage() {
   };
 
   const loadModules = async (courseId: string) => {
+    if (!supabase) {
+      return;
+    }
     try {
       const { data, error } = await supabase
         .from("modules")
@@ -212,11 +231,19 @@ export default function AdminCoursesPage() {
     setError(null);
     setSuccess(null);
 
+    // Store form reference early before any async operations
+    const form = e.currentTarget;
+
     // Create Supabase client only on the client when form is submitted.
     // This avoids throwing during build/prerender if env vars are missing.
     let supabase;
     try {
       supabase = createLearningClient();
+      if (!supabase) {
+        setError("Supabase client not configured.");
+        setSaving(false);
+        return;
+      }
     } catch (err: any) {
       console.error("Supabase client not configured:", err);
       setError(
@@ -227,7 +254,7 @@ export default function AdminCoursesPage() {
       return;
     }
 
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData(form);
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const courseCategory = category || (formData.get("category") as string);
@@ -363,7 +390,9 @@ export default function AdminCoursesPage() {
           setImagePreview(null);
           setImageFile(null);
           // Reset form
-          e.currentTarget.reset();
+          if (form) {
+            form.reset();
+          }
           loadCourses();
         } else {
           setError("Course created but no ID returned from Supabase.");
@@ -379,6 +408,11 @@ export default function AdminCoursesPage() {
 
   const handleDeleteCourse = async (courseId: string) => {
     if (!confirm("Are you sure you want to delete this course? This will also delete all modules and lessons.")) {
+      return;
+    }
+
+    if (!supabase) {
+      setError("Supabase client not configured.");
       return;
     }
 
@@ -446,6 +480,11 @@ export default function AdminCoursesPage() {
   const handleSaveModule = async () => {
     if (!selectedCourse) {
       setError("Please select or create a course first.");
+      return;
+    }
+
+    if (!supabase) {
+      setError("Supabase client not configured.");
       return;
     }
 
@@ -535,6 +574,9 @@ export default function AdminCoursesPage() {
   };
 
   const loadLessons = async (moduleId: string) => {
+    if (!supabase) {
+      return;
+    }
     try {
       setLoadingLessons(true);
       const { data, error } = await supabase
@@ -1041,7 +1083,7 @@ export default function AdminCoursesPage() {
     <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Courses Admin</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Academy Admin</h1>
           <p className="text-base sm:text-lg text-muted-foreground">
             Create and manage courses, modules, and lessons for the Web3 Coding Academy.
           </p>
@@ -1065,7 +1107,7 @@ export default function AdminCoursesPage() {
 
       <Tabs defaultValue="courses" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="courses">Courses</TabsTrigger>
+          <TabsTrigger value="courses">Academy</TabsTrigger>
           <TabsTrigger value="modules">Modules</TabsTrigger>
           <TabsTrigger value="lessons">Lessons</TabsTrigger>
         </TabsList>
@@ -1230,7 +1272,7 @@ export default function AdminCoursesPage() {
                     </Button>
                   )}
                   <Button type="button" variant="outline" asChild>
-                    <Link href="/academy?tab=courses">View Courses</Link>
+                    <Link href="/academy?tab=courses">View Academy</Link>
                   </Button>
                 </div>
               </form>
@@ -1335,14 +1377,14 @@ export default function AdminCoursesPage() {
               {!selectedCourse ? (
                 <div className="text-center py-8">
                   <p className="text-sm text-muted-foreground mb-4">
-                    Please select a course from the Courses tab to manage modules.
+                    Please select a course from the Academy tab to manage modules.
                   </p>
                   <Button variant="outline" onClick={() => {
                     const tabs = document.querySelector('[role="tablist"]');
                     const coursesTab = tabs?.querySelector('[value="courses"]') as HTMLElement;
                     coursesTab?.click();
                   }}>
-                    Go to Courses Tab
+                    Go to Academy Tab
                   </Button>
                 </div>
               ) : modules.length === 0 ? (
@@ -1433,14 +1475,14 @@ export default function AdminCoursesPage() {
               {!selectedCourse ? (
                 <div className="text-center py-8">
                   <p className="text-sm text-muted-foreground mb-4">
-                    Please select a course from the Courses tab first.
+                    Please select a course from the Academy tab first.
                   </p>
                   <Button variant="outline" onClick={() => {
                     const tabs = document.querySelector('[role="tablist"]');
                     const coursesTab = tabs?.querySelector('[value="courses"]') as HTMLElement;
                     coursesTab?.click();
                   }}>
-                    Go to Courses Tab
+                    Go to Academy Tab
                   </Button>
                 </div>
               ) : !selectedModule ? (

@@ -37,6 +37,17 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
 
+  if (!supabase) {
+    return (
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <h1 className="text-2xl font-bold mb-2">Notifications</h1>
+        <p className="text-muted-foreground">
+          Supabase environment variables are not configured. Please set NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL and NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY.
+        </p>
+      </div>
+    );
+  }
+
   useEffect(() => {
     if (!user || loading) return;
 

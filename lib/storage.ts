@@ -318,3 +318,44 @@ export async function uploadTeamAvatar(
   }
 }
 
+/**
+ * Upload an advertisement image to Supabase Storage (Learning Supabase)
+ * Stored in the public "course-images" bucket under "advertisements/" folder.
+ */
+export async function uploadAdvertisementImage(
+  file: File,
+  advertisementId: string | null,
+  supabaseClient: any
+): Promise<string | null> {
+  try {
+    const fileExt = file.name.split(".").pop();
+    const timestamp = Date.now();
+    const fileName = advertisementId
+      ? `${advertisementId}/${timestamp}.${fileExt}`
+      : `${timestamp}.${fileExt}`;
+
+    const filePath = `advertisements/${fileName}`;
+
+    const { error } = await supabaseClient.storage
+      .from("course-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("Error uploading advertisement image:", error);
+      return null;
+    }
+
+    const { data: urlData } = supabaseClient.storage
+      .from("course-images")
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error("Error in uploadAdvertisementImage:", error);
+    return null;
+  }
+}
+

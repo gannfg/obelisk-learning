@@ -30,12 +30,20 @@ export function LessonSidebar({ course }: LessonSidebarProps) {
       try {
         // Get current user
         const authSupabase = createClient();
+        if (!authSupabase) {
+          setIsLoading(false);
+          return;
+        }
         const {
           data: { user },
         } = await authSupabase.auth.getUser();
 
         if (user) {
           const learningSupabase = createLearningClient();
+          if (!learningSupabase) {
+            setIsLoading(false);
+            return;
+          }
           const completed = await getCompletedLessons(
             learningSupabase,
             user.id,

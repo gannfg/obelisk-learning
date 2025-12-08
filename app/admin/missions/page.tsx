@@ -38,6 +38,18 @@ export default function AdminMissionsPage() {
   const supabase = createClient();
   const learningSupabase = createLearningClient();
 
+  // If Supabase clients are not configured, render a fallback message
+  if (!supabase || !learningSupabase) {
+    return (
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <h1 className="text-2xl font-bold mb-2">Admin Panel</h1>
+        <p className="text-muted-foreground">
+          Supabase environment variables are not configured. Please set NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL, NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY, NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL, and NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_ANON_KEY.
+        </p>
+      </div>
+    );
+  }
+
   const [submissions, setSubmissions] = useState<MissionSubmission[]>([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(true);
   const [updatingSubmissionId, setUpdatingSubmissionId] = useState<string | null>(null);

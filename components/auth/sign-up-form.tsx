@@ -49,6 +49,13 @@ export function SignUpForm() {
 
     try {
       const supabase = getSupabaseClient();
+      if (!supabase) {
+        setError(
+          "Supabase is not configured. Please set NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL and NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY."
+        );
+        setLoading(false);
+        return;
+      }
       
       // Try signup with minimal options first
       const { data, error: signUpError } = await supabase.auth.signUp({

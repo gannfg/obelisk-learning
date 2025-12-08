@@ -35,6 +35,10 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
   const pathname = usePathname();
   const supabase = createClient();
   const { isAdmin } = useAdmin();
+
+  if (!supabase) {
+    return null;
+  }
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("");
 

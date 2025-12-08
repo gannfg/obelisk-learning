@@ -18,6 +18,10 @@ async function getAuthenticatedClient() {
   try {
     const { createClient } = await import('@/lib/supabase/client');
     const client = createClient();
+    if (!client) {
+      console.warn('Supabase client not configured.');
+      return null;
+    }
     
     // Verify we have a session
     const { data: { session }, error: sessionError } = await client.auth.getSession();
@@ -70,6 +74,11 @@ export async function getUserProfile(userId: string, email?: string, supabaseCli
     if (!supabase) {
       const { createClient } = await import('@supabase/supabase-js');
       supabase = createClient(OBELISK_LEARNING_AUTH_SUPABASE_URL, OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY);
+    }
+
+    if (!supabase) {
+      console.warn('Supabase client not configured.');
+      return null;
     }
 
     // Try to get by id first (Supabase Auth user ID)
@@ -137,6 +146,9 @@ export async function updateUserProfile(
 
   try {
     const supabase = await getAuthenticatedClient();
+    if (!supabase) {
+      return false;
+    }
 
     // Verify the user is authenticated and the userId matches
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
