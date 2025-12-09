@@ -1,25 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { Target, BookOpen, Users, Sparkles, ArrowRight, User, Zap, Wallet, Trophy } from "lucide-react";
+import { Target, BookOpen, Users, Sparkles, ArrowRight, User, Zap, Wallet, Trophy, FolderKanban } from "lucide-react";
 import { AdCarousel } from "@/components/ad-carousel";
 import { useEffect, useState } from "react";
-import { getAllCourses, CourseWithModules } from "@/lib/courses";
+import { getAllClasses } from "@/lib/classes";
 import { createLearningClient } from "@/lib/supabase/learning-client";
+import { createClient } from "@/lib/supabase/client";
 import { getUserBadges } from "@/lib/badges";
 import { getAllAds } from "@/lib/ads";
+import { getAllProjects, ProjectWithMembers } from "@/lib/projects";
+import { getAllTeams, TeamWithDetails } from "@/lib/teams";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { Loader2 } from "lucide-react";
-import { HorizontalCourseCard } from "@/components/horizontal-course-card";
-import { Card } from "@/components/ui/card";
+import { HorizontalClassCard } from "@/components/horizontal-class-card";
+import { HorizontalProjectCard } from "@/components/horizontal-project-card";
+import { HorizontalMissionCard } from "@/components/horizontal-mission-card";
+import { TeamsTicker } from "@/components/teams-ticker";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Class, Mission } from "@/types";
+import Image from "next/image";
 
 /**
- * Homepage with courses layout
- * Layout: Left column with courses, Right sidebar with How it works and Achievements
+ * Homepage with classes layout
+ * Layout: Left column with classes, Right sidebar with How it works and Achievements
  */
 export default function Home() {
-  const [courses, setCourses] = useState<CourseWithModules[]>([]);
-  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+  const [teams, setTeams] = useState<TeamWithDetails[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(true);
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [loadingMissions, setLoadingMissions] = useState(true);
   const [badgesCount, setBadgesCount] = useState(0);
   const [xpCount, setXpCount] = useState(0);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -28,22 +43,131 @@ export default function Home() {
   
   const { user } = useAuth();
   const learningSupabase = createLearningClient();
+  const supabase = createClient();
 
-  // Load courses
+  // Load classes
   useEffect(() => {
     if (!learningSupabase) {
-      setCourses([]);
-      setLoadingCourses(false);
+      setClasses([]);
+      setLoadingClasses(false);
       return;
     }
-    setLoadingCourses(true);
-    getAllCourses(learningSupabase)
-      .then(setCourses)
+    setLoadingClasses(true);
+    getAllClasses(undefined, learningSupabase)
+      .then(setClasses)
       .catch((error) => {
-        console.error("Error loading courses:", error);
-        setCourses([]);
+        console.error("Error loading classes:", error);
+        setClasses([]);
       })
-      .finally(() => setLoadingCourses(false));
+      .finally(() => setLoadingClasses(false));
+  }, [learningSupabase]);
+
+  // Load projects
+  useEffect(() => {
+    if (!supabase) {
+      setProjects([]);
+      setLoadingProjects(false);
+      return;
+    }
+    setLoadingProjects(true);
+    getAllProjects(supabase)
+      .then(setProjects)
+      .catch((error) => {
+        console.error("Error loading projects:", error);
+        setProjects([]);
+      })
+      .finally(() => setLoadingProjects(false));
+  }, [supabase]);
+
+  // Load teams
+  useEffect(() => {
+    if (!supabase) {
+      setTeams([]);
+      setLoadingTeams(false);
+      return;
+    }
+    setLoadingTeams(true);
+    getAllTeams(supabase)
+      .then(setTeams)
+      .catch((error) => {
+        console.error("Error loading teams:", error);
+        setTeams([]);
+      })
+      .finally(() => setLoadingTeams(false));
+  }, [supabase]);
+
+  // Load missions with real-time updates
+  useEffect(() => {
+    if (!learningSupabase) {
+      setMissions([]);
+      setLoadingMissions(false);
+      return;
+    }
+
+    const loadMissions = async () => {
+      setLoadingMissions(true);
+      try {
+        const { data: missionsData, error } = await learningSupabase
+          .from("missions")
+          .select("*")
+          .order("order_index", { ascending: true });
+
+        if (error) {
+          console.error("Error loading missions:", error);
+          setMissions([]);
+          return;
+        }
+
+        // Normalize Supabase (snake_case) payload into Mission type (camelCase)
+        const normalizedMissions: Mission[] =
+          (missionsData || []).map((m: any) => ({
+            id: m.id,
+            lessonId: m.lesson_id ?? undefined,
+            title: m.title,
+            goal: m.goal,
+            description: m.description ?? undefined,
+            imageUrl: m.image_url ?? undefined,
+            initialFiles: m.initial_files ?? {},
+            stackType: m.stack_type,
+            difficulty: m.difficulty,
+            estimatedTime: m.estimated_time ?? undefined,
+            submissionDeadline: m.submission_deadline ? new Date(m.submission_deadline) : undefined,
+            orderIndex: m.order_index,
+            badgeId: m.badge_id ?? undefined,
+          })) || [];
+
+        setMissions(normalizedMissions);
+      } catch (error) {
+        console.error("Error loading missions:", error);
+        setMissions([]);
+      } finally {
+        setLoadingMissions(false);
+      }
+    };
+
+    loadMissions();
+
+    // Set up real-time subscription for mission updates
+    const channel = learningSupabase
+      .channel("missions-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "missions",
+        },
+        (payload) => {
+          console.log("Mission update received:", payload);
+          // Reload missions when there's a change
+          loadMissions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      learningSupabase.removeChannel(channel);
+    };
   }, [learningSupabase]);
 
   // Load advertisements
@@ -147,24 +271,62 @@ export default function Home() {
                 <AdCarousel slides={adSlides} autoPlayInterval={5000} />
               ) : null}
 
-              {/* Courses List */}
-              {loadingCourses ? (
+              {/* Classes List */}
+              {loadingClasses ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
-              ) : courses.length > 0 ? (
-                <div className="space-y-4">
-                  {courses.map((course) => (
-                    <HorizontalCourseCard key={course.id} course={course} />
+              ) : classes.length > 0 ? (
+                <div className="space-y-3">
+                  {classes.map((classItem) => (
+                    <HorizontalClassCard key={classItem.id} classItem={classItem} />
                   ))}
                 </div>
               ) : (
                 <div className="py-8 sm:py-12 text-center">
                   <p className="text-base sm:text-lg text-muted-foreground">
-                    No courses available yet. Check back soon!
+                    No classes available yet. Check back soon!
                   </p>
                 </div>
               )}
+
+              {/* Projects Box */}
+              <Card className="p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FolderKanban className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-bold">Projects</h2>
+                  </div>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/academy?tab=projects">View All</Link>
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Collaborate on real-world Web3 projects
+                </p>
+                
+                {loadingProjects ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : projects.length > 0 ? (
+                  <div className="space-y-3">
+                    {projects.slice(0, 3).map((project) => (
+                      <HorizontalProjectCard key={project.id} project={project} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-6 text-center">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      No projects yet
+                    </p>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href="/academy/projects/new">Create Project</Link>
+                    </Button>
+                  </div>
+                )}
+              </Card>
+
             </div>
 
             {/* Right Sidebar */}
@@ -272,23 +434,75 @@ export default function Home() {
                 </Link>
               </Card>
 
-              {/* Mission Link */}
-              <Link
-                href="/missions"
-                className="group relative block p-6 sm:p-8 rounded-2xl border-2 border-border bg-muted/50 hover:bg-muted/70 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl flex items-center justify-center"
-              >
-                <div className="text-center">
-                  <Target className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 mx-auto mb-4 text-primary group-hover:scale-110 transition-transform" />
-                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Mission</h2>
-                  <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto mb-3">
-                    Hands-on coding challenges
-                  </p>
-                  <div className="flex items-center justify-center gap-2 text-primary group-hover:gap-3 transition-all">
-                    <span className="text-xs sm:text-sm">Start Mission</span>
-                    <ArrowRight className="h-4 w-4" />
+              {/* Missions Box */}
+              <Card className="p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-bold">Missions</h2>
                   </div>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/missions">View All</Link>
+                  </Button>
                 </div>
-              </Link>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Hands-on coding challenges to level up your skills
+                </p>
+                
+                {loadingMissions ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : missions.length > 0 ? (
+                  <div className="space-y-3">
+                    {missions.slice(0, 3).map((mission) => (
+                      <HorizontalMissionCard key={mission.id} mission={mission} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-6 text-center">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      No missions available yet
+                    </p>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href="/missions">Browse Missions</Link>
+                    </Button>
+                  </div>
+                )}
+              </Card>
+
+              {/* Teams Box */}
+              <Card className="p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-bold">Teams</h2>
+                  </div>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/academy?tab=teams">View All</Link>
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Join or create teams to collaborate
+                </p>
+                
+                {loadingTeams ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : teams.length > 0 ? (
+                  <TeamsTicker teams={teams} />
+                ) : (
+                  <div className="py-6 text-center">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      No teams yet
+                    </p>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href="/academy/teams/new">Create Team</Link>
+                    </Button>
+                  </div>
+                )}
+              </Card>
             </div>
           </div>
         </div>
