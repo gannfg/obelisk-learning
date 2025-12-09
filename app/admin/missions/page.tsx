@@ -287,6 +287,10 @@ export default function AdminMissionsPage() {
       if (updates.feedback || updates.status) {
         try {
           // Get reviewer name (current user)
+          if (!supabase) {
+            console.warn("Supabase auth client not available for notification");
+            return;
+          }
           const { data: userData } = await supabase.auth.getUser();
           const reviewerName = userData?.user?.email?.split("@")[0] || "Admin";
 

@@ -242,6 +242,10 @@ export default function MissionPage() {
       if (mission) {
         try {
           const authSupabase = createClient();
+          if (!authSupabase) {
+            console.warn("Supabase auth client not available for notification");
+            return;
+          }
           await notifyProjectSubmitted(user.id, missionId, mission.title, authSupabase);
         } catch (notifError) {
           console.error("Error sending submission notification:", notifError);

@@ -50,20 +50,20 @@ export function AcademyPageClient() {
     : classes;
 
   useEffect(() => {
-    if (currentTab === "courses") {
+    if (currentTab === "classes") {
       if (!learningSupabase) {
-        setCourses([]);
+        setClasses([]);
         setLoadingCourses(false);
         return;
       }
       setLoadingCourses(true);
-      getAllCourses(learningSupabase)
-        .then(setCourses)
+      getAllClasses(undefined, learningSupabase)
+        .then(setClasses)
         .catch((error) => {
           console.error("Error loading classes:", error);
           setClasses([]);
         })
-        .finally(() => setLoadingClasses(false));
+        .finally(() => setLoadingCourses(false));
     } else if (currentTab === "projects") {
       if (!supabase) {
         setProjects([]);
@@ -128,7 +128,7 @@ export function AcademyPageClient() {
         {/* Classes Tab */}
         <TabsContent value="classes" className="space-y-6">
           <CategoryFilter />
-          {loadingClasses ? (
+          {loadingCourses ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>

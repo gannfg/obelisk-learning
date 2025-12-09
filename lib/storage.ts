@@ -318,3 +318,44 @@ export async function uploadTeamAvatar(
   }
 }
 
+/**
+ * Upload a workshop image to Supabase Storage (Auth Supabase)
+ * Stored in the public "workshop-images" bucket.
+ */
+export async function uploadWorkshopImage(
+  file: File,
+  workshopId: string | null,
+  supabaseClient: any
+): Promise<string | null> {
+  try {
+    const fileExt = file.name.split(".").pop();
+    const timestamp = Date.now();
+    const fileName = workshopId
+      ? `${workshopId}/${timestamp}.${fileExt}`
+      : `${timestamp}.${fileExt}`;
+
+    const filePath = `workshops/${fileName}`;
+
+    const { error } = await supabaseClient.storage
+      .from("workshop-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("Error uploading workshop image:", error);
+      return null;
+    }
+
+    const { data: urlData } = supabaseClient.storage
+      .from("workshop-images")
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error("Error in uploadWorkshopImage:", error);
+    return null;
+  }
+}
+

@@ -15,6 +15,17 @@ import type {
   TeamAttendanceKPIs,
 } from "@/types/workshops";
 
+// Helper function to ensure supabase client is not null
+function ensureSupabaseClient(
+  supabaseClient?: SupabaseClient<any>
+): SupabaseClient<any> {
+  const client = supabaseClient || createLearningClient();
+  if (!client) {
+    throw new Error("Supabase client not configured.");
+  }
+  return client;
+}
+
 /**
  * Normalize workshop data from Supabase
  */
@@ -49,7 +60,7 @@ export async function getAllWorkshops(
   supabaseClient?: SupabaseClient<any>
 ): Promise<Workshop[]> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     let query = supabase
       .from("workshops")
       .select("*")
@@ -87,7 +98,7 @@ export async function getWorkshopById(
   supabaseClient?: SupabaseClient<any>
 ): Promise<Workshop | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("workshops")
       .select("*")
@@ -115,7 +126,7 @@ export async function createWorkshop(
   supabaseClient?: SupabaseClient<any>
 ): Promise<Workshop | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("workshops")
       .insert({
@@ -154,7 +165,7 @@ export async function updateWorkshop(
   supabaseClient?: SupabaseClient<any>
 ): Promise<Workshop | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const updates: any = {};
 
     if (input.title) updates.title = input.title;
@@ -194,7 +205,7 @@ export async function deleteWorkshop(
   supabaseClient?: SupabaseClient<any>
 ): Promise<boolean> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { error } = await supabase.from("workshops").delete().eq("id", id);
 
     if (error) {
@@ -218,7 +229,7 @@ export async function registerForWorkshop(
   supabaseClient?: SupabaseClient<any>
 ): Promise<WorkshopRegistration | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
 
     // Check capacity using helper function
     const { data: canRegister } = await supabase.rpc("can_register_for_workshop", {
@@ -265,7 +276,7 @@ export async function isUserRegistered(
   supabaseClient?: SupabaseClient<any>
 ): Promise<boolean> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("workshop_registrations")
       .select("id")
@@ -296,7 +307,7 @@ export async function checkInWithQR(
   supabaseClient?: SupabaseClient<any>
 ): Promise<WorkshopAttendance | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
 
     // Verify QR token matches workshop and hasn't expired
     const { data: workshop, error: workshopError } = await supabase
@@ -366,7 +377,7 @@ export async function manualCheckIn(
   supabaseClient?: SupabaseClient<any>
 ): Promise<WorkshopAttendance | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
 
     // Check if already attended
     const { data: existing } = await supabase
@@ -419,7 +430,7 @@ export async function hasUserAttended(
   supabaseClient?: SupabaseClient<any>
 ): Promise<boolean> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("workshop_attendance")
       .select("id")
@@ -447,7 +458,7 @@ export async function getWorkshopStats(
   supabaseClient?: SupabaseClient<any>
 ): Promise<WorkshopStats | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase.rpc("get_workshop_stats", {
       p_workshop_id: workshopId,
     });
@@ -487,7 +498,7 @@ export async function getWorkshopAttendance(
   supabaseClient?: SupabaseClient<any>
 ): Promise<WorkshopAttendance[]> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("workshop_attendance")
       .select("*")
@@ -518,7 +529,7 @@ export async function getWorkshopAttendance(
  */
 export async function getUserPOA(userId: string): Promise<ProofOfAttendance[]> {
   try {
-    const supabase = createLearningClient();
+    const supabase = ensureSupabaseClient();
     const { data, error } = await supabase
       .from("proof_of_attendance")
       .select("*, workshops(title, datetime, location_type)")
@@ -551,7 +562,7 @@ export async function getTeamAttendanceKPIs(
   teamId: string
 ): Promise<TeamAttendanceKPIs | null> {
   try {
-    const supabase = createLearningClient();
+    const supabase = ensureSupabaseClient();
     const { data, error } = await supabase.rpc("get_team_attendance_kpis", {
       p_team_id: teamId,
     });
@@ -591,7 +602,7 @@ export async function getUserRegisteredWorkshops(
   supabaseClient?: SupabaseClient<any>
 ): Promise<Workshop[]> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     
     // Get all registrations for the user
     const { data: registrations, error: regError } = await supabase

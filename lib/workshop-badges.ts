@@ -18,6 +18,11 @@ export async function awardWorkshopBadge(
 ): Promise<boolean> {
   try {
     const learningSupabase = createLearningClient();
+    
+    if (!learningSupabase) {
+      console.error("Supabase client not configured.");
+      return false;
+    }
 
     // Check if badge already exists, create if not
     let { data: existingBadge } = await learningSupabase
@@ -105,6 +110,11 @@ export async function checkWorkshopMilestones(
 ): Promise<void> {
   try {
     const learningSupabase = createLearningClient();
+    
+    if (!learningSupabase) {
+      console.error("Supabase client not configured.");
+      return;
+    }
 
     // Count total workshops attended
     const { count } = await learningSupabase

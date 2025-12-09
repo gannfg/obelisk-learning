@@ -37,6 +37,17 @@ export async function getImpactStats(): Promise<ImpactStats> {
   try {
     const learningSupabase = createLearningClient();
     const authSupabase = createClient();
+    
+    if (!learningSupabase || !authSupabase) {
+      console.error("Supabase clients not configured.");
+      return {
+        learnersEmpowered: 0,
+        missionsCompleted: 0,
+        workshopsHosted: 0,
+        projectsBuilt: 0,
+        grantsAwarded: 0,
+      };
+    }
 
     // Get total learners (users who have any progress)
     const [missionProgressRes, courseProgressRes, projectsRes, usersRes] = await Promise.all([
@@ -119,6 +130,11 @@ export async function getRecentAchievements(limit: number = 5): Promise<RecentAc
   try {
     const learningSupabase = createLearningClient();
     const authSupabase = createClient();
+    
+    if (!learningSupabase || !authSupabase) {
+      console.error("Supabase clients not configured.");
+      return [];
+    }
 
     const achievements: RecentAchievement[] = [];
 
@@ -288,6 +304,11 @@ export async function getRecentActivity(limit: number = 5): Promise<RecentActivi
   try {
     const learningSupabase = createLearningClient();
     const authSupabase = createClient();
+    
+    if (!learningSupabase || !authSupabase) {
+      console.error("Supabase clients not configured.");
+      return [];
+    }
 
     const activities: RecentActivity[] = [];
 
