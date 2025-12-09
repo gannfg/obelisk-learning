@@ -369,10 +369,11 @@ CREATE POLICY "Instructors can manage their classes"
   USING (is_class_instructor(auth.uid(), id))
   WITH CHECK (is_class_instructor(auth.uid(), id));
 
-DROP POLICY IF EXISTS "Enrolled users can view published classes" ON classes;
-CREATE POLICY "Enrolled users can view published classes"
+-- Anyone can view published classes (for browsing before enrollment)
+DROP POLICY IF EXISTS "Anyone can view published classes" ON classes;
+CREATE POLICY "Anyone can view published classes"
   ON classes FOR SELECT
-  USING (published = TRUE AND (is_enrolled(auth.uid(), id) OR is_class_instructor(auth.uid(), id)));
+  USING (published = TRUE);
 
 -- Class Modules: Admins and instructors can manage, enrolled users can view
 DROP POLICY IF EXISTS "Admins and instructors can manage modules" ON class_modules;
@@ -434,6 +435,20 @@ DROP POLICY IF EXISTS "Users can view own enrollment" ON class_enrollments;
 CREATE POLICY "Users can view own enrollment"
   ON class_enrollments FOR SELECT
   USING (user_id = auth.uid());
+
+-- Users can enroll themselves in published classes
+DROP POLICY IF EXISTS "Users can enroll in published classes" ON class_enrollments;
+CREATE POLICY "Users can enroll in published classes"
+  ON class_enrollments FOR INSERT
+  WITH CHECK (
+    user_id = auth.uid() AND
+    EXISTS (
+      SELECT 1 FROM classes
+      WHERE id = class_enrollments.class_id
+      AND published = TRUE
+      AND enrollment_locked = FALSE
+    )
+  );
 
 -- Session Attendance: Admins and instructors can manage, users can view their own
 DROP POLICY IF EXISTS "Admins and instructors can manage attendance" ON session_attendance;

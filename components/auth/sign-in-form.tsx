@@ -40,7 +40,7 @@ export function SignInForm() {
       }
 
       if (data.user) {
-        router.push("/dashboard");
+        router.push("/");
         router.refresh();
       }
     } catch (err: any) {

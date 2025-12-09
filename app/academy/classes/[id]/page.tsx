@@ -3,10 +3,12 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getClassByIdWithModules } from "@/lib/classes";
-import { createLearningServerClient } from "@/lib/supabase/server";
+import { getClassByIdWithModules, getClassEnrollments } from "@/lib/classes";
+import { createLearningServerClient, createAuthServerClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/server";
+import { getUserProfile } from "@/lib/profile";
 import { format } from "date-fns";
-import { Calendar, Users, BookOpen } from "lucide-react";
+import { Calendar, Users, BookOpen, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ClassPageProps {
@@ -21,6 +23,41 @@ export default async function ClassPage({ params }: ClassPageProps) {
   if (!classItem) {
     notFound();
   }
+
+  // Get current user and check enrollment status
+  const user = await getCurrentUser();
+  let userEnrollment = null;
+  
+  // Get all enrollments and user profiles
+  const allEnrollments = await getClassEnrollments(id, learningSupabase);
+  const activeEnrollments = allEnrollments.filter(e => e.status === "active");
+  
+  if (user) {
+    userEnrollment = activeEnrollments.find(
+      (enrollment) => enrollment.userId === user.id
+    );
+  }
+
+  // Fetch user profiles with avatars for enrolled users
+  const authSupabase = await createAuthServerClient();
+  const enrolledUsersWithAvatars = await Promise.all(
+    activeEnrollments.slice(0, 10).map(async (enrollment) => {
+      try {
+        const profile = await getUserProfile(enrollment.userId, undefined, authSupabase);
+        return {
+          id: enrollment.userId,
+          avatar: profile?.image_url || profile?.email?.charAt(0).toUpperCase() || "U",
+          email: profile?.email || "",
+        };
+      } catch (error) {
+        return {
+          id: enrollment.userId,
+          avatar: enrollment.userId.charAt(0).toUpperCase() || "U",
+          email: "",
+        };
+      }
+    })
+  );
 
   // Note: Instructor info would need to come from Auth Supabase users table
   // For now, we'll just use the instructor ID
@@ -107,22 +144,38 @@ export default async function ClassPage({ params }: ClassPageProps) {
             <span>Semester: {classItem.semester}</span>
           </div>
         </div>
-        {classItem.published && !classItem.enrollmentLocked && (
-          <Button size="lg" asChild>
-            <Link href={`/academy/classes/${classItem.id}/enroll`}>
-              Enroll Now
-            </Link>
-          </Button>
-        )}
-        {classItem.enrollmentLocked && (
-          <Button size="lg" variant="outline" disabled>
-            Enrollment Locked
-          </Button>
-        )}
-        {!classItem.published && (
-          <Button size="lg" variant="outline" disabled>
-            Not Published
-          </Button>
+        {userEnrollment ? (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/20">
+              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <span className="font-medium text-green-700 dark:text-green-300">
+                Enrolled
+              </span>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Enrolled on {format(userEnrollment.enrolledAt, "MMM d, yyyy")}
+            </div>
+          </div>
+        ) : (
+          <>
+            {classItem.published && !classItem.enrollmentLocked && (
+              <Button size="lg" asChild>
+                <Link href={`/academy/classes/${classItem.id}/enroll`}>
+                  Enroll Now
+                </Link>
+              </Button>
+            )}
+            {classItem.enrollmentLocked && (
+              <Button size="lg" variant="outline" disabled>
+                Enrollment Locked
+              </Button>
+            )}
+            {!classItem.published && (
+              <Button size="lg" variant="outline" disabled>
+                Not Published
+              </Button>
+            )}
+          </>
         )}
       </div>
 
@@ -316,6 +369,56 @@ export default async function ClassPage({ params }: ClassPageProps) {
                 <p className="font-medium">
                   {classItem.enrollmentLocked ? "Locked" : "Open"}
                 </p>
+              </div>
+              {user && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Your Status</p>
+                  <p className="font-medium">
+                    {userEnrollment ? (
+                      <span className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        <span className="text-green-700 dark:text-green-300">Enrolled</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">Not Enrolled</span>
+                    )}
+                  </p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Enrolled Students</p>
+                <p className="font-medium mb-2">{activeEnrollments.length} {activeEnrollments.length === 1 ? "student" : "students"}</p>
+                {enrolledUsersWithAvatars.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {enrolledUsersWithAvatars.map((user) => (
+                      <div
+                        key={user.id}
+                        className="relative h-8 w-8 rounded-full overflow-hidden border-2 border-background"
+                        title={user.email}
+                      >
+                        {typeof user.avatar === "string" && user.avatar.startsWith("http") ? (
+                          <Image
+                            src={user.avatar}
+                            alt={user.email || "User"}
+                            fill
+                            className="object-cover"
+                            sizes="32px"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="h-full w-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
+                            {user.avatar}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {activeEnrollments.length > 10 && (
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground border-2 border-background">
+                        +{activeEnrollments.length - 10}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
