@@ -346,8 +346,41 @@ export default function Home() {
 
             {/* Right Sidebar */}
             <div className="space-y-6">
+              {/* Achievements Section - Desktop only (in sidebar) */}
+              <div className="hidden lg:block">
+                <div className="mb-2">
+                  <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Achievements</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Track your progress and unlock badges
+                </p>
+                
+                {/* Stats Boxes */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
+                    <div className="text-2xl font-bold mb-1">
+                      {loadingStats ? "..." : badgesCount}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Badges</div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
+                    <div className="text-2xl font-bold mb-1">
+                      {loadingStats ? "..." : xpCount}
+                    </div>
+                    <div className="text-xs text-muted-foreground">XP</div>
+                  </div>
+                </div>
+
+                <Button variant="outline" className="w-full rounded-lg group" asChild>
+                  <Link href="/achievements" className="flex items-center justify-center gap-2">
+                    <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                    <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+                  </Link>
+                </Button>
+              </div>
+
               {/* HOW IT WORKS Section */}
-              <Card className="p-6">
+              <Card className="p-6 hidden md:block">
                 <div className="mb-6">
                   <h2 className="text-xs uppercase tracking-wider text-muted-foreground">
                     HOW IT WORKS
@@ -356,15 +389,15 @@ export default function Home() {
 
                 {/* Vertical Steps List with Connecting Line */}
                 <div className="relative">
-                  {/* Connecting Line */}
-                  <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border hidden sm:block" />
+                  {/* Connecting Line (aligned to icon centers) */}
+                  <div className="absolute left-5 sm:left-6 top-0 bottom-0 w-px bg-border hidden sm:block z-0" />
 
                   <div className="space-y-4 sm:space-y-6">
                     {/* Step 1 - Create your Profile */}
                     <div className="relative flex items-start gap-3 sm:gap-4">
                       {/* Icon Circle */}
-                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
-                        <UserPlus className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-background border border-border flex items-center justify-center">
+                        <UserPlus className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
                       </div>
                       {/* Content */}
                       <div className="flex-1 pt-0.5 sm:pt-1">
@@ -380,8 +413,8 @@ export default function Home() {
                     {/* Step 2 - Start Learning */}
                     <div className="relative flex items-start gap-3 sm:gap-4">
                       {/* Icon Circle */}
-                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
-                        <User className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-background border border-border flex items-center justify-center">
+                        <User className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
                       </div>
                       {/* Content */}
                       <div className="flex-1 pt-0.5 sm:pt-1">
@@ -397,8 +430,8 @@ export default function Home() {
                     {/* Step 3 - Build Projects */}
                     <div className="relative flex items-start gap-3 sm:gap-4">
                       {/* Icon Circle */}
-                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
-                        <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-background border border-border flex items-center justify-center">
+                        <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
                       </div>
                       {/* Content */}
                       <div className="flex-1 pt-0.5 sm:pt-1">
@@ -414,8 +447,8 @@ export default function Home() {
                     {/* Step 4 - Earn Rewards */}
                     <div className="relative flex items-start gap-3 sm:gap-4">
                       {/* Icon Circle */}
-                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
-                        <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-background border border-border flex items-center justify-center">
+                        <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
                       </div>
                       {/* Content */}
                       <div className="flex-1 pt-0.5 sm:pt-1">
@@ -430,37 +463,6 @@ export default function Home() {
                   </div>
                 </div>
               </Card>
-
-              {/* Achievements Section */}
-              <div className="mb-2">
-                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Achievements</h3>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Track your progress and unlock badges
-              </p>
-              
-              {/* Stats Boxes */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
-                  <div className="text-2xl font-bold mb-1">
-                    {loadingStats ? "..." : badgesCount}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Badges</div>
-                </div>
-                <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
-                  <div className="text-2xl font-bold mb-1">
-                    {loadingStats ? "..." : xpCount}
-                  </div>
-                  <div className="text-xs text-muted-foreground">XP</div>
-                </div>
-              </div>
-
-              <Button variant="outline" className="w-full rounded-lg group" asChild>
-                <Link href="/achievements" className="flex items-center justify-center gap-2">
-                  <span className="opacity-40 group-hover:opacity-100 group-hover:font-bold transition-all">View All</span>
-                  <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-100 transition-all" />
-                </Link>
-              </Button>
 
               {/* Missions */}
               <div className="mb-2">
@@ -528,6 +530,39 @@ export default function Home() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Achievements Section - Below all content on mobile only */}
+          <div className="lg:hidden">
+            <div className="mb-2">
+              <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Achievements</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Track your progress and unlock badges
+            </p>
+            
+            {/* Stats Boxes */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
+                <div className="text-2xl font-bold mb-1">
+                  {loadingStats ? "..." : badgesCount}
+                </div>
+                <div className="text-xs text-muted-foreground">Badges</div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
+                <div className="text-2xl font-bold mb-1">
+                  {loadingStats ? "..." : xpCount}
+                </div>
+                <div className="text-xs text-muted-foreground">XP</div>
+              </div>
+            </div>
+
+            <Button variant="outline" className="w-full rounded-lg group" asChild>
+              <Link href="/achievements" className="flex items-center justify-center gap-2">
+                <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+              </Link>
+            </Button>
           </div>
         </div>
       </section>
