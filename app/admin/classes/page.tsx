@@ -276,6 +276,11 @@ export default function AdminClassesPage() {
 
       // Use Learning Supabase for database operations
       const learningSupabase = createLearningClient();
+      if (!learningSupabase) {
+        setError("Supabase client not configured.");
+        setSaving(false);
+        return;
+      }
       let thumbnailUrl = classForm.thumbnail;
       if (imageFile) {
         thumbnailUrl = await uploadCourseImage(imageFile, null, learningSupabase) || "";
@@ -468,6 +473,11 @@ export default function AdminClassesPage() {
 
       // Use Learning Supabase for enrollment operations
       const learningSupabase = createLearningClient();
+      if (!learningSupabase) {
+        setError("Supabase client not configured.");
+        setSaving(false);
+        return;
+      }
       const enrollment = await enrollUser(selectedClass.id, userId, currentUser.id, learningSupabase);
 
       if (enrollment) {
@@ -1603,6 +1613,11 @@ export default function AdminClassesPage() {
 
                   // Use Learning Supabase for database operations
                   const learningSupabase = createLearningClient();
+                  if (!learningSupabase) {
+                    setError("Supabase client not configured.");
+                    setSaving(false);
+                    return;
+                  }
                   const dueDateTime = new Date(
                     `${assignmentForm.dueDate}T${assignmentForm.dueTime || "23:59"}`
                   );
@@ -1624,7 +1639,7 @@ export default function AdminClassesPage() {
                   );
                   setAssignmentDialogOpen(false);
                   // Reload assignments
-                  const moduleAssignments = await getModuleAssignments(selectedModuleId, supabase);
+                  const moduleAssignments = await getModuleAssignments(selectedModuleId, learningSupabase);
                   setAssignments((prev) => [
                     ...prev.filter((a) => a.moduleId !== selectedModuleId),
                     ...moduleAssignments,
