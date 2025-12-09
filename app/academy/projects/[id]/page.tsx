@@ -6,8 +6,19 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Calendar, Code, ExternalLink, Github, Loader2 } from "lucide-react";
+import { 
+  Users, 
+  ExternalLink, 
+  Github, 
+  Loader2, 
+  Lock, 
+  Share2, 
+  Link as LinkIcon,
+  MessageSquare,
+  FolderKanban
+} from "lucide-react";
 import { getProjectById, ProjectWithMembers } from "@/lib/projects";
+import { getTeamById, TeamWithDetails } from "@/lib/teams";
 import { createClient } from "@/lib/supabase/client";
 import { getUserProfile } from "@/lib/profile";
 import Image from "next/image";
@@ -20,11 +31,15 @@ export default function ProjectPage() {
   const router = useRouter();
   const id = params.id as string;
   const [project, setProject] = useState<ProjectWithMembers | null>(null);
+  const [team, setTeam] = useState<TeamWithDetails | null>(null);
+  const [teamMemberProfiles, setTeamMemberProfiles] = useState<
+    Array<{ userId: string; name: string; avatar?: string }>
+  >([]);
+  const [projectMemberProfiles, setProjectMemberProfiles] = useState<
+    Array<{ userId: string; name: string; avatar?: string }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [memberProfiles, setMemberProfiles] = useState<
-    Record<string, { name: string; avatarUrl?: string | null }>
-  >({});
   const supabase = createClient();
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
@@ -46,25 +61,78 @@ export default function ProjectPage() {
         setEditDescription(data.description);
         setEditProgressLog(data.progressLog || "");
 
-        // Fetch member profiles (name + avatar)
+        // Fetch project member profiles for avatars
         if (data.members && data.members.length > 0) {
-          const profiles: Record<string, { name: string; avatarUrl?: string | null }> = {};
+          const profiles = await Promise.all(
+            data.members.slice(0, 3).map(async (member) => {
+              try {
+                const profile = await getUserProfile(member.userId, undefined, supabase);
+                const fullName = [profile?.first_name, profile?.last_name]
+                  .filter(Boolean)
+                  .join(" ")
+                  .trim();
+                const username =
+                  profile?.username ||
+                  (fullName.length > 0 ? fullName : undefined) ||
+                  profile?.email?.split("@")[0];
 
-          for (const member of data.members) {
-            const profile = await getUserProfile(member.userId, undefined, supabase);
-            if (profile) {
-              const name =
-                (profile.first_name && profile.last_name
-                  ? `${profile.first_name} ${profile.last_name}`
-                  : profile.username || profile.email.split("@")[0]) || "User";
-              profiles[member.userId] = {
-                name,
-                avatarUrl: profile.image_url || null,
-              };
+                return {
+                  userId: member.userId,
+                  name: username || `User ${member.userId.slice(0, 8)}`,
+                  avatar: profile?.image_url || undefined,
+                };
+              } catch (error) {
+                console.error(`Error loading profile for ${member.userId}:`, error);
+                return {
+                  userId: member.userId,
+                  name: `User ${member.userId.slice(0, 8)}`,
+                  avatar: undefined,
+                };
+              }
+            })
+          );
+          setProjectMemberProfiles(profiles);
+        }
+
+        // Fetch team information if teamId exists
+        if (data.teamId) {
+          const teamData = await getTeamById(data.teamId, supabase);
+          if (teamData) {
+            setTeam(teamData);
+            
+            // Fetch team member profiles for avatars
+            if (teamData.members && teamData.members.length > 0) {
+              const profiles = await Promise.all(
+                teamData.members.slice(0, 5).map(async (member) => {
+                  try {
+                    const profile = await getUserProfile(member.userId, undefined, supabase);
+                    const fullName = [profile?.first_name, profile?.last_name]
+                      .filter(Boolean)
+                      .join(" ")
+                      .trim();
+                    const username =
+                      profile?.username ||
+                      (fullName.length > 0 ? fullName : undefined) ||
+                      profile?.email?.split("@")[0];
+
+                    return {
+                      userId: member.userId,
+                      name: username || `User ${member.userId.slice(0, 8)}`,
+                      avatar: profile?.image_url || undefined,
+                    };
+                  } catch (error) {
+                    console.error(`Error loading profile for ${member.userId}:`, error);
+                    return {
+                      userId: member.userId,
+                      name: `User ${member.userId.slice(0, 8)}`,
+                      avatar: undefined,
+                    };
+                  }
+                })
+              );
+              setTeamMemberProfiles(profiles);
             }
           }
-
-          setMemberProfiles(profiles);
         }
       } catch (error) {
         console.error("Error loading project:", error);
@@ -151,71 +219,308 @@ export default function ProjectPage() {
     }
   };
 
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: project.title,
+          text: project.description,
+          url: window.location.href,
+        });
+      } catch (error) {
+        // User cancelled or error occurred
+      }
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+      alert("Link copied to clipboard!");
+    }
+  };
+
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
-      <div className="mb-8">
-        <Link
-          href="/academy/projects"
-          className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-block transition-colors"
-        >
-          ← Back to Projects
-        </Link>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="mb-3 text-3xl sm:text-4xl font-bold">{project.title}</h1>
-            <p className="text-base sm:text-lg text-muted-foreground">{project.description}</p>
-          </div>
-          <Badge
-            className={
-              project.status === "in-progress"
-                ? "bg-blue-500/10 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-500/20 dark:border-blue-500/30"
-                : project.status === "completed"
-                ? "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300 border border-green-500/20 dark:border-green-500/30"
-                : "bg-yellow-500/10 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300 border border-yellow-500/20 dark:border-yellow-500/30"
-            }
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {/* Header Section */}
+        <div className="mb-8">
+          <Link
+            href="/academy/projects"
+            className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-block transition-colors"
           >
-            {project.status}
-          </Badge>
+            ← Back to Projects
+          </Link>
+
+          {/* Project Icon and Title */}
+          <div className="flex items-start gap-4 mb-4">
+            {project.thumbnail ? (
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-lg overflow-hidden flex-shrink-0 border-2 border-border">
+                <Image
+                  src={project.thumbnail}
+                  alt={project.title}
+                  fill
+                  className="object-cover"
+                  sizes="128px"
+                  unoptimized
+                />
+              </div>
+            ) : (
+              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-lg bg-orange-500 flex items-center justify-center flex-shrink-0">
+                <FolderKanban className="h-14 w-14 sm:h-16 sm:w-16 text-white" />
+              </div>
+            )}
+            <div className="flex-1">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h1 className="text-3xl sm:text-4xl font-bold mb-3 leading-tight">
+                    {project.title}
+                  </h1>
+                  {/* Category Badge - moved below title */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-semibold text-muted-foreground capitalize">
+                      {project.difficulty}
+                    </span>
+                  </div>
+                  {/* Tags/Categories */}
+                  {project.tags && project.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {project.tags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="outline"
+                          className="px-3 py-1 text-xs font-medium"
+                        >
+                          #{tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {/* Share Button - aligned with title */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShare}
+                  className="flex-shrink-0"
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-6">
-          {project.tags.map((tag) => (
-            <Badge key={tag} variant="outline">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap gap-4 mb-6">
-          {project.repositoryUrl && (
-            <Button variant="outline" size="sm" asChild>
-              <a href={project.repositoryUrl} target="_blank" rel="noopener noreferrer">
-                <Github className="h-4 w-4 mr-2" />
-                Repository
-              </a>
-            </Button>
+        {/* Description Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Description</h2>
+          {editMode ? (
+            <textarea
+              className="w-full rounded-md border border-border bg-background p-4 text-sm min-h-[120px]"
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+            />
+          ) : (
+            <div className="prose prose-invert max-w-none">
+              <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                {project.description}
+              </p>
+              {project.liveUrl && (
+                <p className="mt-4">
+                  <a
+                    href={project.liveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Try it out: {project.liveUrl}
+                  </a>
+                </p>
+              )}
+            </div>
           )}
-          {project.liveUrl && (
-            <Button variant="outline" size="sm" asChild>
-              <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Live Demo
-              </a>
-            </Button>
-          )}
         </div>
-      </div>
 
-      <div className="flex justify-end gap-3 mb-4">
-        {canManage && (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEditMode((v) => !v)}
-            >
-              {editMode ? "Cancel" : "Edit Project"}
+        {/* Team Details Section */}
+        {team && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Team Details
+            </h2>
+            <Link href={`/academy/teams/${team.id}`}>
+              <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-4">
+                    {team.avatar ? (
+                      <div className="relative h-16 w-16 rounded-lg overflow-hidden flex-shrink-0">
+                        <Image
+                          src={team.avatar}
+                          alt={team.name}
+                          fill
+                          className="object-cover"
+                          sizes="64px"
+                          unoptimized
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-16 w-16 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Users className="h-8 w-8 text-primary" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold mb-1">{team.name}</h3>
+                      {team.description && (
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {team.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-3">
+                        {/* Overlapping avatars */}
+                        {teamMemberProfiles.length > 0 && (
+                          <div className="flex items-center -space-x-2">
+                            {teamMemberProfiles.slice(0, 3).map((member, idx) => (
+                              <div
+                                key={member.userId}
+                                className="relative h-8 w-8 rounded-full overflow-hidden border-2 border-background flex-shrink-0"
+                                style={{ zIndex: 10 - idx }}
+                              >
+                                {member.avatar ? (
+                                  <Image
+                                    src={member.avatar}
+                                    alt={member.name}
+                                    fill
+                                    className="object-cover"
+                                    sizes="32px"
+                                    unoptimized
+                                  />
+                                ) : (
+                                  <div className="h-full w-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
+                                    {member.name.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {/* Project count */}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <FolderKanban className="h-4 w-4" />
+                          <span>{team.projectCount || 0} projects</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        )}
+
+        {/* Links Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+            <LinkIcon className="h-5 w-5" />
+            Links
+          </h2>
+          <div className="space-y-3">
+            {project.repositoryUrl && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <Github className="h-5 w-5 text-muted-foreground" />
+                    <div className="flex-1">
+                      <p className="font-medium">Repository</p>
+                      <a
+                        href={project.repositoryUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:underline break-all"
+                      >
+                        {project.repositoryUrl}
+                      </a>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {project.liveUrl && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <ExternalLink className="h-5 w-5 text-muted-foreground" />
+                    <div className="flex-1">
+                      <p className="font-medium">Live Demo</p>
+                      <a
+                        href={project.liveUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:underline break-all"
+                      >
+                        {project.liveUrl}
+                      </a>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {!project.repositoryUrl && !project.liveUrl && (
+              <p className="text-muted-foreground">No links available.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Comments Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Comments
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">Add Comment</p>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex gap-2 mb-4 border-b border-border pb-2">
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                  <span className="font-bold">B</span>
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                  <span className="italic">I</span>
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                  <span className="underline">U</span>
+                </Button>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                  <span>•</span>
+                </Button>
+              </div>
+              <textarea
+                className="w-full bg-transparent border-0 resize-none focus:outline-none min-h-[150px] text-sm"
+                placeholder="Write your comment here..."
+              />
+              <div className="flex justify-end pt-4 border-t border-border">
+                <Button size="sm">Comment</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Edit Mode Save Button */}
+        {editMode && (
+          <div className="flex justify-end gap-3 mb-8">
+            <Button variant="outline" onClick={() => setEditMode(false)}>
+              Cancel
             </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        )}
+
+        {/* Admin/Delete Actions */}
+        {canManage && !editMode && (
+          <div className="flex justify-end gap-3">
             <Button
               variant="outline"
               size="sm"
@@ -225,117 +530,8 @@ export default function ProjectPage() {
             >
               {saving ? "Deleting..." : "Delete Project"}
             </Button>
-          </>
+          </div>
         )}
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Team Members
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {project.members && project.members.length > 0 ? (
-                project.members.map((member) => (
-                  <div
-                    key={member.userId}
-                    className="flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      {memberProfiles[member.userId]?.avatarUrl ? (
-                        <div className="relative h-8 w-8 rounded-full overflow-hidden">
-                          <Image
-                            src={memberProfiles[member.userId].avatarUrl as string}
-                            alt={memberProfiles[member.userId].name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
-                          {memberProfiles[member.userId]?.name
-                            ?.charAt(0)
-                            .toUpperCase() || "U"}
-                        </div>
-                      )}
-                      <span className="text-sm">
-                        {memberProfiles[member.userId]?.name || "Unknown User"}
-                      </span>
-                    </div>
-                    <Badge variant="secondary" className="text-xs capitalize">
-                      {member.role}
-                    </Badge>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">No members yet</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Project Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Difficulty</p>
-              <p className="font-medium capitalize">{project.difficulty}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Created</p>
-              <p className="font-medium">{project.createdAt.toLocaleDateString()}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Description</p>
-              {editMode ? (
-                <textarea
-                  className="w-full rounded-md border border-border bg-background p-2 text-sm"
-                  rows={4}
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                />
-              ) : (
-                <p className="text-sm">{project.description}</p>
-              )}
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Progress Log</p>
-              {editMode ? (
-                <textarea
-                  className="w-full rounded-md border border-border bg-background p-2 text-sm"
-                  rows={4}
-                  value={editProgressLog}
-                  onChange={(e) => setEditProgressLog(e.target.value)}
-                  placeholder="Add notes, milestones, or progress updates..."
-                />
-              ) : project.progressLog ? (
-                <p className="whitespace-pre-wrap text-sm">
-                  {project.progressLog}
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No progress log yet.
-                </p>
-              )}
-            </div>
-            {editMode && (
-              <div className="flex justify-end">
-                <Button size="sm" onClick={handleSave} disabled={saving}>
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ import type {
   ClassAssignment,
   AssignmentSubmission,
   ClassAnnouncement,
-  ClassInstructor,
+  ClassMentor,
   ClassXPConfig,
   CreateClassInput,
   UpdateClassInput,
@@ -55,7 +55,7 @@ function normalizeClass(data: any): Class {
     status: data.status,
     published: data.published,
     enrollmentLocked: data.enrollment_locked,
-    instructorId: data.instructor_id,
+    mentorId: data.instructor_id,
     createdBy: data.created_by,
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at),
@@ -111,7 +111,7 @@ function normalizeSession(data: any): LiveSession {
 export async function getAllClasses(
   options?: {
     status?: string;
-    instructorId?: string;
+    mentorId?: string;
     publishedOnly?: boolean;
   },
   supabaseClient?: SupabaseClient<any>
@@ -123,8 +123,8 @@ export async function getAllClasses(
     if (options?.status) {
       query = query.eq("status", options.status);
     }
-    if (options?.instructorId) {
-      query = query.eq("instructor_id", options.instructorId);
+    if (options?.mentorId) {
+      query = query.eq("instructor_id", options.mentorId);
     }
     if (options?.publishedOnly) {
       query = query.eq("published", true);
@@ -180,7 +180,7 @@ export interface ClassWithModules extends Class {
 export async function getAllClassesWithModules(
   options?: {
     status?: string;
-    instructorId?: string;
+    mentorId?: string;
     publishedOnly?: boolean;
   },
   supabaseClient?: SupabaseClient<any>
@@ -194,8 +194,8 @@ export async function getAllClassesWithModules(
     if (options?.status) {
       query = query.eq("status", options.status);
     }
-    if (options?.instructorId) {
-      query = query.eq("instructor_id", options.instructorId);
+    if (options?.mentorId) {
+      query = query.eq("instructor_id", options.mentorId);
     }
     if (options?.publishedOnly) {
       query = query.eq("published", true);
@@ -322,7 +322,7 @@ export async function createClass(
         max_capacity: input.maxCapacity,
         published: input.published || false,
         enrollment_locked: input.enrollmentLocked || false,
-        instructor_id: input.instructorId,
+        instructor_id: input.mentorId,
         created_by: userId,
       })
       .select()
@@ -337,11 +337,11 @@ export async function createClass(
       throw new Error(error.message || `Failed to create class: ${error.code || "Unknown error"}`);
     }
 
-    // Also create instructor relationship
+    // Also create mentor relationship
     await supabase.from("class_instructors").insert({
       class_id: data.id,
-      instructor_id: input.instructorId,
-      role: "instructor",
+      instructor_id: input.mentorId,
+      role: "mentor",
     });
 
     return normalizeClass(data);
@@ -373,7 +373,7 @@ export async function updateClass(
     if (input.published !== undefined) updateData.published = input.published;
     if (input.enrollmentLocked !== undefined) updateData.enrollment_locked = input.enrollmentLocked;
     if (input.status !== undefined) updateData.status = input.status;
-    if (input.instructorId !== undefined) updateData.instructor_id = input.instructorId;
+    if (input.mentorId !== undefined) updateData.instructor_id = input.mentorId;
 
     const { data, error } = await supabase
       .from("classes")

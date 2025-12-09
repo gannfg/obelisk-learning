@@ -114,16 +114,11 @@ export default function MissionBoardPage() {
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
       <div className="mb-8">
-        <div className="flex items-start gap-3 mb-4">
-          <div className="p-3 bg-primary/10 rounded-lg shrink-0">
-            <Target className="h-6 w-6 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-3">Mission Board</h1>
-            <p className="text-base sm:text-lg text-muted-foreground">
-              Choose a mission to start learning. Complete missions to earn badges and unlock new content.
-            </p>
-          </div>
+        <div className="mb-4">
+          <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-3">Mission Board</h1>
+          <p className="text-base sm:text-lg text-muted-foreground">
+            Choose a mission to start learning. Complete missions to earn badges and unlock new content.
+          </p>
         </div>
         {user && (
           <div className="flex items-center gap-3 mt-4 p-4 bg-muted/50 rounded-lg">
