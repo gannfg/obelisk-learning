@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +13,7 @@ interface AdSlide {
   ctaText: string;
   href: string;
   icon?: React.ReactNode;
+  imageUrl?: string | null;
   bgColor?: string;
 }
 
@@ -70,26 +72,59 @@ export function AdCarousel({ slides, autoPlayInterval = 5000 }: AdCarouselProps)
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
+      {/* Background Image */}
+      {currentSlide.imageUrl && (
+        <div className="absolute inset-0 z-0">
+          <Image
+            src={currentSlide.imageUrl}
+            alt={currentSlide.title || "Advertisement"}
+            fill
+            className="object-cover"
+            priority={currentIndex === 0}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+          {/* Remove dark overlay for better image visibility */}
+        </div>
+      )}
+
       {/* Slide Content */}
-      <Link href={currentSlide.href} className="block h-full">
-        <div className="p-8 sm:p-12 md:p-16 h-full flex flex-col items-center justify-center text-center relative min-h-[200px] sm:min-h-[250px] md:min-h-[280px]">
-          <div className="relative z-10">
-            {currentSlide.icon && (
-              <div className="mb-4 flex justify-center">
-                {currentSlide.icon}
-              </div>
-            )}
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2">
-              {currentSlide.title}
-            </h2>
-            <p className="text-sm sm:text-base text-muted-foreground mb-4">
-              {currentSlide.description}
-            </p>
-            <div className="inline-flex items-center gap-2 text-primary group-hover:gap-3 transition-all">
-              <span className="text-sm sm:text-base">{currentSlide.ctaText}</span>
+      <Link 
+        href={currentSlide.href} 
+        className="block h-full"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {/* If image exists, show full image. Otherwise show icon/text layout */}
+        {currentSlide.imageUrl ? (
+          <div className="h-full min-h-[200px] sm:min-h-[250px] md:min-h-[280px] relative">
+            {/* Image is already rendered as background above */}
+          </div>
+        ) : (
+          <div className="p-8 sm:p-12 md:p-16 h-full flex flex-col items-center justify-center text-center relative min-h-[200px] sm:min-h-[250px] md:min-h-[280px]">
+            <div className="relative z-10">
+              {currentSlide.icon && (
+                <div className="mb-4 flex justify-center">
+                  {currentSlide.icon}
+                </div>
+              )}
+              {currentSlide.title && (
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2">
+                  {currentSlide.title}
+                </h2>
+              )}
+              {currentSlide.description && (
+                <p className="text-sm sm:text-base text-muted-foreground mb-4">
+                  {currentSlide.description}
+                </p>
+              )}
+              {currentSlide.ctaText && (
+                <div className="inline-flex items-center gap-2 text-primary group-hover:gap-3 transition-all">
+                  <span className="text-sm sm:text-base">{currentSlide.ctaText}</span>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
       </Link>
 
       {/* Navigation Arrows */}
