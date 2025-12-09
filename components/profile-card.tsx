@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserProfile } from "@/lib/profile";
-import { User, Mail, Calendar, Edit, Trophy } from "lucide-react";
+import { User, Mail, Calendar, Edit, Trophy, Users as UsersIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -19,6 +19,8 @@ interface ProfileCardProps {
 export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps) {
   const [badges, setBadges] = useState<Badge[]>([]);
   const [loadingBadges, setLoadingBadges] = useState(true);
+  const [teamLogo, setTeamLogo] = useState<string | null>(null);
+  const [teamName, setTeamName] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchBadges = async () => {
@@ -48,7 +50,44 @@ export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps
       }
     };
 
+    const fetchTeam = async () => {
+      try {
+        const authSupabase = createClient();
+        if (!authSupabase) {
+          return;
+        }
+        const {
+          data: { user },
+        } = await authSupabase.auth.getUser();
+
+        if (user) {
+          const learningSupabase = createLearningClient();
+          if (!learningSupabase) {
+            return;
+          }
+          // Get user's first team (primary team)
+          const { data: teamMembers, error } = await learningSupabase
+            .from("team_members")
+            .select("team_id, teams(id, name, avatar)")
+            .eq("user_id", user.id)
+            .limit(1);
+
+          if (!error && teamMembers && teamMembers.length > 0) {
+            const teamMember = teamMembers[0];
+            if (teamMember && teamMember.teams) {
+              const team = teamMember.teams as any;
+              setTeamLogo(team.avatar || null);
+              setTeamName(team.name || null);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching team:", error);
+      }
+    };
+
     fetchBadges();
+    fetchTeam();
   }, [profile.id]);
 
   const fullName = profile.first_name || profile.last_name
@@ -73,7 +112,7 @@ export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col sm:flex-row gap-6">
+        <div className="flex flex-col sm:flex-row gap-6 items-start">
           {/* Avatar */}
           <div className="flex-shrink-0">
             {profile.image_url ? (
@@ -93,7 +132,7 @@ export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps
           </div>
 
           {/* Profile Info */}
-          <div className="flex-1 space-y-4">
+          <div className="flex-1 space-y-4 min-w-0">
             <div>
               <h2 className="text-xl font-medium mb-1">{displayName}</h2>
               {profile.username && (
@@ -147,6 +186,30 @@ export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Team Logo on Right Side - Always visible */}
+          <div className="flex-shrink-0 flex flex-col items-center gap-2">
+            {teamLogo ? (
+              <div className="relative h-20 w-20 rounded-lg overflow-hidden border-2 border-border">
+                <Image
+                  src={teamLogo}
+                  alt={teamName || "Team"}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+            ) : (
+              <div className="h-20 w-20 rounded-lg bg-muted flex items-center justify-center border-2 border-border">
+                <UsersIcon className="h-10 w-10 text-muted-foreground" />
+              </div>
+            )}
+            {teamName && (
+              <p className="text-xs text-muted-foreground text-center max-w-[100px] truncate">
+                {teamName}
+              </p>
+            )}
           </div>
         </div>
       </CardContent>
