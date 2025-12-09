@@ -24,6 +24,17 @@ import type {
   ClassStats,
 } from "@/types/classes";
 
+// Helper function to ensure supabase client is not null
+function ensureSupabaseClient(
+  supabaseClient?: SupabaseClient<any>
+): SupabaseClient<any> {
+  const client = supabaseClient || createLearningClient();
+  if (!client) {
+    throw new Error("Supabase client not configured.");
+  }
+  return client;
+}
+
 /**
  * Normalize class data from Supabase
  */
@@ -103,7 +114,7 @@ export async function getAllClasses(
   supabaseClient?: SupabaseClient<any>
 ): Promise<Class[]> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     let query = supabase.from("classes").select("*").order("start_date", { ascending: false });
 
     if (options?.status) {
@@ -138,7 +149,7 @@ export async function getClassById(
   supabaseClient?: SupabaseClient<any>
 ): Promise<Class | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase.from("classes").select("*").eq("id", id).single();
 
     if (error) {
@@ -172,7 +183,7 @@ export async function getAllClassesWithModules(
   supabaseClient?: SupabaseClient<any>
 ): Promise<ClassWithModules[]> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     
     // Fetch classes
     let query = supabase.from("classes").select("*").order("start_date", { ascending: false });
@@ -246,7 +257,7 @@ export async function getClassByIdWithModules(
   supabaseClient?: SupabaseClient<any>
 ): Promise<ClassWithModules | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     
     // Fetch class
     const { data: classData, error: classError } = await supabase
@@ -294,7 +305,7 @@ export async function createClass(
   supabaseClient?: SupabaseClient<any>
 ): Promise<Class | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("classes")
       .insert({
@@ -345,7 +356,7 @@ export async function updateClass(
   supabaseClient?: SupabaseClient<any>
 ): Promise<Class | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const updateData: any = {};
 
     if (input.title !== undefined) updateData.title = input.title;
@@ -388,7 +399,7 @@ export async function deleteClass(
   supabaseClient?: SupabaseClient<any>
 ): Promise<boolean> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { error } = await supabase.from("classes").delete().eq("id", id);
 
     if (error) {
@@ -411,7 +422,7 @@ export async function getClassModules(
   supabaseClient?: SupabaseClient<any>
 ): Promise<ClassModule[]> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("class_modules")
       .select("*")
@@ -438,7 +449,7 @@ export async function createModule(
   supabaseClient?: SupabaseClient<any>
 ): Promise<ClassModule | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("class_modules")
       .insert({
@@ -475,7 +486,7 @@ export async function updateModule(
   supabaseClient?: SupabaseClient<any>
 ): Promise<ClassModule | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const updateData: any = {};
 
     if (updates.title !== undefined) updateData.title = updates.title;
@@ -512,7 +523,7 @@ export async function deleteModule(
   supabaseClient?: SupabaseClient<any>
 ): Promise<boolean> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { error } = await supabase.from("class_modules").delete().eq("id", id);
 
     if (error) {
@@ -535,7 +546,7 @@ export async function getModuleSessions(
   supabaseClient?: SupabaseClient<any>
 ): Promise<LiveSession[]> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("live_sessions")
       .select("*")
@@ -563,7 +574,7 @@ export async function createSession(
   supabaseClient?: SupabaseClient<any>
 ): Promise<LiveSession | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("live_sessions")
       .insert({
@@ -601,7 +612,7 @@ export async function getClassEnrollments(
   supabaseClient?: SupabaseClient<any>
 ): Promise<ClassEnrollment[]> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("class_enrollments")
       .select("*")
@@ -637,7 +648,7 @@ export async function enrollUser(
   supabaseClient?: SupabaseClient<any>
 ): Promise<ClassEnrollment | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("class_enrollments")
       .insert({
@@ -677,7 +688,7 @@ export async function removeEnrollment(
   supabaseClient?: SupabaseClient<any>
 ): Promise<boolean> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { error } = await supabase
       .from("class_enrollments")
       .delete()
@@ -704,7 +715,7 @@ export async function getModuleAssignments(
   supabaseClient?: SupabaseClient<any>
 ): Promise<ClassAssignment[]> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("class_assignments")
       .select("*")
@@ -748,7 +759,7 @@ export async function createAssignment(
   supabaseClient?: SupabaseClient<any>
 ): Promise<ClassAssignment | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("class_assignments")
       .insert({
@@ -804,7 +815,7 @@ export async function getClassAnnouncements(
   supabaseClient?: SupabaseClient<any>
 ): Promise<ClassAnnouncement[]> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("class_announcements")
       .select("*")
@@ -843,7 +854,7 @@ export async function createAnnouncement(
   supabaseClient?: SupabaseClient<any>
 ): Promise<ClassAnnouncement | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("class_announcements")
       .insert({
@@ -887,7 +898,7 @@ export async function getClassStats(
   supabaseClient?: SupabaseClient<any>
 ): Promise<ClassStats | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
 
     // Get enrollment stats
     const { count: totalEnrollments } = await supabase

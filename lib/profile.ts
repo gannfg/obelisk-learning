@@ -18,6 +18,9 @@ async function getAuthenticatedClient() {
   try {
     const { createClient } = await import('@/lib/supabase/client');
     const client = createClient();
+    if (!client) {
+      throw new Error('Supabase client is null');
+    }
     
     // Verify we have a session
     const { data: { session }, error: sessionError } = await client.auth.getSession();

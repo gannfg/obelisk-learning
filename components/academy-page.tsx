@@ -39,7 +39,9 @@ export function AcademyPageClient() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingTeams, setLoadingTeams] = useState(false);
-  const [loadingClasses, setLoadingClasses] = useState(false);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+  
+  // Create clients safely - they may be placeholders if env vars are missing
   const supabase = createClient();
   const learningSupabase = createLearningClient();
 
@@ -49,25 +51,46 @@ export function AcademyPageClient() {
 
   useEffect(() => {
     if (currentTab === "classes") {
-      setLoadingClasses(true);
-      getAllClasses({ publishedOnly: true }, learningSupabase)
+      if (!learningSupabase) {
+        setClasses([]);
+        setLoadingCourses(false);
+        return;
+      }
+      setLoadingCourses(true);
+      getAllClasses(undefined, learningSupabase)
         .then(setClasses)
         .catch((error) => {
           console.error("Error loading classes:", error);
           setClasses([]);
         })
-        .finally(() => setLoadingClasses(false));
+        .finally(() => setLoadingCourses(false));
     } else if (currentTab === "projects") {
+      if (!supabase) {
+        setProjects([]);
+        setLoadingProjects(false);
+        return;
+      }
       setLoadingProjects(true);
       getAllProjects(supabase)
         .then(setProjects)
-        .catch(console.error)
+        .catch((error) => {
+          console.error("Error loading projects:", error);
+          setProjects([]);
+        })
         .finally(() => setLoadingProjects(false));
     } else if (currentTab === "teams") {
+      if (!supabase) {
+        setTeams([]);
+        setLoadingTeams(false);
+        return;
+      }
       setLoadingTeams(true);
       getAllTeams(supabase)
         .then(setTeams)
-        .catch(console.error)
+        .catch((error) => {
+          console.error("Error loading teams:", error);
+          setTeams([]);
+        })
         .finally(() => setLoadingTeams(false));
     }
   }, [currentTab, supabase, learningSupabase]);
@@ -105,7 +128,7 @@ export function AcademyPageClient() {
         {/* Classes Tab */}
         <TabsContent value="classes" className="space-y-6">
           <CategoryFilter />
-          {loadingClasses ? (
+          {loadingCourses ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>

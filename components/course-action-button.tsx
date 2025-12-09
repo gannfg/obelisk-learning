@@ -26,12 +26,20 @@ export function CourseActionButton({
     const checkCompletion = async () => {
       try {
         const authSupabase = createClient();
+        if (!authSupabase) {
+          setIsLoading(false);
+          return;
+        }
         const {
           data: { user },
         } = await authSupabase.auth.getUser();
 
         if (user && totalLessons > 0) {
           const learningSupabase = createLearningClient();
+          if (!learningSupabase) {
+            setIsLoading(false);
+            return;
+          }
           const completed = await isCourseCompleted(
             learningSupabase,
             user.id,

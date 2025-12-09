@@ -56,6 +56,11 @@ export default function AdminMissionsPage() {
   }, [loading, isAdmin]);
 
   const loadMissions = async () => {
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      setMissionsLoading(false);
+      return;
+    }
     setMissionsLoading(true);
     const { data, error } = await supabase
       .from("missions")
@@ -73,6 +78,11 @@ export default function AdminMissionsPage() {
   };
 
   const loadSubmissions = async () => {
+    if (!learningSupabase) {
+      setError("Learning Supabase client not configured.");
+      setSubmissionsLoading(false);
+      return;
+    }
     setSubmissionsLoading(true);
     const { data, error } = await learningSupabase
       .from("mission_submissions")
@@ -149,6 +159,12 @@ export default function AdminMissionsPage() {
       ? Number.parseInt(orderIndexRaw, 10)
       : 0;
 
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      setSaving(false);
+      return;
+    }
+
     try {
       let imageUrl: string | null = null;
 
@@ -211,6 +227,11 @@ export default function AdminMissionsPage() {
       return;
     }
 
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      return;
+    }
+
     setDeletingId(id);
     setError(null);
 
@@ -230,6 +251,11 @@ export default function AdminMissionsPage() {
     submissionId: string,
     updates: Partial<MissionSubmission>
   ) => {
+    if (!learningSupabase) {
+      setError("Learning Supabase client not configured.");
+      return;
+    }
+
     setUpdatingSubmissionId(submissionId);
     setError(null);
 
@@ -261,6 +287,10 @@ export default function AdminMissionsPage() {
       if (updates.feedback || updates.status) {
         try {
           // Get reviewer name (current user)
+          if (!supabase) {
+            console.warn("Supabase auth client not available for notification");
+            return;
+          }
           const { data: userData } = await supabase.auth.getUser();
           const reviewerName = userData?.user?.email?.split("@")[0] || "Admin";
 

@@ -40,12 +40,14 @@ export function LessonNavigation({
     const checkCourseStatus = async () => {
       try {
         const authSupabase = createClient();
+        if (!authSupabase) return;
         const {
           data: { user },
         } = await authSupabase.auth.getUser();
 
         if (user) {
           const learningSupabase = createLearningClient();
+          if (!learningSupabase) return;
           
           // Check if course is already completed
           const completed = await isCourseCompleted(
@@ -85,6 +87,7 @@ export function LessonNavigation({
 
     // Get current user
     const authSupabase = createClient();
+    if (!authSupabase) return;
     const {
       data: { user },
     } = await authSupabase.auth.getUser();
@@ -94,6 +97,10 @@ export function LessonNavigation({
       setIsMarkingComplete(true);
       try {
         const learningSupabase = createLearningClient();
+        if (!learningSupabase) {
+          setIsMarkingComplete(false);
+          return;
+        }
         await markLessonComplete(
           learningSupabase,
           user.id,
@@ -137,6 +144,7 @@ export function LessonNavigation({
   const handleCompleteClick = async () => {
     // Get current user
     const authSupabase = createClient();
+    if (!authSupabase) return;
     const {
       data: { user },
     } = await authSupabase.auth.getUser();
@@ -145,6 +153,10 @@ export function LessonNavigation({
       setIsMarkingComplete(true);
       try {
         const learningSupabase = createLearningClient();
+        if (!learningSupabase) {
+          setIsMarkingComplete(false);
+          return;
+        }
         
         // Mark current lesson as complete
         await markLessonComplete(
