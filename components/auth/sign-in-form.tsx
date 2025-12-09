@@ -21,6 +21,12 @@ export function SignInForm() {
     setError(null);
     setLoading(true);
 
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,

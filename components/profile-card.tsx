@@ -24,12 +24,20 @@ export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps
     const fetchBadges = async () => {
       try {
         const authSupabase = createClient();
+        if (!authSupabase) {
+          setLoadingBadges(false);
+          return;
+        }
         const {
           data: { user },
         } = await authSupabase.auth.getUser();
 
         if (user) {
           const learningSupabase = createLearningClient();
+          if (!learningSupabase) {
+            setLoadingBadges(false);
+            return;
+          }
           const userBadges = await getUserBadges(learningSupabase, user.id);
           setBadges(userBadges);
         }

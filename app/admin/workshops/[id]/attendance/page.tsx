@@ -73,6 +73,10 @@ export default function WorkshopAttendancePage() {
     try {
       // Find user by email
       const learningSupabase = createLearningClient();
+      if (!learningSupabase) {
+        alert("Supabase client not configured.");
+        return;
+      }
       const { data: userData } = await learningSupabase
         .from("users")
         .select("id")

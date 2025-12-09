@@ -1,124 +1,184 @@
 import Link from "next/link";
-import Image from "next/image";
-import { LandingSidebar } from "@/components/landing-sidebar";
+import { Target, BookOpen, Users, Sparkles, ArrowRight, User, Zap, Wallet } from "lucide-react";
+import { AdCarousel } from "@/components/ad-carousel";
 
 /**
- * Landing Page with Left Panel (current content) and Right Panel (sidebar)
+ * Homepage with grid layout similar to Superteam Earn
+ * Layout: 2x2 grid with Academy (large left), Mission (bottom right), How it works (top right)
  */
 export default function Home() {
+  // Advertisement slides - easily add more here
+  const adSlides = [
+    {
+      id: "mentors",
+      title: "Mentors",
+      description: "Meet your guides",
+      ctaText: "Explore Mentors",
+      href: "/instructors",
+      icon: <Users className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 text-primary" />,
+    },
+    {
+      id: "dementor",
+      title: "DeMentor AI",
+      description: "Your AI-powered coding mentor",
+      ctaText: "Chat Now",
+      href: "/mentor-chat",
+      icon: <Sparkles className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 text-primary" />,
+    },
+    // Add more slides here as needed
+    // {
+    //   id: "workshops",
+    //   title: "Workshops",
+    //   description: "Join live learning sessions",
+    //   ctaText: "Browse Workshops",
+    //   href: "/workshops",
+    //   icon: <Calendar className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 text-primary" />,
+    // },
+  ];
+
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Main Layout: Left Panel + Right Sidebar */}
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 md:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 lg:gap-12">
-          {/* Left Panel - Current Landing Page Content */}
-          <div className="flex flex-col space-y-8">
-            {/* Hero Section */}
-            <section className="text-center lg:text-left">
-              <div className="max-w-4xl">
-                <h1 
-                  className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6 leading-tight"
-                  style={{ color: 'var(--foreground)' }}
-                >
-                  Your Vision, Our Expertise
-                  <br className="hidden sm:block" />
-                  <span className="block sm:inline mt-2 sm:mt-0">— Let's Build Together</span>
-                </h1>
-                <p 
-                  className="text-base sm:text-lg md:text-xl max-w-2xl leading-relaxed opacity-70"
-                  style={{ color: 'var(--foreground)' }}
-                >
-                  We're here to help you master the skills you need for your next big project. Whether it's software development, web design, or building something entirely new—we'll craft a platform that elevates your vision to something truly remarkable.
-                </p>
-              </div>
-            </section>
+      {/* Grid Layout Section */}
+      <section className="container mx-auto px-4 sm:px-6 pt-20 sm:pt-24 md:pt-32 pb-12 sm:pb-16">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
+            {/* Left Column Container */}
+            <div className="flex flex-col gap-4 sm:gap-6 md:gap-8">
+              {/* Top Left - Advertisement Carousel */}
+              <AdCarousel slides={adSlides} autoPlayInterval={5000} />
 
-            {/* Main Content - 2 Boxes */}
-            <section className="flex-1">
-              <div className="max-w-5xl">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                  {/* Missions Box */}
-                  <Link
-                    href="/missions"
-                    className="group relative block w-full rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 hover:shadow-2xl"
-                  >
-                    <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-background to-muted">
-                      <Image
-                        src="/mission.png"
-                        alt="Missions"
-                        fill
-                        className="object-contain p-8 transition-transform duration-300 group-hover:scale-105"
-                        priority
-                      />
-                    </div>
-                  </Link>
-
-                  {/* Academy Box */}
-                  <Link
-                    href="/academy"
-                    className="group relative block w-full rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-95 hover:shadow-2xl"
-                  >
-                    <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-background to-muted">
-                      <Image
-                        src="/academy.png"
-                        alt="Academy"
-                        fill
-                        className="object-contain p-8 transition-transform duration-300 group-hover:scale-105"
-                        priority
-                      />
-                    </div>
-                  </Link>
+              {/* Bottom Left - Academy (Large) */}
+              <Link
+                href="/academy"
+                className="group relative block p-8 sm:p-12 md:p-16 lg:p-20 rounded-2xl border-2 border-border bg-muted/50 hover:bg-muted/70 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl flex-1 min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px] flex items-center justify-center"
+              >
+                <div className="text-center">
+                  <BookOpen className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 mx-auto mb-6 text-primary group-hover:scale-110 transition-transform" />
+                  <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4">Academy</h2>
+                  <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-md mx-auto">
+                    Structured courses, lessons, and projects
+                  </p>
+                  <div className="mt-6 flex items-center justify-center gap-2 text-primary group-hover:gap-3 transition-all">
+                    <span className="text-sm sm:text-base">Explore Academy</span>
+                    <ArrowRight className="h-5 w-5" />
+                  </div>
                 </div>
-              </div>
-            </section>
+              </Link>
+            </div>
 
-            {/* DeMentor Character Section */}
-            <section className="pb-0 sm:pb-4">
-              <div className="max-w-6xl flex justify-center items-end">
-                <Link
-                  href="/instructors"
-                  className="relative w-full cursor-pointer group"
-                >
-                  {/* Show upper body of the character (head + shoulders + chest), large across the screen */}
-                  <div className="relative w-full h-[35vh] sm:h-[40vh] md:h-[45vh] overflow-hidden">
-                    <div className="absolute inset-0">
-                      <Image
-                        src="/dementor.png"
-                        alt="DeMentor - Your AI Mentor"
-                        fill
-                        className="object-cover object-top animate-dementor-float transition-transform duration-300 group-hover:scale-110 scale-[1.2] translate-y-1 sm:translate-y-2 md:translate-y-3"
-                        priority
-                      />
-                    </div>
-                    
-                    {/* Floating Bubble Text */}
-                    <div className="absolute top-[35%] sm:top-[30%] md:top-[25%] left-1/2 -translate-x-1/2 sm:left-[65%] sm:-translate-x-0 animate-bubble-float z-10 transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-2">
-                      <div className="relative">
-                        {/* Blurry transparent container */}
-                        <div className="backdrop-blur-md bg-white/20 dark:bg-black/20 border border-white/30 dark:border-white/20 rounded-2xl px-6 py-3 shadow-lg transition-all duration-300 group-hover:shadow-2xl group-hover:bg-white/30 dark:group-hover:bg-black/30">
-                          <p className="text-sm sm:text-base md:text-lg font-semibold whitespace-nowrap" style={{ color: 'var(--foreground)' }}>
-                            Meet the DeMentor
-                          </p>
-                        </div>
-                        {/* Speech bubble tail */}
-                        <div className="absolute -bottom-2 left-8 w-4 h-4 backdrop-blur-md bg-white/20 dark:bg-black/20 border-l border-b border-white/30 dark:border-white/20 rotate-45 transform origin-center transition-all duration-300 group-hover:bg-white/30 dark:group-hover:bg-black/30"></div>
+            {/* Right Column Container */}
+            <div className="flex flex-col gap-4 sm:gap-6 md:gap-8">
+              {/* Top Right - How It Works */}
+              <div className="relative p-6 sm:p-8 md:p-10 rounded-2xl border-2 border-border bg-muted/50 min-h-[200px] sm:min-h-[250px] md:min-h-[280px]">
+                <div className="mb-6 sm:mb-8">
+                  <h2 className="text-xs sm:text-sm uppercase tracking-wider text-muted-foreground">
+                    HOW IT WORKS
+                  </h2>
+                </div>
+
+                {/* Vertical Steps List with Connecting Line */}
+                <div className="relative">
+                  {/* Connecting Line */}
+                  <div className="absolute left-4 sm:left-5 top-0 bottom-0 w-0.5 bg-border hidden sm:block" />
+
+                  <div className="space-y-4 sm:space-y-6">
+                    {/* Step 1 */}
+                    <div className="relative flex items-start gap-3 sm:gap-4">
+                      {/* Icon Circle */}
+                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
+                        <User className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      </div>
+                      {/* Content */}
+                      <div className="flex-1 pt-0.5 sm:pt-1">
+                        <h3 className="text-base sm:text-lg md:text-xl font-bold mb-1">
+                          Start Learning
+                        </h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          Enroll in courses or pick a mission to begin your journey
+                        </p>
                       </div>
                     </div>
-                    
-                    {/* Bottom fade-out */}
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
-                  </div>
-                </Link>
-              </div>
-            </section>
-          </div>
 
-          {/* Right Panel - Sidebar */}
-          <div className="lg:sticky lg:top-20 lg:self-start">
-            <LandingSidebar />
+                    {/* Step 2 */}
+                    <div className="relative flex items-start gap-3 sm:gap-4">
+                      {/* Icon Circle */}
+                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
+                        <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      </div>
+                      {/* Content */}
+                      <div className="flex-1 pt-0.5 sm:pt-1">
+                        <h3 className="text-base sm:text-lg md:text-xl font-bold mb-1">
+                          Build Projects
+                        </h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          Complete hands-on missions and collaborate with teams
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Step 3 */}
+                    <div className="relative flex items-start gap-3 sm:gap-4">
+                      {/* Icon Circle */}
+                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
+                        <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      </div>
+                      {/* Content */}
+                      <div className="flex-1 pt-0.5 sm:pt-1">
+                        <h3 className="text-base sm:text-lg md:text-xl font-bold mb-1">
+                          Earn Rewards
+                        </h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          Unlock badges, gain XP, and track your progress
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Right - Mission */}
+              <Link
+                href="/missions"
+                className="group relative block p-8 sm:p-12 md:p-16 rounded-2xl border-2 border-border bg-muted/50 hover:bg-muted/70 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl flex-1 min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px] flex items-center justify-center"
+              >
+                <div className="text-center">
+                  <Target className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 mx-auto mb-6 text-primary group-hover:scale-110 transition-transform" />
+                  <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4">Mission</h2>
+                  <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-md mx-auto">
+                    Hands-on coding challenges
+                  </p>
+                  <div className="mt-6 flex items-center justify-center gap-2 text-primary group-hover:gap-3 transition-all">
+                    <span className="text-sm sm:text-base">Start Mission</span>
+                    <ArrowRight className="h-5 w-5" />
+                  </div>
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Workshops Section - Placeholder for when friend finishes */}
+      {/* Uncomment when workshops are ready */}
+      {/* 
+      <section className="container mx-auto px-4 sm:px-6 py-12 sm:py-16 md:py-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
+              Upcoming Workshops
+            </h2>
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
+              Join live sessions and learn from experts
+            </p>
+          </div>
+          <div className="text-center">
+            <Button asChild size="lg">
+              <Link href="/workshops">Browse Workshops</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+      */}
     </div>
   );
 }

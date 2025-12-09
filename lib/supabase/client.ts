@@ -1,16 +1,18 @@
 "use client";
 
 import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-// Use Superteam Study Auth Supabase for authentication
-export function createClient() {
+// Use Obelisk Learning Auth Supabase for authentication
+export function createClient(): SupabaseClient<any> | null {
   const supabaseUrl = process.env.NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error(
+    console.warn(
       "Missing Supabase environment variables. Please set NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL and NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY"
     );
+    return null;
   }
 
   return createBrowserClient(supabaseUrl, supabaseKey);

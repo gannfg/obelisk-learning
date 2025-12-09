@@ -24,6 +24,11 @@ export default function MissionBoardPage() {
 
     async function loadMissions() {
       const supabase = createLearningClient();
+      if (!supabase) {
+        console.error("Supabase client not configured.");
+        setLoading(false);
+        return;
+      }
 
       // Fetch all missions
       let query = supabase.from("missions").select("*").order("order_index");

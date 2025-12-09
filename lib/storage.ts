@@ -321,7 +321,6 @@ export async function uploadTeamAvatar(
 /**
  * Upload a workshop image to Supabase Storage (Auth Supabase)
  * Stored in the public "workshop-images" bucket.
- * Uses Auth Supabase because that's where user authentication happens.
  */
 export async function uploadWorkshopImage(
   file: File,
@@ -329,19 +328,6 @@ export async function uploadWorkshopImage(
   supabaseClient: any
 ): Promise<string | null> {
   try {
-    // Validate file
-    if (!file || file.size === 0) {
-      console.error("Invalid file provided");
-      return null;
-    }
-
-    // Check file size (10MB limit)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      console.error("File size exceeds 10MB limit");
-      return null;
-    }
-
     const fileExt = file.name.split(".").pop();
     const timestamp = Date.now();
     const fileName = workshopId
@@ -350,9 +336,7 @@ export async function uploadWorkshopImage(
 
     const filePath = `workshops/${fileName}`;
 
-    console.log("Uploading workshop image to:", filePath);
-
-    const { data: uploadData, error } = await supabaseClient.storage
+    const { error } = await supabaseClient.storage
       .from("workshop-images")
       .upload(filePath, file, {
         cacheControl: "3600",
@@ -361,21 +345,16 @@ export async function uploadWorkshopImage(
 
     if (error) {
       console.error("Error uploading workshop image:", error);
-      console.error("Error details:", JSON.stringify(error, null, 2));
       return null;
     }
-
-    console.log("Upload successful:", uploadData);
 
     const { data: urlData } = supabaseClient.storage
       .from("workshop-images")
       .getPublicUrl(filePath);
 
-    console.log("Public URL:", urlData.publicUrl);
     return urlData.publicUrl;
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in uploadWorkshopImage:", error);
-    console.error("Error stack:", error.stack);
     return null;
   }
 }

@@ -40,6 +40,11 @@ export default function MissionPage() {
 
     async function loadMission() {
       const supabase = createLearningClient();
+      if (!supabase) {
+        console.error("Supabase client not configured.");
+        setLoading(false);
+        return;
+      }
 
       // Fetch mission
       const { data: missionData, error: missionError } = await supabase
@@ -190,6 +195,11 @@ export default function MissionPage() {
     setIsSubmitting(true);
     try {
       const supabase = createLearningClient();
+      if (!supabase) {
+        console.error("Supabase client not configured.");
+        setIsSubmitting(false);
+        return;
+      }
       const { data, error } = await supabase
         .from("mission_submissions")
         .upsert(
@@ -232,6 +242,10 @@ export default function MissionPage() {
       if (mission) {
         try {
           const authSupabase = createClient();
+          if (!authSupabase) {
+            console.warn("Supabase auth client not available for notification");
+            return;
+          }
           await notifyProjectSubmitted(user.id, missionId, mission.title, authSupabase);
         } catch (notifError) {
           console.error("Error sending submission notification:", notifError);
@@ -248,6 +262,7 @@ export default function MissionPage() {
     
     if (user) {
       const supabase = createLearningClient();
+      if (!supabase) return;
       await supabase
         .from("sandboxes")
         .upsert({
@@ -267,6 +282,7 @@ export default function MissionPage() {
     checklist[index] = { ...checklist[index], completed: !checklist[index].completed };
 
     const supabase = createLearningClient();
+    if (!supabase) return;
     await supabase
       .from("mission_content")
       .update({ checklist })

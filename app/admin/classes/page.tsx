@@ -197,6 +197,11 @@ export default function AdminClassesPage() {
     try {
       setLoading(true);
       const supabase = createLearningClient();
+      if (!supabase) {
+        setError("Supabase client not configured.");
+        setLoading(false);
+        return;
+      }
       const data = await getAllClasses(undefined, supabase);
       setClasses(data);
     } catch (error) {
@@ -210,6 +215,10 @@ export default function AdminClassesPage() {
   const loadClassData = async (classId: string) => {
     try {
       const supabase = createLearningClient();
+      if (!supabase) {
+        console.error("Supabase client not configured.");
+        return;
+      }
       const [modulesData, enrollmentsData, announcementsData, statsData] = await Promise.all([
         getClassModules(classId, supabase),
         getClassEnrollments(classId, supabase),
@@ -253,6 +262,11 @@ export default function AdminClassesPage() {
     try {
       // Use Auth Supabase for authentication
       const authSupabase = createClient();
+      if (!authSupabase) {
+        setError("Supabase client not configured.");
+        setSaving(false);
+        return;
+      }
       const { data: { user } } = await authSupabase.auth.getUser();
       if (!user) {
         setError("Not authenticated.");
@@ -313,6 +327,11 @@ export default function AdminClassesPage() {
 
     try {
       const supabase = createLearningClient();
+      if (!supabase) {
+        setError("Supabase client not configured.");
+        setSaving(false);
+        return;
+      }
       let thumbnailUrl = classForm.thumbnail;
       if (imageFile) {
         thumbnailUrl = await uploadCourseImage(imageFile, editingClass.id, supabase) || classForm.thumbnail;
@@ -365,6 +384,10 @@ export default function AdminClassesPage() {
 
     try {
       const supabase = createLearningClient();
+      if (!supabase) {
+        setError("Supabase client not configured.");
+        return;
+      }
       const success = await deleteClass(classId, supabase);
       if (success) {
         setSuccess("Class deleted successfully!");
@@ -390,6 +413,11 @@ export default function AdminClassesPage() {
     try {
       // Use Auth Supabase for authentication and user lookup
       const authSupabase = createClient();
+      if (!authSupabase) {
+        setError("Supabase client not configured.");
+        setSaving(false);
+        return;
+      }
       const { data: { user: currentUser } } = await authSupabase.auth.getUser();
       if (!currentUser) {
         setError("Not authenticated.");
@@ -682,6 +710,7 @@ export default function AdminClassesPage() {
                         variant="outline"
                         onClick={() => {
                           const supabase = createLearningClient();
+                          if (!supabase) return;
                           updateClass(
                             {
                               id: selectedClass.id,
@@ -712,6 +741,7 @@ export default function AdminClassesPage() {
                         variant="outline"
                         onClick={() => {
                           const supabase = createLearningClient();
+                          if (!supabase) return;
                           updateClass(
                             {
                               id: selectedClass.id,
@@ -870,6 +900,7 @@ export default function AdminClassesPage() {
                                     onClick={async () => {
                                       if (confirm("Delete this module?")) {
                                         const supabase = createLearningClient();
+                                        if (!supabase) return;
                                         await deleteModule(module.id, supabase);
                                         await loadClassData(selectedClass.id);
                                       }
@@ -945,6 +976,7 @@ export default function AdminClassesPage() {
                                 onClick={async () => {
                                   if (confirm("Remove this enrollment?")) {
                                     const supabase = createLearningClient();
+                                    if (!supabase) return;
                                     await removeEnrollment(
                                       selectedClass.id,
                                       enrollment.userId,
@@ -1350,6 +1382,10 @@ export default function AdminClassesPage() {
                 setSaving(true);
                 try {
                   const supabase = createLearningClient();
+                  if (!supabase) {
+                    setSaving(false);
+                    return;
+                  }
                   if (editingModule && selectedModuleId) {
                     await updateModule(
                       selectedModuleId,
@@ -1557,6 +1593,11 @@ export default function AdminClassesPage() {
                 try {
                   // Use Auth Supabase for authentication
                   const authSupabase = createClient();
+                  if (!authSupabase) {
+                    setError("Supabase client not configured.");
+                    setSaving(false);
+                    return;
+                  }
                   const { data: { user } } = await authSupabase.auth.getUser();
                   if (!user) return;
 
@@ -1675,11 +1716,21 @@ export default function AdminClassesPage() {
                 try {
                   // Use Auth Supabase for authentication
                   const authSupabase = createClient();
+                  if (!authSupabase) {
+                    setError("Supabase client not configured.");
+                    setSaving(false);
+                    return;
+                  }
                   const { data: { user } } = await authSupabase.auth.getUser();
                   if (!user) return;
 
                   // Use Learning Supabase for database operations
                   const learningSupabase = createLearningClient();
+                  if (!learningSupabase) {
+                    setError("Supabase client not configured.");
+                    setSaving(false);
+                    return;
+                  }
                   await createAnnouncement(
                     {
                       classId: selectedClass.id,
@@ -1829,11 +1880,21 @@ export default function AdminClassesPage() {
                 try {
                   // Use Auth Supabase for authentication
                   const authSupabase = createClient();
+                  if (!authSupabase) {
+                    setError("Supabase client not configured.");
+                    setSaving(false);
+                    return;
+                  }
                   const { data: { user } } = await authSupabase.auth.getUser();
                   if (!user) return;
 
                   // Use Learning Supabase for database operations
                   const learningSupabase = createLearningClient();
+                  if (!learningSupabase) {
+                    setError("Supabase client not configured.");
+                    setSaving(false);
+                    return;
+                  }
                   const sessionDateTime = new Date(
                     `${sessionForm.sessionDate}T${sessionForm.sessionTime}`
                   );

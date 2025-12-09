@@ -31,6 +31,11 @@ export async function searchClasses(query: string): Promise<Class[]> {
   const searchTerm = query.toLowerCase().trim();
   const learningSupabase = createLearningClient();
   
+  if (!learningSupabase) {
+    console.error("Supabase client not configured.");
+    return [];
+  }
+  
   // Fetch all published classes
   const allClasses = await getAllClassesWithModules({ publishedOnly: true }, learningSupabase);
 

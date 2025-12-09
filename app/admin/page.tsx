@@ -7,7 +7,7 @@ import { useAdmin } from "@/lib/hooks/use-admin";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, FolderKanban, Users as UsersIcon, Target, Calendar } from "lucide-react";
+import { BookOpen, FolderKanban, Users as UsersIcon, Target } from "lucide-react";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -44,21 +44,16 @@ export default function AdminPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
-              Semester Classes
+              Courses
             </CardTitle>
             <CardDescription>
               Manage semester-based classes with modules, sessions, enrollments, assignments, and announcements.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col gap-2">
-              <Button asChild>
-                <Link href="/admin/classes">Open Classes Admin</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/admin/courses">Legacy Classes (Old)</Link>
-              </Button>
-            </div>
+            <Button asChild className="w-full">
+              <Link href="/admin/courses">Open Courses Admin</Link>
+            </Button>
           </CardContent>
         </Card>
 
@@ -123,28 +118,6 @@ export default function AdminPage() {
               </Button>
               <Button asChild variant="outline">
                 <Link href="/academy/teams">View All Teams</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Workshops
-            </CardTitle>
-            <CardDescription>
-              Create and manage workshops for online and offline events.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-2">
-              <Button asChild>
-                <Link href="/admin/workshops">Manage Workshops</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/workshops">View Workshop Calendar</Link>
               </Button>
             </div>
           </CardContent>
