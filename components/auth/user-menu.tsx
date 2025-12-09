@@ -29,10 +29,6 @@ export function UserMenu() {
   const supabase = createClient();
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
-  if (!supabase) {
-    return null;
-  }
-
   // Fetch synced profile to get the latest profile picture
   useEffect(() => {
     const loadProfile = async () => {
@@ -69,6 +65,7 @@ export function UserMenu() {
   }, [user, loading, supabase]);
 
   const handleSignOut = async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
     router.push("/");
     router.refresh();

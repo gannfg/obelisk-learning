@@ -37,21 +37,15 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
 
-  if (!supabase) {
-    return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        <h1 className="text-2xl font-bold mb-2">Notifications</h1>
-        <p className="text-muted-foreground">
-          Supabase environment variables are not configured. Please set NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL and NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY.
-        </p>
-      </div>
-    );
-  }
-
   useEffect(() => {
     if (!user || loading) return;
 
     const fetchNotifications = async () => {
+      if (!supabase) {
+        console.error("Supabase client not configured.");
+        setLoadingNotifications(false);
+        return;
+      }
       try {
         const notifs = await getUserNotifications(user.id, supabase);
         setNotifications(notifs);
@@ -65,6 +59,7 @@ export default function NotificationsPage() {
     fetchNotifications();
 
     // Set up real-time subscription
+    if (!supabase) return;
     const channel = supabase
       .channel("notifications-page")
       .on(
@@ -82,12 +77,14 @@ export default function NotificationsPage() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [user, loading, supabase]);
 
   const handleMarkAsRead = async (notificationId: string) => {
-    if (!user) return;
+    if (!user || !supabase) return;
 
     await markNotificationAsRead(notificationId, user.id, supabase);
     setNotifications((prev) =>
@@ -96,7 +93,7 @@ export default function NotificationsPage() {
   };
 
   const handleMarkAllAsRead = async () => {
-    if (!user) return;
+    if (!user || !supabase) return;
 
     await markAllNotificationsAsRead(user.id, supabase);
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));

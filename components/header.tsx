@@ -35,10 +35,6 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
   const pathname = usePathname();
   const supabase = createClient();
   const { isAdmin } = useAdmin();
-
-  if (!supabase) {
-    return null;
-  }
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("");
 
@@ -68,6 +64,7 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
 
 
   const handleSignOut = async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
     window.location.href = "/";
   };
@@ -158,7 +155,7 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
               {user ? (
                 <>
                   {/* Notifications */}
-                  <NotificationsDropdown userId={user.id} supabase={supabase} />
+                  {supabase && <NotificationsDropdown userId={user.id} supabase={supabase} />}
 
                   {/* Profile Picture + Username + Dropdown */}
                   <DropdownMenu>

@@ -7,7 +7,7 @@ import { useAdmin } from "@/lib/hooks/use-admin";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, FolderKanban, Users as UsersIcon, Target, Megaphone } from "lucide-react";
+import { BookOpen, FolderKanban, Users as UsersIcon, Target } from "lucide-react";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -44,7 +44,7 @@ export default function AdminPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
-              Academy
+              Courses
             </CardTitle>
             <CardDescription>
               Manage semester-based classes with modules, sessions, enrollments, assignments, and announcements.
@@ -52,7 +52,7 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent>
             <Button asChild className="w-full">
-              <Link href="/admin/courses">Open Academy Admin</Link>
+              <Link href="/admin/courses">Open Courses Admin</Link>
             </Button>
           </CardContent>
         </Card>
@@ -120,23 +120,6 @@ export default function AdminPage() {
                 <Link href="/academy/teams">View All Teams</Link>
               </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Megaphone className="h-5 w-5" />
-              Advertisements
-            </CardTitle>
-            <CardDescription>
-              Manage homepage advertisement carousel slides.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
-              <Link href="/admin/advertisements">Open Advertisements Admin</Link>
-            </Button>
           </CardContent>
         </Card>
       </div>

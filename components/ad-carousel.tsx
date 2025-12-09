@@ -2,18 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AdSlide {
   id: string;
+  title: string;
+  description: string;
+  ctaText: string;
   href: string;
-  imageUrl?: string;
-  // Legacy support for old format
-  title?: string;
-  description?: string;
-  ctaText?: string;
   icon?: React.ReactNode;
   bgColor?: string;
 }
@@ -75,44 +72,24 @@ export function AdCarousel({ slides, autoPlayInterval = 5000 }: AdCarouselProps)
     >
       {/* Slide Content */}
       <Link href={currentSlide.href} className="block h-full">
-        {currentSlide.imageUrl ? (
-          // Image-based advertisement
-          <div className="relative w-full h-full min-h-[200px] sm:min-h-[250px] md:min-h-[280px]">
-            <Image
-              src={currentSlide.imageUrl}
-              alt="Advertisement"
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            />
-          </div>
-        ) : (
-          // Legacy text-based advertisement
-          <div className="p-8 sm:p-12 md:p-16 h-full flex flex-col items-center justify-center text-center relative min-h-[200px] sm:min-h-[250px] md:min-h-[280px]">
-            <div className="relative z-10">
-              {currentSlide.icon && (
-                <div className="mb-4 flex justify-center">
-                  {currentSlide.icon}
-                </div>
-              )}
-              {currentSlide.title && (
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2">
-                  {currentSlide.title}
-                </h2>
-              )}
-              {currentSlide.description && (
-                <p className="text-sm sm:text-base text-muted-foreground mb-4">
-                  {currentSlide.description}
-                </p>
-              )}
-              {currentSlide.ctaText && (
-                <div className="inline-flex items-center gap-2 text-primary group-hover:gap-3 transition-all">
-                  <span className="text-sm sm:text-base">{currentSlide.ctaText}</span>
-                </div>
-              )}
+        <div className="p-8 sm:p-12 md:p-16 h-full flex flex-col items-center justify-center text-center relative min-h-[200px] sm:min-h-[250px] md:min-h-[280px]">
+          <div className="relative z-10">
+            {currentSlide.icon && (
+              <div className="mb-4 flex justify-center">
+                {currentSlide.icon}
+              </div>
+            )}
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2">
+              {currentSlide.title}
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground mb-4">
+              {currentSlide.description}
+            </p>
+            <div className="inline-flex items-center gap-2 text-primary group-hover:gap-3 transition-all">
+              <span className="text-sm sm:text-base">{currentSlide.ctaText}</span>
             </div>
           </div>
-        )}
+        </div>
       </Link>
 
       {/* Navigation Arrows */}

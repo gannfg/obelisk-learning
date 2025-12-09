@@ -10,16 +10,11 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
-  if (!supabase) {
-    return {
-      user: null,
-      loading: false,
-      initialized: false,
-      signOut: async () => {},
-    };
-  }
-
   useEffect(() => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     // Get initial session
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
@@ -38,6 +33,7 @@ export function useAuth() {
   }, [supabase]);
 
   const signOut = async () => {
+    if (!supabase) return;
     try {
       await supabase.auth.signOut();
     } catch (error) {

@@ -18,17 +18,16 @@ export function SignUpForm() {
 
   // Validate Supabase configuration
   const getSupabaseClient = () => {
-    try {
-      return createClient();
-    } catch (err: any) {
+    const client = createClient();
+    if (!client) {
       setError(
         "Supabase is not configured. Please set up your environment variables:\n\n" +
         "NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL\n" +
         "NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY\n\n" +
         "See ENV_SETUP.md for instructions."
       );
-      throw err;
     }
+    return client;
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -50,9 +49,6 @@ export function SignUpForm() {
     try {
       const supabase = getSupabaseClient();
       if (!supabase) {
-        setError(
-          "Supabase is not configured. Please set NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL and NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY."
-        );
         setLoading(false);
         return;
       }

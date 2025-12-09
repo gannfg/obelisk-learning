@@ -9,14 +9,11 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
-  if (!supabase) {
-    return {
-      user: null,
-      loading: false,
-    };
-  }
-
   useEffect(() => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     // Get initial session
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);

@@ -25,6 +25,7 @@ export default function MissionBoardPage() {
     async function loadMissions() {
       const supabase = createLearningClient();
       if (!supabase) {
+        console.error("Supabase client not configured.");
         setLoading(false);
         return;
       }

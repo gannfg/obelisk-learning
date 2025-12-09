@@ -196,6 +196,7 @@ export default function MissionPage() {
     try {
       const supabase = createLearningClient();
       if (!supabase) {
+        console.error("Supabase client not configured.");
         setIsSubmitting(false);
         return;
       }
@@ -257,9 +258,7 @@ export default function MissionPage() {
     
     if (user) {
       const supabase = createLearningClient();
-      if (!supabase) {
-        return;
-      }
+      if (!supabase) return;
       await supabase
         .from("sandboxes")
         .upsert({

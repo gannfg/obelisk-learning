@@ -22,7 +22,7 @@ export async function initializeAuthClient() {
     // Initialize Supabase client
     const supabase = createClient();
     if (!supabase) {
-      console.warn('Supabase client not configured. Skipping auth initialization.');
+      console.warn('Supabase client is null. Auth initialization skipped.');
       return;
     }
     
@@ -47,7 +47,7 @@ export async function syncUserToSupabase(user?: any) {
 
     const supabase = createClient();
     if (!supabase) {
-      console.warn('Supabase client not configured.');
+      console.warn('⚠️ Supabase client is null');
       return false;
     }
     const { data: { user: currentUser } } = await supabase.auth.getUser();

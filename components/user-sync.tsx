@@ -10,10 +10,6 @@ export function UserSync() {
   const { user, loading } = useAuth();
   const supabase = createClient();
 
-  if (!supabase) {
-    return null;
-  }
-
   useEffect(() => {
     const syncUser = async () => {
       if (loading || !user) return;
@@ -66,7 +62,7 @@ export function UserSync() {
             console.log('✅ User synced to Supabase users table', Object.keys(updates));
             
             // Create welcome notification for new users
-            if (isNewUser) {
+            if (isNewUser && supabase) {
               try {
                 await notifyWelcome(user.id, supabase);
               } catch (notifError) {

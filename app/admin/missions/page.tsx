@@ -39,18 +39,6 @@ export default function AdminMissionsPage() {
   const supabase = createClient();
   const learningSupabase = createLearningClient();
 
-  // If Supabase clients are not configured, render a fallback message
-  if (!supabase || !learningSupabase) {
-    return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        <h1 className="text-2xl font-bold mb-2">Admin Panel</h1>
-        <p className="text-muted-foreground">
-          Supabase environment variables are not configured. Please set NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL, NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY, NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL, and NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_ANON_KEY.
-        </p>
-      </div>
-    );
-  }
-
   const [submissions, setSubmissions] = useState<MissionSubmission[]>([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(true);
   const [updatingSubmissionId, setUpdatingSubmissionId] = useState<string | null>(null);
@@ -68,6 +56,11 @@ export default function AdminMissionsPage() {
   }, [loading, isAdmin]);
 
   const loadMissions = async () => {
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      setMissionsLoading(false);
+      return;
+    }
     setMissionsLoading(true);
     const { data, error } = await supabase
       .from("missions")
@@ -85,6 +78,11 @@ export default function AdminMissionsPage() {
   };
 
   const loadSubmissions = async () => {
+    if (!learningSupabase) {
+      setError("Learning Supabase client not configured.");
+      setSubmissionsLoading(false);
+      return;
+    }
     setSubmissionsLoading(true);
     const { data, error } = await learningSupabase
       .from("mission_submissions")
@@ -161,6 +159,12 @@ export default function AdminMissionsPage() {
       ? Number.parseInt(orderIndexRaw, 10)
       : 0;
 
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      setSaving(false);
+      return;
+    }
+
     try {
       let imageUrl: string | null = null;
 
@@ -223,6 +227,11 @@ export default function AdminMissionsPage() {
       return;
     }
 
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      return;
+    }
+
     setDeletingId(id);
     setError(null);
 
@@ -242,6 +251,11 @@ export default function AdminMissionsPage() {
     submissionId: string,
     updates: Partial<MissionSubmission>
   ) => {
+    if (!learningSupabase) {
+      setError("Learning Supabase client not configured.");
+      return;
+    }
+
     setUpdatingSubmissionId(submissionId);
     setError(null);
 

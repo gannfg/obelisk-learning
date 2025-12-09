@@ -1,32 +1,69 @@
 import Link from "next/link";
-import { Target, BookOpen, Users, Sparkles, ArrowRight, User, Zap, Wallet, Trophy, Award } from "lucide-react";
+import { Target, BookOpen, Users, Sparkles, ArrowRight, User, Zap, Wallet } from "lucide-react";
 import { AdCarousel } from "@/components/ad-carousel";
-import { AcademyCoursesList } from "@/components/academy-courses-list";
-import { HomepageAdvertisements } from "@/components/homepage-advertisements";
 
 /**
  * Homepage with grid layout similar to Superteam Earn
  * Layout: 2x2 grid with Academy (large left), Mission (bottom right), How it works (top right)
  */
 export default function Home() {
+  // Advertisement slides - easily add more here
+  const adSlides = [
+    {
+      id: "mentors",
+      title: "Mentors",
+      description: "Meet your guides",
+      ctaText: "Explore Mentors",
+      href: "/instructors",
+      icon: <Users className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 text-primary" />,
+    },
+    {
+      id: "dementor",
+      title: "DeMentor AI",
+      description: "Your AI-powered coding mentor",
+      ctaText: "Chat Now",
+      href: "/mentor-chat",
+      icon: <Sparkles className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 text-primary" />,
+    },
+    // Add more slides here as needed
+    // {
+    //   id: "workshops",
+    //   title: "Workshops",
+    //   description: "Join live learning sessions",
+    //   ctaText: "Browse Workshops",
+    //   href: "/workshops",
+    //   icon: <Calendar className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 text-primary" />,
+    // },
+  ];
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Grid Layout Section */}
       <section className="container mx-auto px-4 sm:px-6 pt-20 sm:pt-24 md:pt-32 pb-12 sm:pb-16">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4 sm:gap-6 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
             {/* Left Column Container */}
             <div className="flex flex-col gap-4 sm:gap-6 md:gap-8">
               {/* Top Left - Advertisement Carousel */}
-              <HomepageAdvertisements />
+              <AdCarousel slides={adSlides} autoPlayInterval={5000} />
 
               {/* Bottom Left - Academy (Large) */}
-              <div className="group relative block flex-1 min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px] flex flex-col">
-                {/* Courses List */}
-                <div className="flex-1 overflow-y-auto">
-                  <AcademyCoursesList />
+              <Link
+                href="/academy"
+                className="group relative block p-8 sm:p-12 md:p-16 lg:p-20 rounded-2xl border-2 border-border bg-muted/50 hover:bg-muted/70 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl flex-1 min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px] flex items-center justify-center"
+              >
+                <div className="text-center">
+                  <BookOpen className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 mx-auto mb-6 text-primary group-hover:scale-110 transition-transform" />
+                  <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4">Academy</h2>
+                  <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-md mx-auto">
+                    Structured courses, lessons, and projects
+                  </p>
+                  <div className="mt-6 flex items-center justify-center gap-2 text-primary group-hover:gap-3 transition-all">
+                    <span className="text-sm sm:text-base">Explore Academy</span>
+                    <ArrowRight className="h-5 w-5" />
+                  </div>
                 </div>
-              </div>
+              </Link>
             </div>
 
             {/* Right Column Container */}
@@ -99,51 +136,20 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Middle Right - Achievement Box */}
-              <Link
-                href="/achievements"
-                className="group relative block p-6 sm:p-8 md:p-10 rounded-2xl border-2 border-border bg-muted/50 hover:bg-muted/70 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl min-h-[200px] sm:min-h-[250px] md:min-h-[280px] flex flex-col justify-center"
-              >
-                <div className="text-center mb-4">
-                  <Trophy className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 mx-auto mb-3 text-primary group-hover:scale-110 transition-transform" />
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">Achievements</h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-4">
-                    Track your progress and unlock badges
-                  </p>
-                </div>
-                
-                {/* Achievement Stats */}
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <div className="text-center p-3 rounded-lg bg-background/50 border border-border">
-                    <div className="text-lg sm:text-xl font-bold mb-1">0</div>
-                    <div className="text-xs sm:text-sm text-muted-foreground">Badges</div>
-                  </div>
-                  <div className="text-center p-3 rounded-lg bg-background/50 border border-border">
-                    <div className="text-lg sm:text-xl font-bold mb-1">0</div>
-                    <div className="text-xs sm:text-sm text-muted-foreground">XP</div>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex items-center justify-center gap-2 text-primary group-hover:gap-3 transition-all">
-                  <span className="text-xs sm:text-sm">View All</span>
-                  <ArrowRight className="h-4 w-4" />
-                </div>
-              </Link>
-
               {/* Bottom Right - Mission */}
               <Link
                 href="/missions"
-                className="group relative block p-6 sm:p-8 md:p-10 rounded-2xl border-2 border-border bg-muted/50 hover:bg-muted/70 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl flex-1 min-h-[300px] sm:min-h-[350px] md:min-h-[400px] flex items-center justify-center"
+                className="group relative block p-8 sm:p-12 md:p-16 rounded-2xl border-2 border-border bg-muted/50 hover:bg-muted/70 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl flex-1 min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px] flex items-center justify-center"
               >
                 <div className="text-center">
-                  <Target className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 mx-auto mb-4 text-primary group-hover:scale-110 transition-transform" />
-                  <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3">Mission</h2>
-                  <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-md mx-auto">
+                  <Target className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 lg:h-28 lg:w-28 mx-auto mb-6 text-primary group-hover:scale-110 transition-transform" />
+                  <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4">Mission</h2>
+                  <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-md mx-auto">
                     Hands-on coding challenges
                   </p>
-                  <div className="mt-4 flex items-center justify-center gap-2 text-primary group-hover:gap-3 transition-all">
-                    <span className="text-xs sm:text-sm">Start Mission</span>
-                    <ArrowRight className="h-4 w-4" />
+                  <div className="mt-6 flex items-center justify-center gap-2 text-primary group-hover:gap-3 transition-all">
+                    <span className="text-sm sm:text-base">Start Mission</span>
+                    <ArrowRight className="h-5 w-5" />
                   </div>
                 </div>
               </Link>

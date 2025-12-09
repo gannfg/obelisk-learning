@@ -16,18 +16,16 @@ export function SignInForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  if (!supabase) {
-    return (
-      <div className="rounded-lg border border-border bg-muted/50 p-4 text-sm text-muted-foreground">
-        Supabase is not configured. Please set NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL and NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY.
-      </div>
-    );
-  }
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
