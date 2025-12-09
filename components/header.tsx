@@ -18,7 +18,7 @@ import {
   ChevronDown,
   User,
   LogOut,
-  FolderKanban,
+  BookOpen,
   Users as UsersIcon,
   HelpCircle,
 } from "lucide-react";
@@ -199,9 +199,9 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/academy/projects" className="flex items-center w-full">
-                          <FolderKanban className="mr-2 h-4 w-4" />
-                          Projects
+                        <Link href="/my-classes" className="flex items-center w-full">
+                          <BookOpen className="mr-2 h-4 w-4" />
+                          My Classes
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
