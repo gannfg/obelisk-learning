@@ -22,6 +22,9 @@ import type {
   CreateAssignmentInput,
   CreateAnnouncementInput,
   ClassStats,
+  SubmissionStatus,
+  XPActionType,
+  LearningMaterial,
 } from "@/types/classes";
 
 // Helper function to ensure supabase client is not null
@@ -912,14 +915,56 @@ export async function getClassStats(
       .eq("class_id", classId)
       .eq("status", "active");
 
-    // Get attendance rate (simplified - would need session data)
-    const attendanceRate = 0; // TODO: Calculate from session_attendance
-
-    // Get assignment completion rate
-    const assignmentCompletionRate = 0; // TODO: Calculate from submissions
-
     // Get average XP
     const averageXP = 0; // TODO: Calculate from user XP
+
+    // Calculate attendance rate
+    const { data: sessions } = await supabase
+      .from("live_sessions")
+      .select("id")
+      .eq("class_id", classId);
+    
+    let totalPossibleAttendances = 0;
+    let totalActualAttendances = 0;
+    
+    if (sessions && sessions.length > 0) {
+      const sessionIds = sessions.map((s) => s.id);
+      const { count: totalAttendances } = await supabase
+        .from("session_attendance")
+        .select("*", { count: "exact", head: true })
+        .in("session_id", sessionIds);
+      
+      totalActualAttendances = totalAttendances || 0;
+      totalPossibleAttendances = (activeEnrollments || 0) * sessions.length;
+    }
+    
+    const attendanceRate = totalPossibleAttendances > 0 
+      ? totalActualAttendances / totalPossibleAttendances 
+      : 0;
+
+    // Calculate assignment completion rate
+    const { data: assignments } = await supabase
+      .from("class_assignments")
+      .select("id")
+      .eq("class_id", classId);
+    
+    let totalPossibleSubmissions = 0;
+    let totalActualSubmissions = 0;
+    
+    if (assignments && assignments.length > 0) {
+      const assignmentIds = assignments.map((a) => a.id);
+      const { count: totalSubmissions } = await supabase
+        .from("assignment_submissions")
+        .select("*", { count: "exact", head: true })
+        .in("assignment_id", assignmentIds);
+      
+      totalActualSubmissions = totalSubmissions || 0;
+      totalPossibleSubmissions = (activeEnrollments || 0) * assignments.length;
+    }
+    
+    const assignmentCompletionRate = totalPossibleSubmissions > 0 
+      ? totalActualSubmissions / totalPossibleSubmissions 
+      : 0;
 
     return {
       totalEnrollments: totalEnrollments || 0,
@@ -930,6 +975,502 @@ export async function getClassStats(
     };
   } catch (error) {
     console.error("Error in getClassStats:", error);
+    return null;
+  }
+}
+
+/**
+ * Generate QR token for a session
+ */
+export async function generateSessionQR(
+  sessionId: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<string | null> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const qrToken = `qr_${sessionId}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    
+    const { data, error } = await supabase
+      .from("live_sessions")
+      .update({
+        qr_token: qrToken,
+        qr_expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours
+      })
+      .eq("id", sessionId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error generating QR token:", error);
+      return null;
+    }
+
+    return qrToken;
+  } catch (error) {
+    console.error("Error in generateSessionQR:", error);
+    return null;
+  }
+}
+
+/**
+ * Get attendance for a session
+ */
+export async function getSessionAttendance(
+  sessionId: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<SessionAttendance[]> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const { data, error } = await supabase
+      .from("session_attendance")
+      .select("*")
+      .eq("session_id", sessionId)
+      .order("checkin_time", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching attendance:", error);
+      return [];
+    }
+
+    return (data || []).map((item: any) => ({
+      id: item.id,
+      sessionId: item.session_id,
+      userId: item.user_id,
+      classId: item.class_id,
+      checkinTime: new Date(item.checkin_time),
+      method: item.method,
+      checkedInBy: item.checked_in_by,
+    }));
+  } catch (error) {
+    console.error("Error in getSessionAttendance:", error);
+    return [];
+  }
+}
+
+/**
+ * Mark attendance manually
+ */
+export async function markAttendance(
+  sessionId: string,
+  userId: string,
+  classId: string,
+  checkedBy: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<SessionAttendance | null> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const { data, error } = await supabase
+      .from("session_attendance")
+      .insert({
+        session_id: sessionId,
+        user_id: userId,
+        class_id: classId,
+        method: "manual",
+        checked_in_by: checkedBy,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error marking attendance:", error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      sessionId: data.session_id,
+      userId: data.user_id,
+      classId: data.class_id,
+      checkinTime: new Date(data.checkin_time),
+      method: data.method,
+      checkedInBy: data.checked_in_by,
+    };
+  } catch (error) {
+    console.error("Error in markAttendance:", error);
+    return null;
+  }
+}
+
+/**
+ * Remove attendance record
+ */
+export async function removeAttendance(
+  attendanceId: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<boolean> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const { error } = await supabase
+      .from("session_attendance")
+      .delete()
+      .eq("id", attendanceId);
+
+    if (error) {
+      console.error("Error removing attendance:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error in removeAttendance:", error);
+    return false;
+  }
+}
+
+/**
+ * Check in via QR code
+ */
+export async function checkInViaQR(
+  qrToken: string,
+  userId: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<SessionAttendance | null> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    
+    // Find session by QR token
+    const { data: session, error: sessionError } = await supabase
+      .from("live_sessions")
+      .select("*")
+      .eq("qr_token", qrToken)
+      .single();
+
+    if (sessionError || !session) {
+      console.error("Invalid QR token or session not found");
+      return null;
+    }
+
+    // Check if QR is expired
+    if (session.qr_expires_at && new Date(session.qr_expires_at) < new Date()) {
+      console.error("QR token expired");
+      return null;
+    }
+
+    // Check if already checked in
+    const { data: existing } = await supabase
+      .from("session_attendance")
+      .select("*")
+      .eq("session_id", session.id)
+      .eq("user_id", userId)
+      .single();
+
+    if (existing) {
+      console.error("Already checked in");
+      return null;
+    }
+
+    // Create attendance record
+    const { data, error } = await supabase
+      .from("session_attendance")
+      .insert({
+        session_id: session.id,
+        user_id: userId,
+        class_id: session.class_id,
+        method: "qr",
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error checking in:", error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      sessionId: data.session_id,
+      userId: data.user_id,
+      classId: data.class_id,
+      checkinTime: new Date(data.checkin_time),
+      method: data.method,
+      checkedInBy: data.checked_in_by,
+    };
+  } catch (error) {
+    console.error("Error in checkInViaQR:", error);
+    return null;
+  }
+}
+
+/**
+ * Get assignment submissions
+ */
+export async function getAssignmentSubmissions(
+  assignmentId: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<AssignmentSubmission[]> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const { data, error } = await supabase
+      .from("assignment_submissions")
+      .select("*")
+      .eq("assignment_id", assignmentId)
+      .order("submitted_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching submissions:", error);
+      return [];
+    }
+
+    return (data || []).map((item: any) => ({
+      id: item.id,
+      assignmentId: item.assignment_id,
+      userId: item.user_id,
+      classId: item.class_id,
+      submissionContent: item.submission_content,
+      submissionUrl: item.submission_url,
+      submissionFileUrl: item.submission_file_url,
+      gitUrl: item.git_url,
+      repoDirectory: item.repo_directory,
+      status: item.status,
+      isLate: item.is_late,
+      feedback: item.feedback,
+      reviewedBy: item.reviewed_by,
+      reviewedAt: item.reviewed_at ? new Date(item.reviewed_at) : undefined,
+      submittedAt: new Date(item.submitted_at),
+      updatedAt: new Date(item.updated_at),
+    }));
+  } catch (error) {
+    console.error("Error in getAssignmentSubmissions:", error);
+    return [];
+  }
+}
+
+/**
+ * Update submission status
+ */
+export async function updateSubmissionStatus(
+  submissionId: string,
+  status: SubmissionStatus,
+  feedback?: string,
+  reviewedBy?: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<AssignmentSubmission | null> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const updateData: any = {
+      status,
+    };
+
+    if (feedback !== undefined) updateData.feedback = feedback;
+    if (reviewedBy) {
+      updateData.reviewed_by = reviewedBy;
+      updateData.reviewed_at = new Date().toISOString();
+    }
+
+    const { data, error } = await supabase
+      .from("assignment_submissions")
+      .update(updateData)
+      .eq("id", submissionId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating submission:", error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      assignmentId: data.assignment_id,
+      userId: data.user_id,
+      classId: data.class_id,
+      submissionContent: data.submission_content,
+      submissionUrl: data.submission_url,
+      submissionFileUrl: data.submission_file_url,
+      gitUrl: data.git_url,
+      repoDirectory: data.repo_directory,
+      status: data.status,
+      isLate: data.is_late,
+      feedback: data.feedback,
+      reviewedBy: data.reviewed_by,
+      reviewedAt: data.reviewed_at ? new Date(data.reviewed_at) : undefined,
+      submittedAt: new Date(data.submitted_at),
+      updatedAt: new Date(data.updated_at),
+    };
+  } catch (error) {
+    console.error("Error in updateSubmissionStatus:", error);
+    return null;
+  }
+}
+
+/**
+ * Update announcement
+ */
+export async function updateAnnouncement(
+  id: string,
+  updates: Partial<CreateAnnouncementInput>,
+  supabaseClient?: SupabaseClient<any>
+): Promise<ClassAnnouncement | null> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const updateData: any = {};
+
+    if (updates.title !== undefined) updateData.title = updates.title;
+    if (updates.content !== undefined) updateData.content = updates.content;
+    if (updates.pinned !== undefined) updateData.pinned = updates.pinned;
+    if (updates.moduleId !== undefined) updateData.module_id = updates.moduleId;
+
+    const { data, error } = await supabase
+      .from("class_announcements")
+      .update(updateData)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating announcement:", error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      classId: data.class_id,
+      moduleId: data.module_id,
+      title: data.title,
+      content: data.content,
+      pinned: data.pinned,
+      createdBy: data.created_by,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+    };
+  } catch (error) {
+    console.error("Error in updateAnnouncement:", error);
+    return null;
+  }
+}
+
+/**
+ * Delete announcement
+ */
+export async function deleteAnnouncement(
+  id: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<boolean> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const { error } = await supabase
+      .from("class_announcements")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting announcement:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error in deleteAnnouncement:", error);
+    return false;
+  }
+}
+
+/**
+ * Get XP config for a class
+ */
+export async function getClassXPConfig(
+  classId: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<ClassXPConfig[]> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const { data, error } = await supabase
+      .from("class_xp_config")
+      .select("*")
+      .eq("class_id", classId);
+
+    if (error) {
+      console.error("Error fetching XP config:", error);
+      return [];
+    }
+
+    return (data || []).map((item: any) => ({
+      id: item.id,
+      classId: item.class_id,
+      actionType: item.action_type,
+      xpAmount: item.xp_amount,
+      enabled: item.enabled,
+      createdAt: new Date(item.created_at),
+      updatedAt: new Date(item.updated_at),
+    }));
+  } catch (error) {
+    console.error("Error in getClassXPConfig:", error);
+    return [];
+  }
+}
+
+/**
+ * Update or create XP config
+ */
+export async function upsertXPConfig(
+  classId: string,
+  actionType: XPActionType,
+  xpAmount: number,
+  enabled: boolean,
+  supabaseClient?: SupabaseClient<any>
+): Promise<ClassXPConfig | null> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const { data, error } = await supabase
+      .from("class_xp_config")
+      .upsert({
+        class_id: classId,
+        action_type: actionType,
+        xp_amount: xpAmount,
+        enabled,
+      }, {
+        onConflict: "class_id,action_type",
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error upserting XP config:", error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      classId: data.class_id,
+      actionType: data.action_type,
+      xpAmount: data.xp_amount,
+      enabled: data.enabled,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+    };
+  } catch (error) {
+    console.error("Error in upsertXPConfig:", error);
+    return null;
+  }
+}
+
+/**
+ * Update module learning materials
+ */
+export async function updateModuleLearningMaterials(
+  moduleId: string,
+  learningMaterials: LearningMaterial[],
+  supabaseClient?: SupabaseClient<any>
+): Promise<ClassModule | null> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const { data, error } = await supabase
+      .from("class_modules")
+      .update({
+        learning_materials: learningMaterials,
+      })
+      .eq("id", moduleId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating learning materials:", error);
+      return null;
+    }
+
+    return normalizeModule(data);
+  } catch (error) {
+    console.error("Error in updateModuleLearningMaterials:", error);
     return null;
   }
 }

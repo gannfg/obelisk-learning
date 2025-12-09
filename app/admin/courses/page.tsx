@@ -1078,7 +1078,7 @@ export default function AdminCoursesPage() {
     <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Courses Admin</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Classes Admin</h1>
           <p className="text-base sm:text-lg text-muted-foreground">
             Create and manage classes, modules, and lessons for the Web3 Coding Academy.
           </p>

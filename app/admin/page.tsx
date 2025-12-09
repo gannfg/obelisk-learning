@@ -44,7 +44,7 @@ export default function AdminPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
-              Courses
+              Classes
             </CardTitle>
             <CardDescription>
               Manage semester-based classes with modules, sessions, enrollments, assignments, and announcements.
@@ -52,7 +52,7 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent>
             <Button asChild className="w-full">
-              <Link href="/admin/courses">Open Courses Admin</Link>
+              <Link href="/admin/classes">Open Classes Admin</Link>
             </Button>
           </CardContent>
         </Card>

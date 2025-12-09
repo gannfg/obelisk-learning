@@ -24,7 +24,18 @@ import {
   createAssignment,
   getClassAnnouncements,
   createAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement,
   getClassStats,
+  generateSessionQR,
+  getSessionAttendance,
+  markAttendance,
+  removeAttendance,
+  getAssignmentSubmissions,
+  updateSubmissionStatus,
+  getClassXPConfig,
+  upsertXPConfig,
+  updateModuleLearningMaterials,
 } from "@/lib/classes";
 import type {
   Class,
@@ -34,6 +45,12 @@ import type {
   ClassAssignment,
   ClassAnnouncement,
   ClassStats,
+  SessionAttendance,
+  AssignmentSubmission,
+  ClassXPConfig,
+  LearningMaterial,
+  SubmissionStatus,
+  XPActionType,
 } from "@/types/classes";
 import {
   Card,
@@ -105,6 +122,11 @@ export default function AdminClassesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [attendanceRecords, setAttendanceRecords] = useState<SessionAttendance[]>([]);
+  const [selectedSession, setSelectedSession] = useState<LiveSession | null>(null);
+  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([]);
+  const [selectedAssignment, setSelectedAssignment] = useState<ClassAssignment | null>(null);
+  const [xpConfigs, setXpConfigs] = useState<ClassXPConfig[]>([]);
 
   // Dialog states
   const [classDialogOpen, setClassDialogOpen] = useState(false);
@@ -113,6 +135,11 @@ export default function AdminClassesPage() {
   const [enrollmentDialogOpen, setEnrollmentDialogOpen] = useState(false);
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
   const [announcementDialogOpen, setAnnouncementDialogOpen] = useState(false);
+  const [attendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [submissionsDialogOpen, setSubmissionsDialogOpen] = useState(false);
+  const [xpConfigDialogOpen, setXpConfigDialogOpen] = useState(false);
+  const [learningMaterialsDialogOpen, setLearningMaterialsDialogOpen] = useState(false);
 
   // Form states
   const [editingClass, setEditingClass] = useState<Class | null>(null);
@@ -177,6 +204,28 @@ export default function AdminClassesPage() {
     pinned: false,
     moduleId: "",
   });
+  const [editingAnnouncement, setEditingAnnouncement] = useState<ClassAnnouncement | null>(null);
+
+  // Attendance form
+  const [attendanceUserId, setAttendanceUserId] = useState("");
+
+  // Submission review form
+  const [submissionReviewForm, setSubmissionReviewForm] = useState({
+    status: "submitted" as SubmissionStatus,
+    feedback: "",
+  });
+  const [editingSubmission, setEditingSubmission] = useState<AssignmentSubmission | null>(null);
+
+  // XP Config form
+  const [xpConfigForm, setXpConfigForm] = useState({
+    actionType: "session_attendance" as XPActionType,
+    xpAmount: 0,
+    enabled: true,
+  });
+
+  // Learning materials form
+  const [learningMaterialsForm, setLearningMaterialsForm] = useState<LearningMaterial[]>([]);
+  const [editingModuleForMaterials, setEditingModuleForMaterials] = useState<ClassModule | null>(null);
 
   useEffect(() => {
     if (adminLoading) return;
@@ -190,6 +239,7 @@ export default function AdminClassesPage() {
   useEffect(() => {
     if (selectedClass) {
       loadClassData(selectedClass.id);
+      loadXPConfigs(selectedClass.id);
     }
   }, [selectedClass]);
 
@@ -498,6 +548,180 @@ export default function AdminClassesPage() {
     }
   };
 
+  const loadXPConfigs = async (classId: string) => {
+    try {
+      const supabase = createLearningClient();
+      if (!supabase) return;
+      const configs = await getClassXPConfig(classId, supabase);
+      setXpConfigs(configs);
+    } catch (error) {
+      console.error("Error loading XP configs:", error);
+    }
+  };
+
+  const handleGenerateQR = async (sessionId: string) => {
+    try {
+      const supabase = createLearningClient();
+      if (!supabase) return;
+      const qrToken = await generateSessionQR(sessionId, supabase);
+      if (qrToken) {
+        setSuccess("QR code generated successfully!");
+        await loadClassData(selectedClass!.id);
+        setQrDialogOpen(true);
+      }
+    } catch (error) {
+      console.error("Error generating QR:", error);
+      setError("Failed to generate QR code.");
+    }
+  };
+
+  const handleLoadAttendance = async (sessionId: string) => {
+    try {
+      const supabase = createLearningClient();
+      if (!supabase) return;
+      const attendance = await getSessionAttendance(sessionId, supabase);
+      setAttendanceRecords(attendance);
+      const session = sessions.find((s) => s.id === sessionId);
+      setSelectedSession(session || null);
+      setAttendanceDialogOpen(true);
+    } catch (error) {
+      console.error("Error loading attendance:", error);
+      setError("Failed to load attendance.");
+    }
+  };
+
+  const handleMarkAttendance = async () => {
+    if (!selectedSession || !attendanceUserId || !selectedClass) return;
+    try {
+      const authSupabase = createClient();
+      if (!authSupabase) return;
+      const { data: { user } } = await authSupabase.auth.getUser();
+      if (!user) return;
+
+      const learningSupabase = createLearningClient();
+      if (!learningSupabase) return;
+      await markAttendance(selectedSession.id, attendanceUserId, selectedClass.id, user.id, learningSupabase);
+      setSuccess("Attendance marked successfully!");
+      setAttendanceUserId("");
+      await handleLoadAttendance(selectedSession.id);
+    } catch (error) {
+      console.error("Error marking attendance:", error);
+      setError("Failed to mark attendance.");
+    }
+  };
+
+  const handleRemoveAttendance = async (attendanceId: string) => {
+    if (!confirm("Remove this attendance record?")) return;
+    try {
+      const supabase = createLearningClient();
+      if (!supabase) return;
+      await removeAttendance(attendanceId, supabase);
+      setSuccess("Attendance removed successfully!");
+      if (selectedSession) {
+        await handleLoadAttendance(selectedSession.id);
+      }
+    } catch (error) {
+      console.error("Error removing attendance:", error);
+      setError("Failed to remove attendance.");
+    }
+  };
+
+  const handleUpdateSubmission = async () => {
+    if (!editingSubmission) return;
+    try {
+      const authSupabase = createClient();
+      if (!authSupabase) return;
+      const { data: { user } } = await authSupabase.auth.getUser();
+      if (!user) return;
+
+      const learningSupabase = createLearningClient();
+      if (!learningSupabase) return;
+      await updateSubmissionStatus(
+        editingSubmission.id,
+        submissionReviewForm.status,
+        submissionReviewForm.feedback,
+        user.id,
+        learningSupabase
+      );
+      setSuccess("Submission updated successfully!");
+      setSubmissionsDialogOpen(false);
+      if (selectedAssignment) {
+        const subs = await getAssignmentSubmissions(selectedAssignment.id, learningSupabase);
+        setSubmissions(subs);
+      }
+    } catch (error) {
+      console.error("Error updating submission:", error);
+      setError("Failed to update submission.");
+    }
+  };
+
+  const handleUpsertXPConfig = async () => {
+    if (!selectedClass) return;
+    try {
+      const supabase = createLearningClient();
+      if (!supabase) return;
+      await upsertXPConfig(
+        selectedClass.id,
+        xpConfigForm.actionType,
+        xpConfigForm.xpAmount,
+        xpConfigForm.enabled,
+        supabase
+      );
+      setSuccess("XP config updated successfully!");
+      setXpConfigDialogOpen(false);
+      await loadXPConfigs(selectedClass.id);
+    } catch (error) {
+      console.error("Error updating XP config:", error);
+      setError("Failed to update XP config.");
+    }
+  };
+
+  const handleUpdateAnnouncement = async () => {
+    if (!editingAnnouncement) return;
+    try {
+      const supabase = createLearningClient();
+      if (!supabase) return;
+      await updateAnnouncement(editingAnnouncement.id, announcementForm, supabase);
+      setSuccess("Announcement updated successfully!");
+      setAnnouncementDialogOpen(false);
+      setEditingAnnouncement(null);
+      await loadClassData(selectedClass!.id);
+    } catch (error) {
+      console.error("Error updating announcement:", error);
+      setError("Failed to update announcement.");
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id: string) => {
+    if (!confirm("Delete this announcement?")) return;
+    try {
+      const supabase = createLearningClient();
+      if (!supabase) return;
+      await deleteAnnouncement(id, supabase);
+      setSuccess("Announcement deleted successfully!");
+      await loadClassData(selectedClass!.id);
+    } catch (error) {
+      console.error("Error deleting announcement:", error);
+      setError("Failed to delete announcement.");
+    }
+  };
+
+  const handleUpdateLearningMaterials = async () => {
+    if (!editingModuleForMaterials) return;
+    try {
+      const supabase = createLearningClient();
+      if (!supabase) return;
+      await updateModuleLearningMaterials(editingModuleForMaterials.id, learningMaterialsForm, supabase);
+      setSuccess("Learning materials updated successfully!");
+      setLearningMaterialsDialogOpen(false);
+      setEditingModuleForMaterials(null);
+      await loadClassData(selectedClass!.id);
+    } catch (error) {
+      console.error("Error updating learning materials:", error);
+      setError("Failed to update learning materials.");
+    }
+  };
+
   const resetClassForm = () => {
     setClassForm({
       title: "",
@@ -668,7 +892,9 @@ export default function AdminClassesPage() {
                 <TabsTrigger value="modules">Modules</TabsTrigger>
                 <TabsTrigger value="enrollments">Enrollments</TabsTrigger>
                 <TabsTrigger value="assignments">Assignments</TabsTrigger>
+                <TabsTrigger value="attendance">Attendance</TabsTrigger>
                 <TabsTrigger value="announcements">Announcements</TabsTrigger>
+                <TabsTrigger value="xp">XP & Rewards</TabsTrigger>
                 <TabsTrigger value="stats">Stats & KPIs</TabsTrigger>
               </TabsList>
 
@@ -887,6 +1113,18 @@ export default function AdminClassesPage() {
                                     size="sm"
                                     variant="ghost"
                                     onClick={() => {
+                                      setEditingModuleForMaterials(module);
+                                      setLearningMaterialsForm(module.learningMaterials || []);
+                                      setLearningMaterialsDialogOpen(true);
+                                    }}
+                                    title="Manage Learning Materials"
+                                  >
+                                    <FileText className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
                                       setEditingModule(module);
                                       setModuleForm({
                                         weekNumber: module.weekNumber,
@@ -1042,9 +1280,25 @@ export default function AdminClassesPage() {
                                         Due: {format(assignment.dueDate, "MMM d, yyyy 'at' h:mm a")}
                                       </p>
                                     </div>
-                                    <Button size="sm" variant="ghost">
-                                      <Edit className="h-3 w-3" />
-                                    </Button>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={async () => {
+                                          setSelectedAssignment(assignment);
+                                          const supabase = createLearningClient();
+                                          if (!supabase) return;
+                                          const subs = await getAssignmentSubmissions(assignment.id, supabase);
+                                          setSubmissions(subs);
+                                          setSubmissionsDialogOpen(true);
+                                        }}
+                                      >
+                                        <Users className="h-3 w-3" />
+                                      </Button>
+                                      <Button size="sm" variant="ghost">
+                                        <Edit className="h-3 w-3" />
+                                      </Button>
+                                    </div>
                                   </div>
                                 ))}
                                 <Button
@@ -1074,6 +1328,72 @@ export default function AdminClassesPage() {
                           </Card>
                         );
                       })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Attendance Tab */}
+              <TabsContent value="attendance" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Session Attendance</CardTitle>
+                    <CardDescription>
+                      Manage attendance for live sessions
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {sessions.map((session) => (
+                        <Card key={session.id}>
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-semibold mb-2">{session.title}</h3>
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  {format(session.sessionDate, "MMM d, yyyy 'at' h:mm a")}
+                                </p>
+                                {session.locationType === "online" ? (
+                                  <p className="text-xs text-muted-foreground">
+                                    Online: {session.meetingLink}
+                                  </p>
+                                ) : (
+                                  <p className="text-xs text-muted-foreground">
+                                    Offline: {session.location}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                {session.attendanceTracking && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleGenerateQR(session.id)}
+                                    >
+                                      <QrCode className="h-3 w-3 mr-1" />
+                                      Generate QR
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleLoadAttendance(session.id)}
+                                    >
+                                      <Users className="h-3 w-3 mr-1" />
+                                      View Attendance
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      {sessions.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          No sessions yet. Create a session in the Modules tab.
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1113,9 +1433,31 @@ export default function AdminClassesPage() {
                                   {format(announcement.createdAt, "MMM d, yyyy 'at' h:mm a")}
                                 </p>
                               </div>
-                              <Button size="sm" variant="ghost">
-                                <Edit className="h-3 w-3" />
-                              </Button>
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setEditingAnnouncement(announcement);
+                                    setAnnouncementForm({
+                                      title: announcement.title,
+                                      content: announcement.content,
+                                      pinned: announcement.pinned,
+                                      moduleId: announcement.moduleId || "",
+                                    });
+                                    setAnnouncementDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteAnnouncement(announcement.id)}
+                                >
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </Button>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
@@ -1123,6 +1465,65 @@ export default function AdminClassesPage() {
                       {announcements.length === 0 && (
                         <p className="text-sm text-muted-foreground text-center py-8">
                           No announcements yet.
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* XP & Rewards Tab */}
+              <TabsContent value="xp" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>XP Rewards Configuration</CardTitle>
+                        <CardDescription>
+                          Configure XP rewards for class actions
+                        </CardDescription>
+                      </div>
+                      <Button size="sm" onClick={() => setXpConfigDialogOpen(true)}>
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add Config
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {xpConfigs.map((config) => (
+                        <Card key={config.id}>
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="font-semibold capitalize">
+                                  {config.actionType.replace(/_/g, " ")}
+                                </h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {config.xpAmount} XP {config.enabled ? "(Enabled)" : "(Disabled)"}
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setXpConfigForm({
+                                    actionType: config.actionType,
+                                    xpAmount: config.xpAmount,
+                                    enabled: config.enabled,
+                                  });
+                                  setXpConfigDialogOpen(true);
+                                }}
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      {xpConfigs.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          No XP configurations yet. Add your first configuration!
                         </p>
                       )}
                     </div>
@@ -1659,13 +2060,13 @@ export default function AdminClassesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Create Announcement Dialog */}
+      {/* Create/Edit Announcement Dialog */}
       <Dialog open={announcementDialogOpen} onOpenChange={setAnnouncementDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Announcement</DialogTitle>
+            <DialogTitle>{editingAnnouncement ? "Edit Announcement" : "Create Announcement"}</DialogTitle>
             <DialogDescription>
-              Post an announcement to the class.
+              {editingAnnouncement ? "Update announcement details." : "Post an announcement to the class."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -1729,47 +2130,51 @@ export default function AdminClassesPage() {
                 if (!announcementForm.title || !announcementForm.content || !selectedClass) return;
                 setSaving(true);
                 try {
-                  // Use Auth Supabase for authentication
-                  const authSupabase = createClient();
-                  if (!authSupabase) {
-                    setError("Supabase client not configured.");
-                    setSaving(false);
-                    return;
-                  }
-                  const { data: { user } } = await authSupabase.auth.getUser();
-                  if (!user) return;
-
-                  // Use Learning Supabase for database operations
                   const learningSupabase = createLearningClient();
                   if (!learningSupabase) {
                     setError("Supabase client not configured.");
                     setSaving(false);
                     return;
                   }
-                  await createAnnouncement(
-                    {
-                      classId: selectedClass.id,
-                      moduleId: announcementForm.moduleId || undefined,
-                      title: announcementForm.title,
-                      content: announcementForm.content,
-                      pinned: announcementForm.pinned,
-                    },
-                    user.id,
-                    learningSupabase
-                  );
-                  setAnnouncementDialogOpen(false);
-                  setAnnouncementForm({ title: "", content: "", pinned: false, moduleId: "" });
-                  await loadClassData(selectedClass.id);
+                  
+                  if (editingAnnouncement) {
+                    await handleUpdateAnnouncement();
+                  } else {
+                    // Use Auth Supabase for authentication
+                    const authSupabase = createClient();
+                    if (!authSupabase) {
+                      setError("Supabase client not configured.");
+                      setSaving(false);
+                      return;
+                    }
+                    const { data: { user } } = await authSupabase.auth.getUser();
+                    if (!user) return;
+
+                    await createAnnouncement(
+                      {
+                        classId: selectedClass.id,
+                        moduleId: announcementForm.moduleId || undefined,
+                        title: announcementForm.title,
+                        content: announcementForm.content,
+                        pinned: announcementForm.pinned,
+                      },
+                      user.id,
+                      learningSupabase
+                    );
+                    setAnnouncementDialogOpen(false);
+                    setAnnouncementForm({ title: "", content: "", pinned: false, moduleId: "" });
+                    await loadClassData(selectedClass.id);
+                  }
                 } catch (error) {
-                  console.error("Error creating announcement:", error);
-                  setError("Failed to create announcement.");
+                  console.error("Error saving announcement:", error);
+                  setError("Failed to save announcement.");
                 } finally {
                   setSaving(false);
                 }
               }}
               disabled={saving || !announcementForm.title || !announcementForm.content}
             >
-              {saving ? "Posting..." : "Post Announcement"}
+              {saving ? (editingAnnouncement ? "Updating..." : "Posting...") : (editingAnnouncement ? "Update" : "Post Announcement")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1961,6 +2366,395 @@ export default function AdminClassesPage() {
               }
             >
               {saving ? "Creating..." : "Create Session"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Dialog */}
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>QR Code Generated</DialogTitle>
+            <DialogDescription>
+              Share this QR code with students for attendance check-in
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedSession?.qrToken && (
+              <div className="flex justify-center">
+                <div className="p-4 border rounded-lg">
+                  {/* QR Code would be rendered here - you can use qrcode.react library */}
+                  <p className="text-sm font-mono break-all">{selectedSession.qrToken}</p>
+                </div>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground text-center">
+              QR code expires 2 hours after session start time
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQrDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Attendance Management Dialog */}
+      <Dialog open={attendanceDialogOpen} onOpenChange={setAttendanceDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Attendance: {selectedSession?.title}
+            </DialogTitle>
+            <DialogDescription>
+              Manage attendance for this session
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="User ID or Email"
+                value={attendanceUserId}
+                onChange={(e) => setAttendanceUserId(e.target.value)}
+              />
+              <Button onClick={handleMarkAttendance} disabled={!attendanceUserId}>
+                Mark Attendance
+              </Button>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User ID</TableHead>
+                  <TableHead>Check-in Time</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {attendanceRecords.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell>{record.userId}</TableCell>
+                    <TableCell>
+                      {format(record.checkinTime, "MMM d, yyyy 'at' h:mm a")}
+                    </TableCell>
+                    <TableCell className="capitalize">{record.method}</TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleRemoveAttendance(record.id)}
+                      >
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {attendanceRecords.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No attendance records yet.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAttendanceDialogOpen(false)}>
+              Close
+            </Button>
+            <Button onClick={() => {
+              // Export attendance as CSV
+              const csv = [
+                ["User ID", "Check-in Time", "Method"],
+                ...attendanceRecords.map((r) => [
+                  r.userId,
+                  format(r.checkinTime, "yyyy-MM-dd HH:mm:ss"),
+                  r.method,
+                ]),
+              ].map((row) => row.join(",")).join("\n");
+              const blob = new Blob([csv], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `attendance-${selectedSession?.id}.csv`;
+              a.click();
+            }}>
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Submissions Dialog */}
+      <Dialog open={submissionsDialogOpen} onOpenChange={setSubmissionsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Submissions: {selectedAssignment?.title}
+            </DialogTitle>
+            <DialogDescription>
+              Review and manage assignment submissions
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User ID</TableHead>
+                  <TableHead>Submitted</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Late</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {submissions.map((submission) => (
+                  <TableRow key={submission.id}>
+                    <TableCell>{submission.userId}</TableCell>
+                    <TableCell>
+                      {format(submission.submittedAt, "MMM d, yyyy 'at' h:mm a")}
+                    </TableCell>
+                    <TableCell className="capitalize">{submission.status}</TableCell>
+                    <TableCell>
+                      {submission.isLate ? (
+                        <span className="text-xs text-destructive">Late</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">On time</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditingSubmission(submission);
+                          setSubmissionReviewForm({
+                            status: submission.status,
+                            feedback: submission.feedback || "",
+                          });
+                        }}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {submissions.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No submissions yet.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSubmissionsDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Submission Review Dialog */}
+      <Dialog open={editingSubmission !== null} onOpenChange={(open) => {
+        if (!open) setEditingSubmission(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Review Submission</DialogTitle>
+            <DialogDescription>
+              Update submission status and provide feedback
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Status</label>
+              <Select
+                value={submissionReviewForm.status}
+                onValueChange={(value: SubmissionStatus) =>
+                  setSubmissionReviewForm({ ...submissionReviewForm, status: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="submitted">Submitted</SelectItem>
+                  <SelectItem value="late">Late</SelectItem>
+                  <SelectItem value="reviewed">Reviewed</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="changes_requested">Changes Requested</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Feedback</label>
+              <Textarea
+                value={submissionReviewForm.feedback}
+                onChange={(e) =>
+                  setSubmissionReviewForm({ ...submissionReviewForm, feedback: e.target.value })
+                }
+                rows={4}
+                placeholder="Optional feedback for the student..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingSubmission(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateSubmission}>
+              Update Submission
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* XP Config Dialog */}
+      <Dialog open={xpConfigDialogOpen} onOpenChange={setXpConfigDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Configure XP Reward</DialogTitle>
+            <DialogDescription>
+              Set XP amount for this action type
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Action Type</label>
+              <Select
+                value={xpConfigForm.actionType}
+                onValueChange={(value: XPActionType) =>
+                  setXpConfigForm({ ...xpConfigForm, actionType: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="session_attendance">Session Attendance</SelectItem>
+                  <SelectItem value="assignment_submission">Assignment Submission</SelectItem>
+                  <SelectItem value="assignment_approved">Assignment Approved</SelectItem>
+                  <SelectItem value="module_completion">Module Completion</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">XP Amount</label>
+              <Input
+                type="number"
+                min={0}
+                value={xpConfigForm.xpAmount}
+                onChange={(e) =>
+                  setXpConfigForm({ ...xpConfigForm, xpAmount: parseInt(e.target.value) || 0 })
+                }
+              />
+            </div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={xpConfigForm.enabled}
+                onChange={(e) =>
+                  setXpConfigForm({ ...xpConfigForm, enabled: e.target.checked })
+                }
+              />
+              <span className="text-sm">Enabled</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setXpConfigDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpsertXPConfig}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Learning Materials Dialog */}
+      <Dialog open={learningMaterialsDialogOpen} onOpenChange={setLearningMaterialsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Manage Learning Materials</DialogTitle>
+            <DialogDescription>
+              Add learning materials for this module
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {learningMaterialsForm.map((material, index) => (
+              <div key={index} className="flex gap-2 p-3 border rounded-lg">
+                <div className="flex-1 space-y-2">
+                  <Input
+                    placeholder="Title"
+                    value={material.title}
+                    onChange={(e) => {
+                      const updated = [...learningMaterialsForm];
+                      updated[index].title = e.target.value;
+                      setLearningMaterialsForm(updated);
+                    }}
+                  />
+                  <Input
+                    placeholder="URL"
+                    value={material.url}
+                    onChange={(e) => {
+                      const updated = [...learningMaterialsForm];
+                      updated[index].url = e.target.value;
+                      setLearningMaterialsForm(updated);
+                    }}
+                  />
+                  <Select
+                    value={material.type}
+                    onValueChange={(value: "document" | "video" | "link" | "file") => {
+                      const updated = [...learningMaterialsForm];
+                      updated[index].type = value;
+                      setLearningMaterialsForm(updated);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="document">Document</SelectItem>
+                      <SelectItem value="video">Video</SelectItem>
+                      <SelectItem value="link">Link</SelectItem>
+                      <SelectItem value="file">File</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setLearningMaterialsForm(learningMaterialsForm.filter((_, i) => i !== index));
+                  }}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setLearningMaterialsForm([
+                  ...learningMaterialsForm,
+                  { type: "link", title: "", url: "" },
+                ]);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Material
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLearningMaterialsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateLearningMaterials}>
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
