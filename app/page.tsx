@@ -1,25 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { Target, BookOpen, Users, Sparkles, ArrowRight, User, Zap, Wallet, Trophy } from "lucide-react";
+import { Target, BookOpen, Users, Sparkles, ArrowRight, User, Zap, Wallet, Trophy, FolderKanban, UserPlus } from "lucide-react";
 import { AdCarousel } from "@/components/ad-carousel";
 import { useEffect, useState } from "react";
-import { getAllCourses, CourseWithModules } from "@/lib/courses";
+import { getAllClasses } from "@/lib/classes";
 import { createLearningClient } from "@/lib/supabase/learning-client";
+import { createClient } from "@/lib/supabase/client";
 import { getUserBadges } from "@/lib/badges";
 import { getAllAds } from "@/lib/ads";
+import { getAllProjects, ProjectWithMembers } from "@/lib/projects";
+import { getAllTeams, TeamWithDetails } from "@/lib/teams";
 import { useAuth } from "@/lib/hooks/use-auth";
+import { useAdmin } from "@/lib/hooks/use-admin";
 import { Loader2 } from "lucide-react";
-import { HorizontalCourseCard } from "@/components/horizontal-course-card";
-import { Card } from "@/components/ui/card";
+import { HorizontalClassCard } from "@/components/horizontal-class-card";
+import { HorizontalProjectCard } from "@/components/horizontal-project-card";
+import { HorizontalMissionCard } from "@/components/horizontal-mission-card";
+import { TeamsTicker } from "@/components/teams-ticker";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Class, Mission } from "@/types";
+import Image from "next/image";
 
 /**
- * Homepage with courses layout
- * Layout: Left column with courses, Right sidebar with How it works and Achievements
+ * Homepage with classes layout
+ * Layout: Left column with classes, Right sidebar with How it works and Achievements
  */
 export default function Home() {
-  const [courses, setCourses] = useState<CourseWithModules[]>([]);
-  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+  const [teams, setTeams] = useState<TeamWithDetails[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(true);
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [loadingMissions, setLoadingMissions] = useState(true);
   const [badgesCount, setBadgesCount] = useState(0);
   const [xpCount, setXpCount] = useState(0);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -27,23 +43,134 @@ export default function Home() {
   const [loadingAds, setLoadingAds] = useState(true);
   
   const { user } = useAuth();
+  const { isAdmin } = useAdmin();
   const learningSupabase = createLearningClient();
+  const supabase = createClient();
 
-  // Load courses
+  // Load classes
   useEffect(() => {
     if (!learningSupabase) {
-      setCourses([]);
-      setLoadingCourses(false);
+      setClasses([]);
+      setLoadingClasses(false);
       return;
     }
-    setLoadingCourses(true);
-    getAllCourses(learningSupabase)
-      .then(setCourses)
+    setLoadingClasses(true);
+    // Non-admin users should only see published classes
+    getAllClasses({ publishedOnly: !isAdmin }, learningSupabase)
+      .then(setClasses)
       .catch((error) => {
-        console.error("Error loading courses:", error);
-        setCourses([]);
+        console.error("Error loading classes:", error);
+        setClasses([]);
       })
-      .finally(() => setLoadingCourses(false));
+      .finally(() => setLoadingClasses(false));
+  }, [learningSupabase, isAdmin]);
+
+  // Load projects
+  useEffect(() => {
+    if (!supabase) {
+      setProjects([]);
+      setLoadingProjects(false);
+      return;
+    }
+    setLoadingProjects(true);
+    getAllProjects(supabase)
+      .then(setProjects)
+      .catch((error) => {
+        console.error("Error loading projects:", error);
+        setProjects([]);
+      })
+      .finally(() => setLoadingProjects(false));
+  }, [supabase]);
+
+  // Load teams
+  useEffect(() => {
+    if (!supabase) {
+      setTeams([]);
+      setLoadingTeams(false);
+      return;
+    }
+    setLoadingTeams(true);
+    getAllTeams(supabase)
+      .then(setTeams)
+      .catch((error) => {
+        console.error("Error loading teams:", error);
+        setTeams([]);
+      })
+      .finally(() => setLoadingTeams(false));
+  }, [supabase]);
+
+  // Load missions with real-time updates
+  useEffect(() => {
+    if (!learningSupabase) {
+      setMissions([]);
+      setLoadingMissions(false);
+      return;
+    }
+
+    const loadMissions = async () => {
+      setLoadingMissions(true);
+      try {
+        const { data: missionsData, error } = await learningSupabase
+          .from("missions")
+          .select("*")
+          .order("order_index", { ascending: true });
+
+        if (error) {
+          console.error("Error loading missions:", error);
+          setMissions([]);
+          return;
+        }
+
+        // Normalize Supabase (snake_case) payload into Mission type (camelCase)
+        const normalizedMissions: Mission[] =
+          (missionsData || []).map((m: any) => ({
+            id: m.id,
+            lessonId: m.lesson_id ?? undefined,
+            title: m.title,
+            goal: m.goal,
+            description: m.description ?? undefined,
+            imageUrl: m.image_url ?? undefined,
+            initialFiles: m.initial_files ?? {},
+            stackType: m.stack_type,
+            difficulty: m.difficulty,
+            estimatedTime: m.estimated_time ?? undefined,
+            submissionDeadline: m.submission_deadline ? new Date(m.submission_deadline) : undefined,
+            orderIndex: m.order_index,
+            badgeId: m.badge_id ?? undefined,
+          })) || [];
+
+        setMissions(normalizedMissions);
+      } catch (error) {
+        console.error("Error loading missions:", error);
+        setMissions([]);
+      } finally {
+        setLoadingMissions(false);
+      }
+    };
+
+    loadMissions();
+
+    // Set up real-time subscription for mission updates
+    const channel = learningSupabase
+      .channel("missions-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "missions",
+        },
+        (payload) => {
+          console.log("Mission update received:", payload);
+          // Reload missions when there's a change
+          loadMissions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      learningSupabase.removeChannel(channel);
+    };
   }, [learningSupabase]);
 
   // Load advertisements
@@ -133,7 +260,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Main Content Section */}
-      <section className="container mx-auto px-4 sm:px-6 pt-20 sm:pt-24 md:pt-32 pb-12 sm:pb-16">
+      <section className="container mx-auto px-4 sm:px-6 pt-4 sm:pt-6 md:pt-8 pb-12 sm:pb-16">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8">
             {/* Left Column - Courses List */}
@@ -147,24 +274,74 @@ export default function Home() {
                 <AdCarousel slides={adSlides} autoPlayInterval={5000} />
               ) : null}
 
-              {/* Courses List */}
-              {loadingCourses ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              {/* Classes */}
+              <div className="mb-2">
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Classes</h3>
+              </div>
+              
+              {loadingClasses ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              ) : courses.length > 0 ? (
-                <div className="space-y-4">
-                  {courses.map((course) => (
-                    <HorizontalCourseCard key={course.id} course={course} />
-                  ))}
-                </div>
+              ) : classes.length > 0 ? (
+                <>
+                  <div className="space-y-3 mb-4">
+                    {classes.slice(0, 3).map((classItem) => (
+                      <HorizontalClassCard key={classItem.id} classItem={classItem} />
+                    ))}
+                  </div>
+                  <Button variant="outline" className="w-full rounded-lg group" asChild>
+                    <Link href="/academy?tab=classes" className="flex items-center justify-center gap-2">
+                      <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                      <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+                    </Link>
+                  </Button>
+                </>
               ) : (
-                <div className="py-8 sm:py-12 text-center">
-                  <p className="text-base sm:text-lg text-muted-foreground">
-                    No courses available yet. Check back soon!
+                <div className="py-6 text-center">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    No classes available yet. Check back soon!
                   </p>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/academy">Browse Classes</Link>
+                  </Button>
                 </div>
               )}
+
+              {/* Projects */}
+              <div className="mb-2">
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Projects</h3>
+              </div>
+              
+              {loadingProjects ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : projects.length > 0 ? (
+                <>
+                  <div className="space-y-3 mb-4">
+                    {projects.slice(0, 3).map((project) => (
+                      <HorizontalProjectCard key={project.id} project={project} />
+                    ))}
+                  </div>
+                  <Button variant="outline" className="w-full rounded-lg group" asChild>
+                    <Link href="/academy?tab=projects" className="flex items-center justify-center gap-2">
+                      <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                      <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <div className="py-6 text-center">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    No projects yet
+                  </p>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/academy/projects/new">Create Project</Link>
+                  </Button>
+                </div>
+              )}
+
             </div>
 
             {/* Right Sidebar */}
@@ -183,7 +360,24 @@ export default function Home() {
                   <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border hidden sm:block" />
 
                   <div className="space-y-4 sm:space-y-6">
-                    {/* Step 1 */}
+                    {/* Step 1 - Create your Profile */}
+                    <div className="relative flex items-start gap-3 sm:gap-4">
+                      {/* Icon Circle */}
+                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
+                        <UserPlus className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      </div>
+                      {/* Content */}
+                      <div className="flex-1 pt-0.5 sm:pt-1">
+                        <h3 className="text-base sm:text-lg font-bold mb-1 text-muted-foreground">
+                          Create your Profile
+                        </h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          Set up your account and personalize your learning experience
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Step 2 - Start Learning */}
                     <div className="relative flex items-start gap-3 sm:gap-4">
                       {/* Icon Circle */}
                       <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
@@ -191,7 +385,7 @@ export default function Home() {
                       </div>
                       {/* Content */}
                       <div className="flex-1 pt-0.5 sm:pt-1">
-                        <h3 className="text-base sm:text-lg font-bold mb-1">
+                        <h3 className="text-base sm:text-lg font-bold mb-1 text-muted-foreground">
                           Start Learning
                         </h3>
                         <p className="text-xs sm:text-sm text-muted-foreground">
@@ -200,7 +394,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Step 2 */}
+                    {/* Step 3 - Build Projects */}
                     <div className="relative flex items-start gap-3 sm:gap-4">
                       {/* Icon Circle */}
                       <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
@@ -208,7 +402,7 @@ export default function Home() {
                       </div>
                       {/* Content */}
                       <div className="flex-1 pt-0.5 sm:pt-1">
-                        <h3 className="text-base sm:text-lg font-bold mb-1">
+                        <h3 className="text-base sm:text-lg font-bold mb-1 text-muted-foreground">
                           Build Projects
                         </h3>
                         <p className="text-xs sm:text-sm text-muted-foreground">
@@ -217,7 +411,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Step 3 */}
+                    {/* Step 4 - Earn Rewards */}
                     <div className="relative flex items-start gap-3 sm:gap-4">
                       {/* Icon Circle */}
                       <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
@@ -225,7 +419,7 @@ export default function Home() {
                       </div>
                       {/* Content */}
                       <div className="flex-1 pt-0.5 sm:pt-1">
-                        <h3 className="text-base sm:text-lg font-bold mb-1">
+                        <h3 className="text-base sm:text-lg font-bold mb-1 text-muted-foreground">
                           Earn Rewards
                         </h3>
                         <p className="text-xs sm:text-sm text-muted-foreground">
@@ -238,57 +432,101 @@ export default function Home() {
               </Card>
 
               {/* Achievements Section */}
-              <Card className="p-6">
-                <div className="mb-4 flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-primary" />
-                  <h2 className="text-lg font-bold">Achievements</h2>
-                </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Track your progress and unlock badges
-                </p>
-                
-                {/* Stats Boxes */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
-                    <div className="text-2xl font-bold mb-1">
-                      {loadingStats ? "..." : badgesCount}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Badges</div>
+              <div className="mb-2">
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Achievements</h3>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Track your progress and unlock badges
+              </p>
+              
+              {/* Stats Boxes */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
+                  <div className="text-2xl font-bold mb-1">
+                    {loadingStats ? "..." : badgesCount}
                   </div>
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
-                    <div className="text-2xl font-bold mb-1">
-                      {loadingStats ? "..." : xpCount}
-                    </div>
-                    <div className="text-xs text-muted-foreground">XP</div>
-                  </div>
+                  <div className="text-xs text-muted-foreground">Badges</div>
                 </div>
+                <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
+                  <div className="text-2xl font-bold mb-1">
+                    {loadingStats ? "..." : xpCount}
+                  </div>
+                  <div className="text-xs text-muted-foreground">XP</div>
+                </div>
+              </div>
 
-                <Link
-                  href="/achievements"
-                  className="flex items-center gap-2 text-sm text-primary hover:underline"
-                >
-                  <span>View All</span>
-                  <ArrowRight className="h-4 w-4" />
+              <Button variant="outline" className="w-full rounded-lg group" asChild>
+                <Link href="/achievements" className="flex items-center justify-center gap-2">
+                  <span className="opacity-40 group-hover:opacity-100 group-hover:font-bold transition-all">View All</span>
+                  <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-100 transition-all" />
                 </Link>
-              </Card>
+              </Button>
 
-              {/* Mission Link */}
-              <Link
-                href="/missions"
-                className="group relative block p-6 sm:p-8 rounded-2xl border-2 border-border bg-muted/50 hover:bg-muted/70 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl flex items-center justify-center"
-              >
-                <div className="text-center">
-                  <Target className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 mx-auto mb-4 text-primary group-hover:scale-110 transition-transform" />
-                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Mission</h2>
-                  <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto mb-3">
-                    Hands-on coding challenges
-                  </p>
-                  <div className="flex items-center justify-center gap-2 text-primary group-hover:gap-3 transition-all">
-                    <span className="text-xs sm:text-sm">Start Mission</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </div>
+              {/* Missions */}
+              <div className="mb-2">
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Missions</h3>
+              </div>
+              
+              {loadingMissions ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              </Link>
+              ) : missions.length > 0 ? (
+                <>
+                  <div className="space-y-3 mb-4">
+                    {missions.slice(0, 3).map((mission) => (
+                      <HorizontalMissionCard key={mission.id} mission={mission} />
+                    ))}
+                  </div>
+                  <Button variant="outline" className="w-full rounded-lg group" asChild>
+                    <Link href="/missions" className="flex items-center justify-center gap-2">
+                      <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                      <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <div className="py-6 text-center">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    No missions available yet
+                  </p>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/missions">Browse Missions</Link>
+                  </Button>
+                </div>
+              )}
+
+              {/* Teams */}
+              <div className="mb-2">
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Teams</h3>
+              </div>
+              
+              {loadingTeams ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : teams.length > 0 ? (
+                <>
+                  <div className="mb-4">
+                    <TeamsTicker teams={teams} />
+                  </div>
+                  <Button variant="outline" className="w-full rounded-lg group" asChild>
+                    <Link href="/academy?tab=teams" className="flex items-center justify-center gap-2">
+                      <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                      <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <div className="py-6 text-center">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    No teams yet
+                  </p>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/academy/teams/new">Create Team</Link>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

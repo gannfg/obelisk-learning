@@ -22,6 +22,7 @@ import { getAllTeams, TeamWithDetails } from "@/lib/teams";
 import { getAllClasses } from "@/lib/classes";
 import { createClient } from "@/lib/supabase/client";
 import { createLearningClient } from "@/lib/supabase/learning-client";
+import { useAdmin } from "@/lib/hooks/use-admin";
 import { Loader2 } from "lucide-react";
 import { Class } from "@/types";
 import { ClassCard } from "@/components/class-card";
@@ -44,6 +45,7 @@ export function AcademyPageClient() {
   // Create clients safely - they may be placeholders if env vars are missing
   const supabase = createClient();
   const learningSupabase = createLearningClient();
+  const { isAdmin } = useAdmin();
 
   const filteredClasses = selectedCategory
     ? classes.filter((classItem) => classItem.category === selectedCategory)
@@ -57,7 +59,8 @@ export function AcademyPageClient() {
         return;
       }
       setLoadingCourses(true);
-      getAllClasses(undefined, learningSupabase)
+      // Non-admin users should only see published classes
+      getAllClasses({ publishedOnly: !isAdmin }, learningSupabase)
         .then(setClasses)
         .catch((error) => {
           console.error("Error loading classes:", error);
@@ -93,7 +96,7 @@ export function AcademyPageClient() {
         })
         .finally(() => setLoadingTeams(false));
     }
-  }, [currentTab, supabase, learningSupabase]);
+  }, [currentTab, supabase, learningSupabase, isAdmin]);
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">

@@ -275,3 +275,27 @@ html * {
 .animate-bubble-float {
   animation: bubble-float 2.5s ease-in-out infinite;
 }
+
+/* Teams ticker scrolling animation */
+@keyframes scroll-up {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-scroll-up {
+  animation: scroll-up 25s linear infinite;
+  will-change: transform;
+}
+
+.animate-scroll-up:hover {
+  animation-play-state: paused;
+}
+
+/* Ensure smooth continuous scrolling */
+.animate-scroll-up > * {
+  flex-shrink: 0;
+}
