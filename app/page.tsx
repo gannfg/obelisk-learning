@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Target, BookOpen, Users, Sparkles, ArrowRight, User, Zap, Wallet, Trophy, FolderKanban } from "lucide-react";
+import { Target, BookOpen, Users, Sparkles, ArrowRight, User, Zap, Wallet, Trophy, FolderKanban, UserPlus } from "lucide-react";
 import { AdCarousel } from "@/components/ad-carousel";
 import { useEffect, useState } from "react";
 import { getAllClasses } from "@/lib/classes";
@@ -257,7 +257,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Main Content Section */}
-      <section className="container mx-auto px-4 sm:px-6 pt-20 sm:pt-24 md:pt-32 pb-12 sm:pb-16">
+      <section className="container mx-auto px-4 sm:px-6 pt-4 sm:pt-6 md:pt-8 pb-12 sm:pb-16">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8">
             {/* Left Column - Courses List */}
@@ -271,61 +271,73 @@ export default function Home() {
                 <AdCarousel slides={adSlides} autoPlayInterval={5000} />
               ) : null}
 
-              {/* Classes List */}
+              {/* Classes */}
+              <div className="mb-2">
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Classes</h3>
+              </div>
+              
               {loadingClasses ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
               ) : classes.length > 0 ? (
-                <div className="space-y-3">
-                  {classes.map((classItem) => (
-                    <HorizontalClassCard key={classItem.id} classItem={classItem} />
-                  ))}
-                </div>
+                <>
+                  <div className="space-y-3 mb-4">
+                    {classes.slice(0, 3).map((classItem) => (
+                      <HorizontalClassCard key={classItem.id} classItem={classItem} />
+                    ))}
+                  </div>
+                  <Button variant="outline" className="w-full rounded-lg group" asChild>
+                    <Link href="/academy?tab=classes" className="flex items-center justify-center gap-2">
+                      <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                      <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+                    </Link>
+                  </Button>
+                </>
               ) : (
-                <div className="py-8 sm:py-12 text-center">
-                  <p className="text-base sm:text-lg text-muted-foreground">
+                <div className="py-6 text-center">
+                  <p className="text-sm text-muted-foreground mb-3">
                     No classes available yet. Check back soon!
                   </p>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/academy">Browse Classes</Link>
+                  </Button>
                 </div>
               )}
 
-              {/* Projects Box */}
-              <Card className="p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FolderKanban className="h-5 w-5 text-primary" />
-                    <h2 className="text-lg font-bold">Projects</h2>
-                  </div>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/academy?tab=projects">View All</Link>
-                  </Button>
+              {/* Projects */}
+              <div className="mb-2">
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Projects</h3>
+              </div>
+              
+              {loadingProjects ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Collaborate on real-world Web3 projects
-                </p>
-                
-                {loadingProjects ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : projects.length > 0 ? (
-                  <div className="space-y-3">
+              ) : projects.length > 0 ? (
+                <>
+                  <div className="space-y-3 mb-4">
                     {projects.slice(0, 3).map((project) => (
                       <HorizontalProjectCard key={project.id} project={project} />
                     ))}
                   </div>
-                ) : (
-                  <div className="py-6 text-center">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      No projects yet
-                    </p>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href="/academy/projects/new">Create Project</Link>
-                    </Button>
-                  </div>
-                )}
-              </Card>
+                  <Button variant="outline" className="w-full rounded-lg group" asChild>
+                    <Link href="/academy?tab=projects" className="flex items-center justify-center gap-2">
+                      <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                      <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <div className="py-6 text-center">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    No projects yet
+                  </p>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/academy/projects/new">Create Project</Link>
+                  </Button>
+                </div>
+              )}
 
             </div>
 
@@ -345,7 +357,24 @@ export default function Home() {
                   <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border hidden sm:block" />
 
                   <div className="space-y-4 sm:space-y-6">
-                    {/* Step 1 */}
+                    {/* Step 1 - Create your Profile */}
+                    <div className="relative flex items-start gap-3 sm:gap-4">
+                      {/* Icon Circle */}
+                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
+                        <UserPlus className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      </div>
+                      {/* Content */}
+                      <div className="flex-1 pt-0.5 sm:pt-1">
+                        <h3 className="text-base sm:text-lg font-bold mb-1 text-muted-foreground">
+                          Create your Profile
+                        </h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          Set up your account and personalize your learning experience
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Step 2 - Start Learning */}
                     <div className="relative flex items-start gap-3 sm:gap-4">
                       {/* Icon Circle */}
                       <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
@@ -353,7 +382,7 @@ export default function Home() {
                       </div>
                       {/* Content */}
                       <div className="flex-1 pt-0.5 sm:pt-1">
-                        <h3 className="text-base sm:text-lg font-bold mb-1">
+                        <h3 className="text-base sm:text-lg font-bold mb-1 text-muted-foreground">
                           Start Learning
                         </h3>
                         <p className="text-xs sm:text-sm text-muted-foreground">
@@ -362,7 +391,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Step 2 */}
+                    {/* Step 3 - Build Projects */}
                     <div className="relative flex items-start gap-3 sm:gap-4">
                       {/* Icon Circle */}
                       <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
@@ -370,7 +399,7 @@ export default function Home() {
                       </div>
                       {/* Content */}
                       <div className="flex-1 pt-0.5 sm:pt-1">
-                        <h3 className="text-base sm:text-lg font-bold mb-1">
+                        <h3 className="text-base sm:text-lg font-bold mb-1 text-muted-foreground">
                           Build Projects
                         </h3>
                         <p className="text-xs sm:text-sm text-muted-foreground">
@@ -379,7 +408,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Step 3 */}
+                    {/* Step 4 - Earn Rewards */}
                     <div className="relative flex items-start gap-3 sm:gap-4">
                       {/* Icon Circle */}
                       <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
@@ -387,7 +416,7 @@ export default function Home() {
                       </div>
                       {/* Content */}
                       <div className="flex-1 pt-0.5 sm:pt-1">
-                        <h3 className="text-base sm:text-lg font-bold mb-1">
+                        <h3 className="text-base sm:text-lg font-bold mb-1 text-muted-foreground">
                           Earn Rewards
                         </h3>
                         <p className="text-xs sm:text-sm text-muted-foreground">
@@ -400,109 +429,101 @@ export default function Home() {
               </Card>
 
               {/* Achievements Section */}
-              <Card className="p-6">
-                <div className="mb-4 flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-primary" />
-                  <h2 className="text-lg font-bold">Achievements</h2>
-                </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Track your progress and unlock badges
-                </p>
-                
-                {/* Stats Boxes */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
-                    <div className="text-2xl font-bold mb-1">
-                      {loadingStats ? "..." : badgesCount}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Badges</div>
+              <div className="mb-2">
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Achievements</h3>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Track your progress and unlock badges
+              </p>
+              
+              {/* Stats Boxes */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
+                  <div className="text-2xl font-bold mb-1">
+                    {loadingStats ? "..." : badgesCount}
                   </div>
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
-                    <div className="text-2xl font-bold mb-1">
-                      {loadingStats ? "..." : xpCount}
-                    </div>
-                    <div className="text-xs text-muted-foreground">XP</div>
-                  </div>
+                  <div className="text-xs text-muted-foreground">Badges</div>
                 </div>
+                <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
+                  <div className="text-2xl font-bold mb-1">
+                    {loadingStats ? "..." : xpCount}
+                  </div>
+                  <div className="text-xs text-muted-foreground">XP</div>
+                </div>
+              </div>
 
-                <Link
-                  href="/achievements"
-                  className="flex items-center gap-2 text-sm text-primary hover:underline"
-                >
-                  <span>View All</span>
-                  <ArrowRight className="h-4 w-4" />
+              <Button variant="outline" className="w-full rounded-lg group" asChild>
+                <Link href="/achievements" className="flex items-center justify-center gap-2">
+                  <span className="opacity-40 group-hover:opacity-100 group-hover:font-bold transition-all">View All</span>
+                  <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-100 transition-all" />
                 </Link>
-              </Card>
+              </Button>
 
-              {/* Missions Box */}
-              <Card className="p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Target className="h-5 w-5 text-primary" />
-                    <h2 className="text-lg font-bold">Missions</h2>
-                  </div>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/missions">View All</Link>
-                  </Button>
+              {/* Missions */}
+              <div className="mb-2">
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Missions</h3>
+              </div>
+              
+              {loadingMissions ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Hands-on coding challenges to level up your skills
-                </p>
-                
-                {loadingMissions ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : missions.length > 0 ? (
-                  <div className="space-y-3">
+              ) : missions.length > 0 ? (
+                <>
+                  <div className="space-y-3 mb-4">
                     {missions.slice(0, 3).map((mission) => (
                       <HorizontalMissionCard key={mission.id} mission={mission} />
                     ))}
                   </div>
-                ) : (
-                  <div className="py-6 text-center">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      No missions available yet
-                    </p>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href="/missions">Browse Missions</Link>
-                    </Button>
-                  </div>
-                )}
-              </Card>
-
-              {/* Teams Box */}
-              <Card className="p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-primary" />
-                    <h2 className="text-lg font-bold">Teams</h2>
-                  </div>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/academy?tab=teams">View All</Link>
+                  <Button variant="outline" className="w-full rounded-lg group" asChild>
+                    <Link href="/missions" className="flex items-center justify-center gap-2">
+                      <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                      <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <div className="py-6 text-center">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    No missions available yet
+                  </p>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/missions">Browse Missions</Link>
                   </Button>
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Join or create teams to collaborate
-                </p>
-                
-                {loadingTeams ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              )}
+
+              {/* Teams */}
+              <div className="mb-2">
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Teams</h3>
+              </div>
+              
+              {loadingTeams ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : teams.length > 0 ? (
+                <>
+                  <div className="mb-4">
+                    <TeamsTicker teams={teams} />
                   </div>
-                ) : teams.length > 0 ? (
-                  <TeamsTicker teams={teams} />
-                ) : (
-                  <div className="py-6 text-center">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      No teams yet
-                    </p>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href="/academy/teams/new">Create Team</Link>
-                    </Button>
-                  </div>
-                )}
-              </Card>
+                  <Button variant="outline" className="w-full rounded-lg group" asChild>
+                    <Link href="/academy?tab=teams" className="flex items-center justify-center gap-2">
+                      <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                      <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <div className="py-6 text-center">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    No teams yet
+                  </p>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/academy/teams/new">Create Team</Link>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

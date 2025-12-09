@@ -71,7 +71,7 @@ export async function getUserProfile(userId: string, email?: string, supabaseCli
     // Use provided client (with auth session) or create a new one
     let supabase = supabaseClient;
     if (!supabase) {
-      const { createClient } = await import('@supabase/supabase-js');
+    const { createClient } = await import('@supabase/supabase-js');
       supabase = createClient(OBELISK_LEARNING_AUTH_SUPABASE_URL, OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY);
     }
 

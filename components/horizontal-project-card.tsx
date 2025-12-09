@@ -38,28 +38,15 @@ export function HorizontalProjectCard({ project }: HorizontalProjectCardProps) {
 
             {/* Main Content */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-4 mb-1">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-semibold truncate mb-1">
-                    {project.title}
-                  </h3>
-                  {project.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-1">
-                      {project.description}
-                    </p>
-                  )}
-                </div>
-                <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                    project.status === "in-progress"
-                      ? "bg-blue-500/10 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
-                      : project.status === "completed"
-                      ? "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300"
-                      : "bg-yellow-500/10 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300"
-                  }`}>
-                    {project.status}
-                  </span>
-                </div>
+              <div className="mb-1">
+                <h3 className="text-base font-semibold truncate mb-1">
+                  {project.title}
+                </h3>
+                {project.description && (
+                  <p className="text-xs text-muted-foreground line-clamp-1">
+                    {project.description}
+                  </p>
+                )}
               </div>
               
               {/* Tags/Metadata */}
