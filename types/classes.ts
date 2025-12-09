@@ -9,7 +9,7 @@ export type ClassAttendanceMethod = "qr" | "manual";
 export type SubmissionType = "text" | "file" | "url" | "git";
 export type SubmissionStatus = "submitted" | "late" | "reviewed" | "approved" | "changes_requested";
 export type EnrollmentStatus = "active" | "dropped" | "completed";
-export type InstructorRole = "instructor" | "assistant" | "ta";
+export type MentorRole = "mentor" | "assistant" | "ta";
 export type XPActionType = "session_attendance" | "assignment_submission" | "assignment_approved" | "module_completion";
 
 export interface Class {
@@ -25,7 +25,7 @@ export interface Class {
   status: ClassStatus;
   published: boolean;
   enrollmentLocked: boolean;
-  instructorId: string;
+  mentorId: string;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -143,11 +143,11 @@ export interface ClassAnnouncement {
   updatedAt: Date;
 }
 
-export interface ClassInstructor {
+export interface ClassMentor {
   id: string;
   classId: string;
-  instructorId: string;
-  role: InstructorRole;
+  mentorId: string;
+  role: MentorRole;
   assignedAt: Date;
 }
 
@@ -172,7 +172,7 @@ export interface CreateClassInput {
   maxCapacity?: number;
   published?: boolean;
   enrollmentLocked?: boolean;
-  instructorId: string;
+  mentorId: string;
 }
 
 export interface UpdateClassInput extends Partial<CreateClassInput> {

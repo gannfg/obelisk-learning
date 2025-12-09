@@ -162,7 +162,7 @@ export default function AdminClassesPage() {
     maxCapacity: "",
     published: false,
     enrollmentLocked: false,
-    instructorId: "",
+    mentorId: "",
   });
 
   // Module form
@@ -353,7 +353,7 @@ export default function AdminClassesPage() {
           maxCapacity: classForm.maxCapacity ? parseInt(classForm.maxCapacity) : undefined,
           published: classForm.published,
           enrollmentLocked: classForm.enrollmentLocked,
-          instructorId: classForm.instructorId || user.id,
+          mentorId: classForm.mentorId || user.id,
         },
         user.id,
         learningSupabase
@@ -744,7 +744,7 @@ export default function AdminClassesPage() {
       maxCapacity: "",
       published: false,
       enrollmentLocked: false,
-      instructorId: "",
+      mentorId: "",
     });
     setImageFile(null);
     setImagePreview(null);
@@ -764,7 +764,7 @@ export default function AdminClassesPage() {
         maxCapacity: classToEdit.maxCapacity?.toString() || "",
         published: classToEdit.published,
         enrollmentLocked: classToEdit.enrollmentLocked,
-        instructorId: classToEdit.instructorId,
+        mentorId: classToEdit.mentorId,
       });
       if (classToEdit.thumbnail) {
         setImagePreview(classToEdit.thumbnail);

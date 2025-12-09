@@ -26,6 +26,8 @@ import { useAdmin } from "@/lib/hooks/use-admin";
 import { Loader2 } from "lucide-react";
 import { Class } from "@/types";
 import { ClassCard } from "@/components/class-card";
+import { TeamModal } from "@/components/team-modal";
+import { getUserProfile } from "@/lib/profile";
 
 export function AcademyPageClient() {
   const searchParams = useSearchParams();
@@ -41,6 +43,8 @@ export function AcademyPageClient() {
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingTeams, setLoadingTeams] = useState(false);
   const [loadingCourses, setLoadingCourses] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<TeamWithDetails | null>(null);
+  const [teamModalOpen, setTeamModalOpen] = useState(false);
   
   // Create clients safely - they may be placeholders if env vars are missing
   const supabase = createClient();
@@ -75,7 +79,49 @@ export function AcademyPageClient() {
       }
       setLoadingProjects(true);
       getAllProjects(supabase)
-        .then(setProjects)
+        .then(async (projectsData) => {
+          // Fetch member avatars & names for projects
+          try {
+            const authSupabase = createClient();
+            const projectsWithProfiles = await Promise.all(
+              projectsData.map(async (project) => {
+                if (!project.members || project.members.length === 0) {
+                  return { ...project, memberProfiles: {} };
+                }
+
+                const profiles: Record<string, { name: string; avatar?: string }> = {};
+                await Promise.all(
+                  project.members.map(async (member) => {
+                    try {
+                      const profile = await getUserProfile(member.userId, undefined, authSupabase);
+                      const fullName = [profile?.first_name, profile?.last_name]
+                        .filter(Boolean)
+                        .join(" ")
+                        .trim();
+                      const username =
+                        profile?.username ||
+                        (fullName.length > 0 ? fullName : undefined) ||
+                        profile?.email?.split("@")[0];
+
+                      profiles[member.userId] = {
+                        name: username || `User ${member.userId.slice(0, 8)}`,
+                        avatar: profile?.image_url || profile?.email?.charAt(0).toUpperCase(),
+                      };
+                    } catch (error) {
+                      console.error(`Error loading avatar for ${member.userId}:`, error);
+                    }
+                  })
+                );
+
+                return { ...project, memberProfiles: profiles };
+              })
+            );
+            setProjects(projectsWithProfiles);
+          } catch (error) {
+            console.error("Error loading member avatars:", error);
+            setProjects(projectsData);
+          }
+        })
         .catch((error) => {
           console.error("Error loading projects:", error);
           setProjects([]);
@@ -173,84 +219,103 @@ export function AcademyPageClient() {
           ) : projects.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (
-                <Card
+                <Link
                   key={project.id}
-                  className="overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl"
+                  href={`/academy/projects/${project.id}`}
+                  className="block w-full group"
                 >
-                  {project.thumbnail && (
-                    <div className="relative w-full h-40 overflow-hidden">
-                      <Image
-                        src={project.thumbnail}
-                        alt={project.title}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  )}
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-xl">
-                        {project.title}
-                      </CardTitle>
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          project.status === "in-progress"
-                            ? "bg-blue-500/10 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-500/20 dark:border-blue-500/30"
-                            : project.status === "completed"
-                            ? "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300 border border-green-500/20 dark:border-green-500/30"
-                            : "bg-yellow-500/10 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300 border border-yellow-500/20 dark:border-yellow-500/30"
-                        }`}
-                      >
-                        {project.status}
-                      </span>
-                    </div>
-                    <CardDescription>{project.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {project.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full border border-border bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm text-muted-foreground">
-                        Difficulty:{" "}
-                        <span className="font-medium capitalize">
-                          {project.difficulty}
-                        </span>
-                      </span>
-                    </div>
-                    {project.members && project.members.length > 0 && (
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="flex -space-x-2">
-                          {project.members.slice(0, 5).map((member) => (
-                            <div
-                              key={member.userId}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-primary/10 text-xs font-medium text-primary"
-                            >
-                              <Users className="h-4 w-4" />
-                            </div>
-                          ))}
-                        </div>
-                        {project.members.length > 5 && (
-                          <span className="text-xs text-muted-foreground">
-                            +{project.members.length - 5} more
-                          </span>
-                        )}
+                  <Card className="overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl cursor-pointer h-full">
+                    {project.thumbnail && (
+                      <div className="relative w-full h-40 overflow-hidden">
+                        <Image
+                          src={project.thumbnail}
+                          alt={project.title}
+                          fill
+                          className="object-cover transition-transform group-hover:scale-105"
+                        />
                       </div>
                     )}
-                    <Button variant="outline" size="sm" asChild className="w-full">
-                      <Link href={`/academy/projects/${project.id}`}>
-                        View Project
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <CardTitle className="text-xl">
+                          {project.title}
+                        </CardTitle>
+                        <span
+                          className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            project.status === "in-progress"
+                              ? "bg-blue-500/10 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-500/20 dark:border-blue-500/30"
+                              : project.status === "completed"
+                              ? "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300 border border-green-500/20 dark:border-green-500/30"
+                              : "bg-yellow-500/10 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300 border border-yellow-500/20 dark:border-yellow-500/30"
+                          }`}
+                        >
+                          {project.status}
+                        </span>
+                      </div>
+                      <CardDescription>{project.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {project.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full border border-border bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm text-muted-foreground">
+                          Difficulty:{" "}
+                          <span className="font-medium capitalize">
+                            {project.difficulty}
+                          </span>
+                        </span>
+                      </div>
+                      {project.members && project.members.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <div className="flex -space-x-2">
+                            {project.members.slice(0, 5).map((member) => {
+                              const profile = project.memberProfiles?.[member.userId];
+                              const avatar = profile?.avatar;
+                              const name = profile?.name || `User ${member.userId.slice(0, 8)}`;
+                              return (
+                                <div
+                                  key={member.userId}
+                                  className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground overflow-hidden"
+                                  title={name}
+                                >
+                                  {avatar ? (
+                                    typeof avatar === "string" && avatar.startsWith("http") ? (
+                                      <Image
+                                        src={avatar}
+                                        alt={name}
+                                        fill
+                                        className="object-cover"
+                                        sizes="32px"
+                                        unoptimized
+                                      />
+                                    ) : (
+                                      <span>{avatar}</span>
+                                    )
+                                  ) : (
+                                    <Users className="h-4 w-4" />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {project.members.length > 5 && (
+                            <span className="text-xs text-muted-foreground">
+                              +{project.members.length - 5} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
           ) : (
@@ -288,7 +353,11 @@ export function AcademyPageClient() {
               {teams.map((team) => (
                 <Card
                   key={team.id}
-                  className="overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl"
+                  onClick={() => {
+                    setSelectedTeam(team);
+                    setTeamModalOpen(true);
+                  }}
+                  className="overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl cursor-pointer"
                 >
                   <CardHeader>
                     <CardTitle className="text-xl flex items-center gap-2">
@@ -340,14 +409,6 @@ export function AcademyPageClient() {
                         )}
                       </div>
                     )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      asChild
-                    >
-                      <Link href={`/academy/teams/${team.id}`}>View Team</Link>
-                    </Button>
                   </CardContent>
                 </Card>
               ))}
@@ -364,6 +425,12 @@ export function AcademyPageClient() {
           )}
         </TabsContent>
       </Tabs>
+      
+      <TeamModal
+        team={selectedTeam}
+        open={teamModalOpen}
+        onOpenChange={setTeamModalOpen}
+      />
     </div>
   );
 }

@@ -1,16 +1,20 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { TeamWithDetails } from "@/lib/teams";
 import { Users, FolderKanban } from "lucide-react";
+import { TeamModal } from "@/components/team-modal";
 
 interface TeamsTickerProps {
   teams: TeamWithDetails[];
 }
 
 export function TeamsTicker({ teams }: TeamsTickerProps) {
+  const [selectedTeam, setSelectedTeam] = useState<TeamWithDetails | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
   if (teams.length === 0) {
     return null;
   }
@@ -19,15 +23,21 @@ export function TeamsTicker({ teams }: TeamsTickerProps) {
   // With 2 copies, we animate to -50% for seamless transition
   const duplicatedTeams = [...teams, ...teams];
 
+  const handleTeamClick = (team: TeamWithDetails) => {
+    setSelectedTeam(team);
+    setModalOpen(true);
+  };
+
   return (
-    <div className="relative h-64 overflow-hidden">
-      <div className="absolute top-0 left-0 right-0 flex flex-col animate-scroll-up">
-        {duplicatedTeams.map((team, index) => (
-          <Link
-            key={`${team.id}-${index}`}
-            href={`/academy/teams/${team.id}`}
-            className="block mb-3 flex-shrink-0"
-          >
+    <>
+      <div className="relative h-64 overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 flex flex-col animate-scroll-up">
+          {duplicatedTeams.map((team, index) => (
+            <button
+              key={`${team.id}-${index}`}
+              onClick={() => handleTeamClick(team)}
+              className="block mb-3 flex-shrink-0 w-full text-left"
+            >
             <Card className="overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-md">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -67,10 +77,16 @@ export function TeamsTicker({ teams }: TeamsTickerProps) {
                 </div>
               </CardContent>
             </Card>
-          </Link>
+          </button>
         ))}
       </div>
     </div>
+    <TeamModal
+      team={selectedTeam}
+      open={modalOpen}
+      onOpenChange={setModalOpen}
+    />
+    </>
   );
 }
 
