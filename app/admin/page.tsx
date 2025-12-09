@@ -7,7 +7,7 @@ import { useAdmin } from "@/lib/hooks/use-admin";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, FolderKanban, Users as UsersIcon, Target } from "lucide-react";
+import { BookOpen, FolderKanban, Users as UsersIcon, Target, Image as ImageIcon } from "lucide-react";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -120,6 +120,23 @@ export default function AdminPage() {
                 <Link href="/academy/teams">View All Teams</Link>
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              Advertisements
+            </CardTitle>
+            <CardDescription>
+              Manage homepage advertisements with images and links.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full">
+              <Link href="/admin/advertisements">Manage Advertisements</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
