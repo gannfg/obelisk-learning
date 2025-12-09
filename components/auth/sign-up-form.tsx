@@ -124,8 +124,8 @@ export function SignUpForm() {
 
         // Check if email confirmation is required
         if (data.user.email_confirmed_at) {
-          // Email already confirmed, redirect to dashboard
-          router.push("/dashboard");
+          // Email already confirmed, redirect to landing page
+          router.push("/");
           router.refresh();
         } else {
           // Email confirmation required

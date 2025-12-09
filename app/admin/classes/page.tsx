@@ -105,6 +105,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { uploadCourseImage } from "@/lib/storage";
+import { COURSE_CATEGORIES } from "@/lib/categories";
 import Image from "next/image";
 
 export default function AdminClassesPage() {
@@ -130,6 +131,7 @@ export default function AdminClassesPage() {
 
   // Dialog states
   const [classDialogOpen, setClassDialogOpen] = useState(false);
+  const [classDialogError, setClassDialogError] = useState<string | null>(null);
   const [moduleDialogOpen, setModuleDialogOpen] = useState(false);
   const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
   const [enrollmentDialogOpen, setEnrollmentDialogOpen] = useState(false);
@@ -302,24 +304,24 @@ export default function AdminClassesPage() {
 
   const handleCreateClass = async () => {
     if (!classForm.title || !classForm.semester || !classForm.startDate || !classForm.endDate) {
-      setError("Please fill in all required fields.");
+      setClassDialogError("Please fill in all required fields.");
       return;
     }
 
     setSaving(true);
-    setError(null);
+    setClassDialogError(null);
 
     try {
       // Use Auth Supabase for authentication
       const authSupabase = createClient();
       if (!authSupabase) {
-        setError("Supabase client not configured.");
+        setClassDialogError("Supabase client not configured.");
         setSaving(false);
         return;
       }
       const { data: { user } } = await authSupabase.auth.getUser();
       if (!user) {
-        setError("Not authenticated.");
+        setClassDialogError("Not authenticated.");
         setSaving(false);
         return;
       }
@@ -327,7 +329,7 @@ export default function AdminClassesPage() {
       // Use Learning Supabase for database operations
       const learningSupabase = createLearningClient();
       if (!learningSupabase) {
-        setError("Supabase client not configured.");
+        setClassDialogError("Supabase client not configured.");
         setSaving(false);
         return;
       }
@@ -360,15 +362,16 @@ export default function AdminClassesPage() {
       if (newClass) {
         setSuccess("Class created successfully!");
         setClassDialogOpen(false);
+        setClassDialogError(null);
         resetClassForm();
         await loadClasses();
       } else {
-        setError("Failed to create class. Please check the console for details.");
+        setClassDialogError("Failed to create class. Please check the console for details.");
       }
     } catch (error: any) {
       console.error("Error creating class:", error);
       const errorMessage = error?.message || error?.toString() || "Failed to create class.";
-      setError(`Error: ${errorMessage}. Please ensure the classes schema has been run in your Supabase database.`);
+      setClassDialogError(`Error: ${errorMessage}. Please ensure the classes schema has been run in your Supabase database.`);
     } finally {
       setSaving(false);
     }
@@ -377,13 +380,18 @@ export default function AdminClassesPage() {
   const handleUpdateClass = async () => {
     if (!editingClass) return;
 
+    if (!classForm.title || !classForm.semester || !classForm.startDate || !classForm.endDate) {
+      setClassDialogError("Please fill in all required fields.");
+      return;
+    }
+
     setSaving(true);
-    setError(null);
+    setClassDialogError(null);
 
     try {
       const supabase = createLearningClient();
       if (!supabase) {
-        setError("Supabase client not configured.");
+        setClassDialogError("Supabase client not configured.");
         setSaving(false);
         return;
       }
@@ -415,6 +423,7 @@ export default function AdminClassesPage() {
       if (updated) {
         setSuccess("Class updated successfully!");
         setClassDialogOpen(false);
+        setClassDialogError(null);
         setEditingClass(null);
         resetClassForm();
         await loadClasses();
@@ -422,11 +431,11 @@ export default function AdminClassesPage() {
           setSelectedClass(updated);
         }
       } else {
-        setError("Failed to update class.");
+        setClassDialogError("Failed to update class.");
       }
     } catch (error: any) {
       console.error("Error updating class:", error);
-      setError(error.message || "Failed to update class.");
+      setClassDialogError(error.message || "Failed to update class.");
     } finally {
       setSaving(false);
     }
@@ -723,6 +732,7 @@ export default function AdminClassesPage() {
   };
 
   const resetClassForm = () => {
+    setClassDialogError(null);
     setClassForm({
       title: "",
       description: "",
@@ -1583,7 +1593,12 @@ export default function AdminClassesPage() {
       </div>
 
       {/* Create/Edit Class Dialog */}
-      <Dialog open={classDialogOpen} onOpenChange={setClassDialogOpen}>
+      <Dialog open={classDialogOpen} onOpenChange={(open) => {
+        setClassDialogOpen(open);
+        if (!open) {
+          setClassDialogError(null);
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingClass ? "Edit Class" : "Create New Class"}</DialogTitle>
@@ -1593,13 +1608,24 @@ export default function AdminClassesPage() {
                 : "Create a new semester-based class."}
             </DialogDescription>
           </DialogHeader>
+          {classDialogError && (
+            <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
+              <p className="text-sm text-destructive">{classDialogError}</p>
+            </div>
+          )}
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Title *</label>
+              <label className="text-sm font-medium flex items-center gap-1">
+                Title <span className="text-destructive">*</span>
+                {!classForm.title && (
+                  <span className="text-xs text-destructive ml-1">(Required)</span>
+                )}
+              </label>
               <Input
                 value={classForm.title}
                 onChange={(e) => setClassForm({ ...classForm, title: e.target.value })}
                 placeholder="e.g., Web3 Development Fundamentals"
+                className={!classForm.title ? "border-destructive focus-visible:ring-destructive" : ""}
               />
             </div>
             <div>
@@ -1613,38 +1639,72 @@ export default function AdminClassesPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Semester *</label>
+                <label className="text-sm font-medium flex items-center gap-1">
+                  Semester <span className="text-destructive">*</span>
+                  {!classForm.semester && (
+                    <span className="text-xs text-destructive ml-1">(Required)</span>
+                  )}
+                </label>
                 <Input
                   value={classForm.semester}
                   onChange={(e) => setClassForm({ ...classForm, semester: e.target.value })}
                   placeholder="e.g., Fall 2024"
+                  className={!classForm.semester ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">Category</label>
-                <Input
+                <Select
                   value={classForm.category}
-                  onChange={(e) => setClassForm({ ...classForm, category: e.target.value })}
-                  placeholder="e.g., Web3, Fullstack"
-                />
+                  onValueChange={(value) => setClassForm({ ...classForm, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COURSE_CATEGORIES.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Start Date *</label>
-                <Input
-                  type="date"
-                  value={classForm.startDate}
-                  onChange={(e) => setClassForm({ ...classForm, startDate: e.target.value })}
-                />
+                <label className="text-sm font-medium flex items-center gap-1">
+                  Start Date <span className="text-destructive">*</span>
+                  {!classForm.startDate && (
+                    <span className="text-xs text-destructive ml-1">(Required)</span>
+                  )}
+                </label>
+                <div className="relative">
+                  <Input
+                    type="date"
+                    value={classForm.startDate}
+                    onChange={(e) => setClassForm({ ...classForm, startDate: e.target.value })}
+                    className={!classForm.startDate ? "border-destructive focus-visible:ring-destructive" : ""}
+                  />
+                  <Calendar className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
               <div>
-                <label className="text-sm font-medium">End Date *</label>
-                <Input
-                  type="date"
-                  value={classForm.endDate}
-                  onChange={(e) => setClassForm({ ...classForm, endDate: e.target.value })}
-                />
+                <label className="text-sm font-medium flex items-center gap-1">
+                  End Date <span className="text-destructive">*</span>
+                  {!classForm.endDate && (
+                    <span className="text-xs text-destructive ml-1">(Required)</span>
+                  )}
+                </label>
+                <div className="relative">
+                  <Input
+                    type="date"
+                    value={classForm.endDate}
+                    onChange={(e) => setClassForm({ ...classForm, endDate: e.target.value })}
+                    className={!classForm.endDate ? "border-destructive focus-visible:ring-destructive" : ""}
+                  />
+                  <Calendar className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
             </div>
             <div>
@@ -1705,7 +1765,10 @@ export default function AdminClassesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setClassDialogOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setClassDialogOpen(false);
+              setClassDialogError(null);
+            }}>
               Cancel
             </Button>
             <Button onClick={editingClass ? handleUpdateClass : handleCreateClass} disabled={saving}>

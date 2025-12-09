@@ -12,6 +12,7 @@ import { getAllAds } from "@/lib/ads";
 import { getAllProjects, ProjectWithMembers } from "@/lib/projects";
 import { getAllTeams, TeamWithDetails } from "@/lib/teams";
 import { useAuth } from "@/lib/hooks/use-auth";
+import { useAdmin } from "@/lib/hooks/use-admin";
 import { Loader2 } from "lucide-react";
 import { HorizontalClassCard } from "@/components/horizontal-class-card";
 import { HorizontalProjectCard } from "@/components/horizontal-project-card";
@@ -42,6 +43,7 @@ export default function Home() {
   const [loadingAds, setLoadingAds] = useState(true);
   
   const { user } = useAuth();
+  const { isAdmin } = useAdmin();
   const learningSupabase = createLearningClient();
   const supabase = createClient();
 
@@ -53,14 +55,15 @@ export default function Home() {
       return;
     }
     setLoadingClasses(true);
-    getAllClasses(undefined, learningSupabase)
+    // Non-admin users should only see published classes
+    getAllClasses({ publishedOnly: !isAdmin }, learningSupabase)
       .then(setClasses)
       .catch((error) => {
         console.error("Error loading classes:", error);
         setClasses([]);
       })
       .finally(() => setLoadingClasses(false));
-  }, [learningSupabase]);
+  }, [learningSupabase, isAdmin]);
 
   // Load projects
   useEffect(() => {
