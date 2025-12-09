@@ -41,6 +41,11 @@ export default function NotificationsPage() {
     if (!user || loading) return;
 
     const fetchNotifications = async () => {
+      if (!supabase) {
+        console.error("Supabase client not configured.");
+        setLoadingNotifications(false);
+        return;
+      }
       try {
         const notifs = await getUserNotifications(user.id, supabase);
         setNotifications(notifs);
@@ -54,6 +59,7 @@ export default function NotificationsPage() {
     fetchNotifications();
 
     // Set up real-time subscription
+    if (!supabase) return;
     const channel = supabase
       .channel("notifications-page")
       .on(
@@ -71,12 +77,14 @@ export default function NotificationsPage() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [user, loading, supabase]);
 
   const handleMarkAsRead = async (notificationId: string) => {
-    if (!user) return;
+    if (!user || !supabase) return;
 
     await markNotificationAsRead(notificationId, user.id, supabase);
     setNotifications((prev) =>
@@ -85,7 +93,7 @@ export default function NotificationsPage() {
   };
 
   const handleMarkAllAsRead = async () => {
-    if (!user) return;
+    if (!user || !supabase) return;
 
     await markAllNotificationsAsRead(user.id, supabase);
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));

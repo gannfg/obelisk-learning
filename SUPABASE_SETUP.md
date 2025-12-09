@@ -1,6 +1,6 @@
 # Supabase Setup Guide
 
-This guide will help you set up Supabase databases for Obelisk Learning.
+This guide will help you set up Supabase databases for Superteam Study.
 
 > **Note**: This project uses **two separate Supabase databases**:
 > - **lantaidua-universal-auth Supabase**: For Clerk user synchronization (see `AUTH_SETUP.md`)
@@ -17,7 +17,7 @@ This guide will help you set up Supabase databases for Obelisk Learning.
 1. Go to [Supabase Dashboard](https://app.supabase.com)
 2. Click "New Project"
 3. Fill in your project details:
-   - **Name**: Obelisk Learning (or your preferred name)
+   - **Name**: Superteam Study (or your preferred name)
    - **Database Password**: Choose a strong password (save it securely)
    - **Region**: Choose the closest region to your users
 4. Click "Create new project" and wait for it to initialize

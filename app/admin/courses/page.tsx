@@ -154,6 +154,11 @@ export default function AdminCoursesPage() {
   }, [selectedModule]);
 
   const loadCourses = async () => {
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      setLoadingCourses(false);
+      return;
+    }
     try {
       const { data, error } = await supabase
         .from("courses")
@@ -176,6 +181,7 @@ export default function AdminCoursesPage() {
   };
 
   const loadModules = async (courseId: string) => {
+    if (!supabase) return;
     try {
       const { data, error } = await supabase
         .from("modules")
@@ -214,14 +220,10 @@ export default function AdminCoursesPage() {
 
     // Create Supabase client only on the client when form is submitted.
     // This avoids throwing during build/prerender if env vars are missing.
-    let supabase;
-    try {
-      supabase = createLearningClient();
-    } catch (err: any) {
-      console.error("Supabase client not configured:", err);
+    const supabase = createLearningClient();
+    if (!supabase) {
       setError(
-        err?.message ||
-          "Supabase environment variables are not configured. Please set NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL and NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_ANON_KEY."
+        "Supabase environment variables are not configured. Please set NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL and NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_ANON_KEY."
       );
       setSaving(false);
       return;
@@ -378,6 +380,10 @@ export default function AdminCoursesPage() {
   };
 
   const handleDeleteCourse = async (courseId: string) => {
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      return;
+    }
     if (!confirm("Are you sure you want to delete this course? This will also delete all modules and lessons.")) {
       return;
     }
@@ -444,6 +450,10 @@ export default function AdminCoursesPage() {
   };
 
   const handleSaveModule = async () => {
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      return;
+    }
     if (!selectedCourse) {
       setError("Please select or create a course first.");
       return;
@@ -509,6 +519,10 @@ export default function AdminCoursesPage() {
   };
 
   const handleConfirmDelete = async () => {
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      return;
+    }
     if (!moduleToDelete || !selectedCourse) return;
 
     try {
@@ -535,6 +549,7 @@ export default function AdminCoursesPage() {
   };
 
   const loadLessons = async (moduleId: string) => {
+    if (!supabase) return;
     try {
       setLoadingLessons(true);
       const { data, error } = await supabase
@@ -572,7 +587,7 @@ export default function AdminCoursesPage() {
         setLessonType("markdown");
       }
       // Load quiz questions if quiz_id exists
-      if (lesson.quiz_id) {
+      if (lesson.quiz_id && supabase) {
         const { data: quizData, error: quizError } = await supabase
           .from("quizzes")
           .select("questions, title")
@@ -617,6 +632,10 @@ export default function AdminCoursesPage() {
   };
 
   const handleSaveLesson = async () => {
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      return;
+    }
     if (!selectedModule) {
       setError("Please select a module first.");
       return;
@@ -821,6 +840,10 @@ export default function AdminCoursesPage() {
   };
 
   const handleConfirmDeleteLesson = async () => {
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      return;
+    }
     if (!lessonToDelete || !selectedModule) return;
 
     try {
@@ -847,6 +870,10 @@ export default function AdminCoursesPage() {
   };
 
   const handleDuplicateLesson = async (lesson: Lesson) => {
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      return;
+    }
     if (!selectedModule) return;
 
     try {
@@ -922,6 +949,11 @@ export default function AdminCoursesPage() {
       order_index: index,
     }));
 
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      setDraggedLessonId(null);
+      return;
+    }
     try {
       for (const update of updates) {
         const { error } = await supabase
@@ -997,6 +1029,11 @@ export default function AdminCoursesPage() {
       order_index: index,
     }));
 
+    if (!supabase) {
+      setError("Supabase client not configured.");
+      setDraggedModuleId(null);
+      return;
+    }
     try {
       // Update all modules with new order indices
       for (const update of updates) {
@@ -1041,9 +1078,9 @@ export default function AdminCoursesPage() {
     <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Courses Admin</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2">Classes Admin</h1>
           <p className="text-base sm:text-lg text-muted-foreground">
-            Create and manage courses, modules, and lessons for the Web3 Coding Academy.
+            Create and manage classes, modules, and lessons for the Web3 Coding Academy.
           </p>
         </div>
         <Button variant="outline" asChild>
@@ -1240,11 +1277,11 @@ export default function AdminCoursesPage() {
           {/* Course List */}
           <Card>
             <CardHeader>
-              <CardTitle>All Courses</CardTitle>
+              <CardTitle>All Classes</CardTitle>
               <CardDescription>
                 {loadingCourses
                   ? "Loading courses..."
-                  : `${courses.length} course${courses.length !== 1 ? "s" : ""} found`}
+                  : `${courses.length} class${courses.length !== 1 ? "es" : ""} found`}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1254,7 +1291,7 @@ export default function AdminCoursesPage() {
                 </div>
               ) : courses.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  No courses found. Create your first course above.
+                  No classes found. Create your first class above.
                 </p>
               ) : (
                 <div className="space-y-4">

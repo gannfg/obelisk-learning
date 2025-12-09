@@ -18,7 +18,7 @@ import {
   ChevronDown,
   User,
   LogOut,
-  FolderKanban,
+  BookOpen,
   Users as UsersIcon,
   HelpCircle,
 } from "lucide-react";
@@ -64,15 +64,16 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
 
 
   const handleSignOut = async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
     window.location.href = "/";
   };
 
   const baseNavItems = [
-    { href: "/missions", label: "Missions" },
     { href: "/academy", label: "Academy" },
+    { href: "/missions", label: "Missions" },
+    { href: "/workshops", label: "Workshops" },
     { href: "/instructors", label: "Mentors" },
-    { href: "/mentor-chat", label: "Chat" },
   ];
 
   const navItems = isAdmin
@@ -154,7 +155,7 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
               {user ? (
                 <>
                   {/* Notifications */}
-                  <NotificationsDropdown userId={user.id} supabase={supabase} />
+                  {supabase && <NotificationsDropdown userId={user.id} supabase={supabase} />}
 
                   {/* Profile Picture + Username + Dropdown */}
                   <DropdownMenu>
@@ -198,9 +199,9 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/academy/projects" className="flex items-center w-full">
-                          <FolderKanban className="mr-2 h-4 w-4" />
-                          Projects
+                        <Link href="/my-classes" className="flex items-center w-full">
+                          <BookOpen className="mr-2 h-4 w-4" />
+                          My Classes
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
@@ -211,7 +212,7 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
-                        <Link href="/mentor-chat" className="flex items-center w-full">
+                        <Link href="/instructors" className="flex items-center w-full">
                           <HelpCircle className="mr-2 h-4 w-4" />
                           Help
                         </Link>

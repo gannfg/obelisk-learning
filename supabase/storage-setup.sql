@@ -56,6 +56,17 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- Create storage bucket for workshop images (Learning Supabase)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'workshop-images',
+  'workshop-images',
+  true,
+  10485760,
+  ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
 -- Storage policies for avatars bucket
 -- Drop existing policies if they exist
 DROP POLICY IF EXISTS "Public Avatar Access" ON storage.objects;
@@ -251,8 +262,43 @@ USING (
   AND auth.uid() IS NOT NULL
 );
 
+-- Storage policies for workshop-images bucket
+DROP POLICY IF EXISTS "Public Workshop Image Access" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated can upload workshop images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated can update workshop images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated can delete workshop images" ON storage.objects;
+
+CREATE POLICY "Public Workshop Image Access"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'workshop-images');
+
+CREATE POLICY "Authenticated can upload workshop images"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'workshop-images' 
+  AND auth.uid() IS NOT NULL
+);
+
+CREATE POLICY "Authenticated can update workshop images"
+ON storage.objects FOR UPDATE
+USING (
+  bucket_id = 'workshop-images' 
+  AND auth.uid() IS NOT NULL
+)
+WITH CHECK (
+  bucket_id = 'workshop-images' 
+  AND auth.uid() IS NOT NULL
+);
+
+CREATE POLICY "Authenticated can delete workshop images"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'workshop-images' 
+  AND auth.uid() IS NOT NULL
+);
+
 -- Verify buckets were created
 SELECT id, name, public, file_size_limit, allowed_mime_types 
 FROM storage.buckets 
-WHERE id IN ('avatars', 'user-uploads', 'course-images', 'project-images', 'team-avatars');
+WHERE id IN ('avatars', 'user-uploads', 'course-images', 'project-images', 'team-avatars', 'workshop-images');
 

@@ -1,4 +1,4 @@
--- Admin setup for Obelisk Learning
+-- Admin setup for Superteam Study
 -- Run this in your Auth Supabase (lantaidua-universal-auth) project
 
 -- 1. Add is_admin flag to users table

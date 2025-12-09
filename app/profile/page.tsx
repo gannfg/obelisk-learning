@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getUserProfile, updateUserProfile, UserProfile } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/client";
+import { createLearningClient } from "@/lib/supabase/learning-client";
 import { uploadProfilePicture } from "@/lib/storage";
-import { Loader2, Save, ArrowLeft, Upload, X, RefreshCw } from "lucide-react";
+import { Loader2, Save, ArrowLeft, Upload, X, BookOpen, Calendar, FolderKanban } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -32,7 +33,12 @@ export default function ProfilePage() {
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
+  const [userStats, setUserStats] = useState({
+    classesCount: 0,
+    workshopsCount: 0,
+    projectsCount: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
 
   // Load profile data
   useEffect(() => {
@@ -72,6 +78,67 @@ export default function ProfilePage() {
 
     loadProfile();
   }, [user, authLoading, supabase]);
+
+  // Load user stats
+  useEffect(() => {
+    const loadUserStats = async () => {
+      if (authLoading || !user) {
+        setLoadingStats(false);
+        return;
+      }
+
+      try {
+        setLoadingStats(true);
+        const learningSupabase = createLearningClient();
+        if (!learningSupabase) {
+          setLoadingStats(false);
+          return;
+        }
+
+        // Get enrolled classes count
+        const { count: classesCount } = await learningSupabase
+          .from("class_enrollments")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("status", "active");
+
+        // Get workshop attendance count (workshops where user actually attended)
+        const { count: workshopsCount } = await learningSupabase
+          .from("workshop_attendance")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id);
+
+        // Get projects count (projects created by user or where user is a member)
+        const { data: projectMembers } = await learningSupabase
+          .from("project_members")
+          .select("project_id")
+          .eq("user_id", user.id);
+        
+        const projectMemberIds = new Set(projectMembers?.map((pm) => pm.project_id) || []);
+        
+        const { data: createdProjects } = await learningSupabase
+          .from("projects")
+          .select("id")
+          .eq("created_by", user.id);
+        
+        createdProjects?.forEach((p) => projectMemberIds.add(p.id));
+        
+        const projectsCount = projectMemberIds.size;
+
+        setUserStats({
+          classesCount: classesCount || 0,
+          workshopsCount: workshopsCount || 0,
+          projectsCount: projectsCount || 0,
+        });
+      } catch (error) {
+        console.error("Error loading user stats:", error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    loadUserStats();
+  }, [user, authLoading]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -113,65 +180,6 @@ export default function ProfilePage() {
       setError(`An error occurred: ${error?.message || 'Unknown error'}. Please check the console for details.`);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleForceSync = async () => {
-    if (!user) return;
-
-    setSyncing(true);
-    setError(null);
-    setSuccess(false);
-
-    try {
-      const email = user.email || '';
-      
-      // Force sync all fields from auth provider
-      const updates: any = {
-        email: email,
-      };
-
-      // Sync username from auth provider
-      if (user.user_metadata?.username) {
-        updates.username = user.user_metadata.username;
-      }
-
-      // Sync names from auth provider
-      const authFirstName = user.user_metadata?.first_name || user.user_metadata?.full_name?.split(' ')[0] || null;
-      const authLastName = user.user_metadata?.last_name || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null;
-      
-      if (authFirstName) updates.first_name = authFirstName;
-      if (authLastName) updates.last_name = authLastName;
-
-      // Only sync image if profile doesn't have one (preserve uploaded pictures)
-      if (!profile?.image_url && user.user_metadata?.avatar_url) {
-        updates.image_url = user.user_metadata.avatar_url;
-      }
-
-      const syncSuccess = await updateUserProfile(user.id, updates, email, supabase);
-
-      if (syncSuccess) {
-        // Reload profile
-        const updatedProfile = await getUserProfile(user.id, user.email || undefined, supabase);
-        if (updatedProfile) {
-          setProfile(updatedProfile);
-          setFormData({
-            username: updatedProfile.username || "",
-            first_name: updatedProfile.first_name || "",
-            last_name: updatedProfile.last_name || "",
-            bio: updatedProfile.bio || "",
-          });
-        }
-        setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
-      } else {
-        setError("Failed to sync profile. Please check the browser console for details.");
-      }
-    } catch (error: any) {
-      console.error("Error syncing profile:", error);
-      setError(`Sync error: ${error?.message || 'Unknown error'}. Please check the console for details.`);
-    } finally {
-      setSyncing(false);
     }
   };
 
@@ -246,6 +254,53 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {/* User Stats */}
+          {!isEditing && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Activity Overview</CardTitle>
+                <CardDescription>Your learning and participation statistics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingStats ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="p-3 bg-primary/10 rounded-lg">
+                        <BookOpen className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{userStats.classesCount}</p>
+                        <p className="text-sm text-muted-foreground">Classes</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="p-3 bg-primary/10 rounded-lg">
+                        <Calendar className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{userStats.workshopsCount}</p>
+                        <p className="text-sm text-muted-foreground">Workshops Attended</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="p-3 bg-primary/10 rounded-lg">
+                        <FolderKanban className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">{userStats.projectsCount}</p>
+                        <p className="text-sm text-muted-foreground">Projects</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Edit Form */}
           <Card>
             <CardHeader>
@@ -259,28 +314,9 @@ export default function ProfilePage() {
                   </CardDescription>
                 </div>
                 {!isEditing && (
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handleForceSync} 
-                      variant="outline" 
-                      disabled={syncing}
-                    >
-                      {syncing ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Syncing...
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Sync from Auth
-                        </>
-                      )}
-                    </Button>
-                    <Button onClick={() => setIsEditing(true)} variant="outline">
-                      Edit
-                    </Button>
-                  </div>
+                  <Button onClick={() => setIsEditing(true)} variant="outline">
+                    Edit
+                  </Button>
                 )}
               </div>
             </CardHeader>

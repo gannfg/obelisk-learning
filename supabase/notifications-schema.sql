@@ -136,7 +136,7 @@ BEGIN
   VALUES (
     new_user_id,
     'welcome',
-    'Welcome to Obelisk Learning! 🎉',
+    'Welcome to Superteam Study! 🎉',
     'Thank you for joining our platform. Start exploring courses, projects, and connect with mentors!',
     '/academy'
   )

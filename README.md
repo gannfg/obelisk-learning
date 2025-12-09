@@ -1,4 +1,4 @@
-# Obelisk Learning Platform
+# Superteam Study Platform
 
 A modern learning and courses platform built with Next.js 14, TailwindCSS, and Supabase-ready architecture.
 
@@ -93,12 +93,12 @@ The following features have placeholders ready for implementation:
 To connect Supabase:
 
 1. Create **Supabase project**:
-   - **Obelisk Learning Auth Supabase**: See `supabase/auth-setup-guide.md`
+   - **Superteam Study Auth Supabase**: See `supabase/auth-setup-guide.md`
    - **Learning Supabase** (optional, for platform data): See `SUPABASE_SETUP.md`
 
 2. Set up environment variables:
    ```env
-   # Obelisk Learning Auth Supabase (for authentication)
+   # Superteam Study Auth Supabase (for authentication)
    NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_URL=your_auth_supabase_url
    NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY=your_auth_anon_key
    

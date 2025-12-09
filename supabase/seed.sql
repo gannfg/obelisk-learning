@@ -1,4 +1,4 @@
--- Seed data for Obelisk Learning Platform
+-- Seed data for Superteam Study Platform
 -- Run this after creating the schema
 
 -- Insert Instructors

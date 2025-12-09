@@ -13,9 +13,9 @@ import { Button } from "@/components/ui/button";
 import {
   User,
   LogOut,
-  FolderKanban,
   Users as UsersIcon,
   HelpCircle,
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { getUserProfile } from "@/lib/profile";
@@ -65,6 +65,7 @@ export function UserMenu() {
   }, [user, loading, supabase]);
 
   const handleSignOut = async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
     router.push("/");
     router.refresh();
@@ -120,9 +121,9 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/academy/projects" className="flex items-center w-full">
-            <FolderKanban className="mr-2 h-4 w-4" />
-            Projects
+          <Link href="/my-classes" className="flex items-center w-full">
+            <BookOpen className="mr-2 h-4 w-4" />
+            My Classes
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

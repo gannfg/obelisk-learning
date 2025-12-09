@@ -131,7 +131,7 @@ export default function Dashboard() {
           Welcome, {profile?.first_name || user.email?.split('@')[0] || 'User'}!
         </h1>
         <p className="text-base sm:text-lg text-muted-foreground">
-          Manage your courses and track your learning progress.
+          Manage your classes and track your learning progress.
         </p>
       </div>
 
@@ -194,13 +194,13 @@ export default function Dashboard() {
       {/* My Courses */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">My Courses</CardTitle>
+          <CardTitle className="text-2xl">My Classes</CardTitle>
           <CardDescription>Continue your learning journey</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-base text-muted-foreground mb-4">You haven't enrolled in any courses yet.</p>
+            <p className="text-base text-muted-foreground mb-4">You haven't enrolled in any classes yet.</p>
             <Button asChild>
               <Link href="/academy">Browse Academy</Link>
             </Button>

@@ -7,7 +7,7 @@ export default function SignInPage() {
         <div className="text-center">
           <h1 className="text-2xl sm:text-3xl font-bold">Sign In</h1>
           <p className="mt-2 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
-            Sign in to your Obelisk Learning account
+            Sign in to your Superteam Study account
           </p>
         </div>
         <SignInForm />

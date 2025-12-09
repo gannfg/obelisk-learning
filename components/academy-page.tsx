@@ -19,53 +19,78 @@ import {
 } from "@/components/ui/card";
 import { getAllProjects, ProjectWithMembers } from "@/lib/projects";
 import { getAllTeams, TeamWithDetails } from "@/lib/teams";
-import { getAllCourses, CourseWithModules } from "@/lib/courses";
+import { getAllClasses } from "@/lib/classes";
 import { createClient } from "@/lib/supabase/client";
 import { createLearningClient } from "@/lib/supabase/learning-client";
 import { Loader2 } from "lucide-react";
+import { Class } from "@/types";
+import { ClassCard } from "@/components/class-card";
 
 export function AcademyPageClient() {
   const searchParams = useSearchParams();
   const selectedCategory = searchParams.get("category") as
     | CourseCategory
     | undefined;
-  const initialTab = (searchParams.get("tab") as "courses" | "projects" | "teams") || "courses";
+  const initialTab = (searchParams.get("tab") as "classes" | "projects" | "teams") || "classes";
 
-  const [currentTab, setCurrentTab] = useState<"courses" | "projects" | "teams">(initialTab);
+  const [currentTab, setCurrentTab] = useState<"classes" | "projects" | "teams">(initialTab);
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
   const [teams, setTeams] = useState<TeamWithDetails[]>([]);
-  const [courses, setCourses] = useState<CourseWithModules[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingTeams, setLoadingTeams] = useState(false);
   const [loadingCourses, setLoadingCourses] = useState(false);
+  
+  // Create clients safely - they may be placeholders if env vars are missing
   const supabase = createClient();
   const learningSupabase = createLearningClient();
 
-  const filteredCourses = selectedCategory
-    ? courses.filter((course) => course.category === selectedCategory)
-    : courses;
+  const filteredClasses = selectedCategory
+    ? classes.filter((classItem) => classItem.category === selectedCategory)
+    : classes;
 
   useEffect(() => {
-    if (currentTab === "courses") {
+    if (currentTab === "classes") {
+      if (!learningSupabase) {
+        setClasses([]);
+        setLoadingCourses(false);
+        return;
+      }
       setLoadingCourses(true);
-      getAllCourses(learningSupabase)
-        .then(setCourses)
+      getAllClasses(undefined, learningSupabase)
+        .then(setClasses)
         .catch((error) => {
-          console.error("Error loading courses:", error);
-          setCourses([]);
+          console.error("Error loading classes:", error);
+          setClasses([]);
         })
         .finally(() => setLoadingCourses(false));
     } else if (currentTab === "projects") {
+      if (!supabase) {
+        setProjects([]);
+        setLoadingProjects(false);
+        return;
+      }
       setLoadingProjects(true);
       getAllProjects(supabase)
         .then(setProjects)
-        .catch(console.error)
+        .catch((error) => {
+          console.error("Error loading projects:", error);
+          setProjects([]);
+        })
         .finally(() => setLoadingProjects(false));
     } else if (currentTab === "teams") {
+      if (!supabase) {
+        setTeams([]);
+        setLoadingTeams(false);
+        return;
+      }
       setLoadingTeams(true);
       getAllTeams(supabase)
         .then(setTeams)
-        .catch(console.error)
+        .catch((error) => {
+          console.error("Error loading teams:", error);
+          setTeams([]);
+        })
         .finally(() => setLoadingTeams(false));
     }
   }, [currentTab, supabase, learningSupabase]);
@@ -84,11 +109,11 @@ export function AcademyPageClient() {
       </div>
 
       {/* Tabs Navigation */}
-      <Tabs value={currentTab} onValueChange={(val) => setCurrentTab(val as "courses" | "projects" | "teams")} className="w-full">
+      <Tabs value={currentTab} onValueChange={(val) => setCurrentTab(val as "classes" | "projects" | "teams")} className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-8">
-          <TabsTrigger value="courses" className="flex items-center gap-2">
+          <TabsTrigger value="classes" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
-            <span className="hidden sm:inline">Courses</span>
+            <span className="hidden sm:inline">Classes</span>
           </TabsTrigger>
           <TabsTrigger value="projects" className="flex items-center gap-2">
             <FolderKanban className="h-4 w-4" />
@@ -100,25 +125,25 @@ export function AcademyPageClient() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Courses Tab */}
-        <TabsContent value="courses" className="space-y-6">
+        {/* Classes Tab */}
+        <TabsContent value="classes" className="space-y-6">
           <CategoryFilter />
           {loadingCourses ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : filteredCourses.length > 0 ? (
+          ) : filteredClasses.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {filteredCourses.map((course) => (
-                <CourseCard key={course.id} course={course} />
+              {filteredClasses.map((classItem) => (
+                <ClassCard key={classItem.id} classItem={classItem} />
               ))}
             </div>
           ) : (
             <div className="py-8 sm:py-12 text-center">
               <p className="text-base sm:text-lg text-muted-foreground">
-                {courses.length === 0
-                  ? "No courses available yet. Check back soon!"
-                  : "No courses found in this category."}
+                {classes.length === 0
+                  ? "No classes available yet. Check back soon!"
+                  : "No classes found in this category."}
               </p>
             </div>
           )}

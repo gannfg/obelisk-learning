@@ -1,6 +1,6 @@
 # Ollama Setup Guide
 
-This guide will help you set up Ollama for the AI Assistant feature in Obelisk Learning.
+This guide will help you set up Ollama for the AI Assistant feature in Superteam Study.
 
 ## What is Ollama?
 
@@ -78,7 +78,7 @@ ollama run llama3.2
 
 Type a question and press Enter. You should get a response. Type `/bye` to exit.
 
-## Configure Obelisk Learning
+## Configure Superteam Study
 
 1. **Add to `.env.local`** (optional, these are the defaults):
    ```env

@@ -19,7 +19,7 @@
 
 ### Pages Created
 
-- ✅ **Landing Page** (`/`) - Hero section, featured courses, why Obelisk Learning
+- ✅ **Landing Page** (`/`) - Hero section, featured courses, why Superteam Study
 - ✅ **Courses List** (`/courses`) - Grid of all available courses
 - ✅ **Course Overview** (`/courses/[id]`) - Course details with sidebar navigation
 - ✅ **Lesson Page** (`/courses/[id]/[moduleId]/[lessonId]`) - Markdown content + video player

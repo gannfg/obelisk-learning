@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAuthServerClient, createLearningServerClient } from "@/lib/supabase/server";
 
 // For MVP: This runs micro-checks (automated tests) for a mission
 // In production, this would execute test code in the sandbox
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const authSupabase = await createAuthServerClient();
+    const learningSupabase = await createLearningServerClient();
+    const { data: { user } } = await authSupabase.auth.getUser();
 
     const body = await request.json();
     const { files, lessonId, missionId } = body;
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch micro-checks for this mission
-    const { data: microChecks, error: checksError } = await supabase
+    const { data: microChecks, error: checksError } = await learningSupabase
       .from("micro_checks")
       .select("*")
       .eq("mission_id", missionId)
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
       const check = microChecks.find((c) => c.id === result.id);
       if (check) {
         try {
-          await supabase.from("micro_check_results").upsert({
+          await learningSupabase.from("micro_check_results").upsert({
             user_id: user.id,
             micro_check_id: check.id,
             mission_id: missionId,

@@ -1,10 +1,10 @@
 # Database Architecture
 
-This document explains the two-database architecture used in Obelisk Learning.
+This document explains the two-database architecture used in Superteam Study.
 
 ## Overview
 
-Obelisk Learning uses **two separate Supabase databases** to maintain clear separation between authentication data and platform data.
+Superteam Study uses **two separate Supabase databases** to maintain clear separation between authentication data and platform data.
 
 ## Database 1: lantaidua-universal-auth Supabase
 
@@ -30,7 +30,7 @@ Obelisk Learning uses **two separate Supabase databases** to maintain clear sepa
 
 ## Database 2: obelisk-learning Supabase
 
-**Purpose**: Stores all Obelisk Learning platform data
+**Purpose**: Stores all Superteam Study platform data
 
 **Environment Variables**:
 - `NEXT_PUBLIC_OBELISK_LEARNING_SUPABASE_URL`

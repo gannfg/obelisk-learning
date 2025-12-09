@@ -54,6 +54,12 @@ export type Instructor = {
 // Auth / User
 export type AppUserRole = "user" | "admin";
 
+// Re-export workshop types
+export * from "./workshops";
+
+// Re-export class types
+export * from "./classes";
+
 // Progress (for future Supabase integration)
 export type LessonProgress = {
   lessonId: string;

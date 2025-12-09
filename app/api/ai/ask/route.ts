@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAuthServerClient, createLearningServerClient } from "@/lib/supabase/server";
 
 // AI Assistant endpoint using Ollama
 // Ollama runs locally and provides a REST API for local LLM inference
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } = {} } = await supabase.auth.getUser();
+    const authSupabase = await createAuthServerClient();
+    const learningSupabase = await createLearningServerClient();
+    const { data: { user } = {} } = await authSupabase.auth.getUser();
 
     // Allow unauthenticated for now, but log if user exists
     const userId = user?.id;
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     // Check quota (if user is authenticated)
     if (userId) {
-      const { data: quota } = await supabase
+      const { data: quota } = await learningSupabase
         .from("user_quotas")
         .select("*")
         .eq("user_id", userId)
@@ -96,7 +97,7 @@ Error: ${error instanceof Error ? error.message : String(error)}
     // Log interaction (if user is authenticated)
     if (userId && missionId) {
       try {
-        await supabase.from("ai_interactions").insert({
+        await learningSupabase.from("ai_interactions").insert({
           user_id: userId,
           mission_id: missionId,
           prompt_template_id: promptTemplateId || null,
@@ -109,7 +110,7 @@ Error: ${error instanceof Error ? error.message : String(error)}
         // Update quota
         if (userId) {
           try {
-            const { error: rpcError } = await supabase.rpc("increment_quota", {
+            const { error: rpcError } = await learningSupabase.rpc("increment_quota", {
               user_id_param: userId,
               quota_type_param: "ai_calls",
               amount: 1,
@@ -117,7 +118,7 @@ Error: ${error instanceof Error ? error.message : String(error)}
 
             // Fallback if RPC doesn't exist or fails
             if (rpcError) {
-              const { data: quota } = await supabase
+              const { data: quota } = await learningSupabase
                 .from("user_quotas")
                 .select("*")
                 .eq("user_id", userId)
@@ -125,7 +126,7 @@ Error: ${error instanceof Error ? error.message : String(error)}
                 .single();
 
               if (quota) {
-                await supabase
+                await learningSupabase
                   .from("user_quotas")
                   .update({ daily_used: (quota.daily_used || 0) + 1 })
                   .eq("id", quota.id);

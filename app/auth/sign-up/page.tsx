@@ -7,7 +7,7 @@ export default function SignUpPage() {
         <div className="text-center">
           <h1 className="text-2xl sm:text-3xl font-bold">Create Account</h1>
           <p className="mt-2 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
-            Start your learning journey with Obelisk Learning
+            Start your learning journey with Superteam Study
           </p>
         </div>
         <SignUpForm />

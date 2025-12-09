@@ -1,6 +1,6 @@
 # Supabase Auth Setup Guide
 
-This guide will help you set up Supabase Auth for the Obelisk Learning platform.
+This guide will help you set up Supabase Auth for the Superteam Study platform.
 
 ## Prerequisites
 

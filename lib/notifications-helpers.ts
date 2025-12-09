@@ -17,7 +17,7 @@ export async function notifyWelcome(
     {
       userId,
       type: "welcome",
-      title: "Welcome to Obelisk Learning! 🎉",
+      title: "Welcome to Superteam Study! 🎉",
       message:
         "Thank you for joining our platform. Start exploring courses, projects, and connect with mentors!",
       link: "/academy",
@@ -239,6 +239,67 @@ export async function notifyNewMessage(
         sender_id: senderId,
         sender_name: senderName,
         conversation_id: conversationId,
+      },
+    },
+    authSupabase
+  );
+}
+
+/**
+ * Create a project submitted notification
+ */
+export async function notifyProjectSubmitted(
+  userId: string,
+  missionId: string,
+  missionTitle: string,
+  authSupabase: SupabaseClient
+): Promise<void> {
+  await createNotification(
+    {
+      userId,
+      type: "project",
+      title: "Project Submitted! ✅",
+      message: `Your project for "${missionTitle}" has been submitted and is now under review.`,
+      link: `/missions/${missionId}`,
+      metadata: {
+        mission_id: missionId,
+        mission_title: missionTitle,
+      },
+    },
+    authSupabase
+  );
+}
+
+/**
+ * Create a project reviewed notification
+ */
+export async function notifyProjectReviewed(
+  userId: string,
+  missionId: string,
+  missionTitle: string,
+  status: "approved" | "changes_requested",
+  reviewerName: string,
+  feedbackSummary: string | null,
+  authSupabase: SupabaseClient
+): Promise<void> {
+  const statusMessage =
+    status === "approved"
+      ? "Your project has been approved! Great work! 🎉"
+      : "Your project needs some changes. Please review the feedback.";
+
+  await createNotification(
+    {
+      userId,
+      type: "project",
+      title: status === "approved" ? "Project Approved! 🎉" : "Project Review Complete",
+      message: `${reviewerName} reviewed your project for "${missionTitle}". ${statusMessage} ${feedbackSummary ? `Feedback: ${feedbackSummary}` : ""}`,
+      link: `/missions/${missionId}`,
+      metadata: {
+        mission_id: missionId,
+        mission_title: missionTitle,
+        status,
+        reviewer_name: reviewerName,
+        feedback_summary: feedbackSummary,
       },
     },
     authSupabase
