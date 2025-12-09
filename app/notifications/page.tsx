@@ -78,7 +78,7 @@ export default function NotificationsPage() {
 
     return () => {
       if (supabase) {
-        supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
       }
     };
   }, [user, loading, supabase]);
