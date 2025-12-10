@@ -176,3 +176,5 @@ NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE_ANON_KEY=your-auth-anon-key
 > **Note**: The MCP server uses the **service_role** key, while your Next.js app uses the **anon** key for client-side operations.
 
 
+
+
