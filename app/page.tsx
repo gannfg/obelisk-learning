@@ -260,7 +260,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Main Content Section */}
-      <section className="container mx-auto px-4 sm:px-6 pt-4 sm:pt-6 md:pt-8 pb-12 sm:pb-16">
+      <section className="container mx-auto px-3 sm:px-4 pt-3 sm:pt-4 md:pt-6 pb-8 sm:pb-12">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8">
             {/* Left Column - Courses List */}

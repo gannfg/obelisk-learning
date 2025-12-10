@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 
 export default function MentorPage() {
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-16 md:py-24">
+    <div className="container mx-auto px-3 sm:px-4 py-12 sm:py-16 md:py-24">
       <div className="max-w-4xl mx-auto">
         <Button asChild variant="ghost" className="mb-8">
           <Link href="/">

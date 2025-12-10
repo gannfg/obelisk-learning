@@ -112,8 +112,8 @@ export default function MissionBoardPage() {
   );
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <div className="mb-6">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="mb-8">
         <div className="mb-4">
           <h1 className="text-2xl sm:text-3xl font-bold leading-tight mb-2">Mission Board</h1>
           <p className="text-sm sm:text-base text-muted-foreground">

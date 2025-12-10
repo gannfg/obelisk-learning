@@ -22,7 +22,7 @@ export default function AdminPage() {
 
   if (loading || !isAdmin) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-center min-height-[300px]">
           <p className="text-base text-muted-foreground">Checking admin access...</p>
         </div>
@@ -31,7 +31,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-8">
       <div>
         <h1 className="text-3xl sm:text-4xl font-bold mb-3">Admin Panel</h1>
         <p className="text-base sm:text-lg text-muted-foreground">

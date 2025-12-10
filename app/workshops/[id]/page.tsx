@@ -226,7 +226,7 @@ export default function WorkshopDetailPage() {
   if (!workshop) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
           <div className="text-center">
             <p className="text-muted-foreground mb-4">Workshop not found</p>
             <Button asChild>
@@ -248,7 +248,7 @@ export default function WorkshopDetailPage() {
         }} />
       </div>
 
-      <div className="relative container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="relative container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <Button variant="ghost" asChild className="mb-6">
           <Link href="/workshops">
             <ArrowLeft className="h-4 w-4 mr-2" />
