@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "react-day-picker/dist/style.css";
 
 /* Default: Pure Black and White Theme (Dark Mode) */
 :root,
