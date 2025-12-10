@@ -68,14 +68,9 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col gap-2">
-              <Button asChild>
-                <Link href="/admin/missions">Open Missions Admin</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/missions">View Mission Board</Link>
-              </Button>
-            </div>
+            <Button asChild className="w-full">
+              <Link href="/admin/missions">Open Missions Admin</Link>
+            </Button>
           </CardContent>
         </Card>
 
