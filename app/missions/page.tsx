@@ -9,12 +9,13 @@ import { Target, Clock, CheckCircle2, Circle, Trophy, Filter, Sparkles, Code2, C
 import { MissionCardSkeleton } from "@/components/mission-card-skeleton";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createLearningClient } from "@/lib/supabase/learning-client";
-import type { Mission, MissionProgress } from "@/types";
+import type { Mission, MissionProgress, MissionSubmission } from "@/types";
 
 export default function MissionBoardPage() {
   const { user, loading: authLoading } = useAuth();
   const [missions, setMissions] = useState<Mission[]>([]);
   const [progressMap, setProgressMap] = useState<Record<string, MissionProgress>>({});
+  const [submissionMap, setSubmissionMap] = useState<Record<string, MissionSubmission>>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "beginner" | "intermediate" | "advanced">("all");
   const [stackFilter, setStackFilter] = useState<string>("all");
@@ -69,8 +70,9 @@ export default function MissionBoardPage() {
 
       setMissions(normalizedMissions);
 
-      // Fetch progress for authenticated users
+      // Fetch progress and submissions for authenticated users
       if (user) {
+        // Fetch mission progress
         const { data: progressData } = await supabase
           .from("mission_progress")
           .select("*")
@@ -82,6 +84,34 @@ export default function MissionBoardPage() {
             progressMap[p.mission_id] = p as MissionProgress;
           });
           setProgressMap(progressMap);
+        }
+
+        // Fetch mission submissions
+        const { data: submissionData } = await supabase
+          .from("mission_submissions")
+          .select("*")
+          .eq("user_id", user.id);
+
+        if (submissionData) {
+          const submissionMap: Record<string, MissionSubmission> = {};
+          submissionData.forEach((s) => {
+            const mapped: MissionSubmission = {
+              id: s.id,
+              userId: s.user_id,
+              missionId: s.mission_id,
+              gitUrl: s.git_url,
+              websiteUrl: s.website_url ?? undefined,
+              pitchDeckUrl: s.pitch_deck_url ?? undefined,
+              status: s.status,
+              feedback: s.feedback ?? undefined,
+              reviewerId: s.reviewer_id ?? undefined,
+              reviewedAt: s.reviewed_at ? new Date(s.reviewed_at) : undefined,
+              createdAt: new Date(s.created_at),
+              updatedAt: new Date(s.updated_at),
+            };
+            submissionMap[s.mission_id] = mapped;
+          });
+          setSubmissionMap(submissionMap);
         }
       }
 
@@ -108,7 +138,7 @@ export default function MissionBoardPage() {
   }
 
   const stackTypes = Array.from(
-    new Set(missions.map((m) => m.stackType).filter((stack) => Boolean(stack)))
+    new Set(missions.map((m) => m.stackType).filter((stack): stack is NonNullable<typeof stack> => Boolean(stack)))
   );
 
   return (
@@ -185,16 +215,44 @@ export default function MissionBoardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {missions.map((mission) => {
             const progress = progressMap[mission.id];
-            const isCompleted = progress?.completed || false;
-            const checklistProgress = progress?.checklistProgress || [];
-            const completedItems = checklistProgress.filter((item) => item.completed).length;
-            const totalItems = checklistProgress.length;
+            const submission = submissionMap[mission.id];
+            const isJoined = !!progress;
+            
+            // Calculate progress percentage based on submission status
+            let progressPercentage = 0;
+            let statusText = "Not Joined";
+            
+            if (isJoined) {
+              if (!submission) {
+                progressPercentage = 0;
+                statusText = "Joined";
+              } else {
+                switch (submission.status) {
+                  case "submitted":
+                    progressPercentage = 50;
+                    statusText = "Submitted";
+                    break;
+                  case "under_review":
+                    progressPercentage = 75;
+                    statusText = "Under Review";
+                    break;
+                  case "approved":
+                  case "changes_requested":
+                    progressPercentage = 100;
+                    statusText = submission.status === "approved" ? "Approved" : "Changes Requested";
+                    break;
+                  default:
+                    progressPercentage = 0;
+                    statusText = "Joined";
+                }
+              }
+            }
 
             return (
               <Link key={mission.id} href={`/missions/${mission.id}`} className="block w-full group aspect-square">
                 <Card
                   className={`overflow-hidden h-full transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] hover:shadow-lg ${
-                    isCompleted ? "border-green-500/50 bg-green-500/5" : ""
+                    progressPercentage === 100 ? "border-green-500/50 bg-green-500/5" : isJoined ? "border-blue-500/30 bg-blue-500/5" : ""
                   }`}
                 >
                   <div className="p-4 sm:p-5">
@@ -224,15 +282,22 @@ export default function MissionBoardPage() {
                         <h3 className="text-base sm:text-lg font-bold mb-1 leading-tight">
                           {mission.title}
                         </h3>
-                        <span className={`text-xs font-medium capitalize ${
-                          mission.difficulty === "beginner"
-                            ? "text-green-600 dark:text-green-400"
-                            : mission.difficulty === "intermediate"
-                            ? "text-blue-600 dark:text-blue-400"
-                            : "text-purple-600 dark:text-purple-400"
-                        }`}>
-                          {mission.difficulty} level
-                        </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-xs font-medium capitalize ${
+                            mission.difficulty === "beginner"
+                              ? "text-green-600 dark:text-green-400"
+                              : mission.difficulty === "intermediate"
+                              ? "text-blue-600 dark:text-blue-400"
+                              : "text-purple-600 dark:text-purple-400"
+                          }`}>
+                            {mission.difficulty} level
+                          </span>
+                          {isJoined && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
+                              Joined
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -260,15 +325,29 @@ export default function MissionBoardPage() {
                     <div className="mb-2">
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-primary transition-all duration-300"
-                          style={{ width: `${totalItems > 0 ? (completedItems / totalItems) * 100 : (isCompleted ? 100 : 0)}%` }}
+                          className={`h-full transition-all duration-300 ${
+                            progressPercentage === 100 
+                              ? "bg-green-500" 
+                              : progressPercentage >= 50 
+                              ? "bg-blue-500" 
+                              : "bg-primary"
+                          }`}
+                          style={{ width: `${progressPercentage}%` }}
                         />
                       </div>
                     </div>
 
                     {/* Completion Status */}
-                    <div className="text-xs text-green-600 dark:text-green-400 font-medium">
-                      Completed: {totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : (isCompleted ? 100 : 0)}%
+                    <div className={`text-xs font-medium ${
+                      progressPercentage === 100
+                        ? "text-green-600 dark:text-green-400"
+                        : progressPercentage >= 50
+                        ? "text-blue-600 dark:text-blue-400"
+                        : isJoined
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-muted-foreground"
+                    }`}>
+                      {statusText}: {progressPercentage}%
                     </div>
                   </div>
                 </Card>

@@ -300,3 +300,63 @@ html * {
 .animate-scroll-up > * {
   flex-shrink: 0;
 }
+
+/* Date Picker Calendar Improvements */
+.rdp {
+  --rdp-cell-size: 36px;
+  --rdp-accent-color: #3b82f6;
+  --rdp-background-color: var(--background);
+  --rdp-accent-color-dark: #3b82f6;
+  --rdp-background-color-dark: var(--background);
+  --rdp-outline: 2px solid var(--ring);
+  --rdp-outline-selected: 2px solid #3b82f6;
+}
+
+.rdp-button_reset {
+  cursor: pointer;
+}
+
+.rdp-day_selected,
+.rdp-day_selected:focus-visible,
+.rdp-day_selected:hover {
+  background-color: #3b82f6 !important;
+  color: white !important;
+  font-weight: 500;
+}
+
+.rdp-day_today:not(.rdp-day_selected) {
+  background-color: var(--accent) !important;
+  color: var(--accent-foreground) !important;
+  font-weight: 500;
+}
+
+.rdp-nav_button:hover {
+  background-color: var(--accent) !important;
+}
+
+.rdp-day:hover:not(.rdp-day_disabled):not(.rdp-day_selected) {
+  background-color: var(--accent) !important;
+  transition: all 0.15s ease;
+}
+
+/* Dropdown styling */
+.rdp-dropdown {
+  appearance: none;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.rdp-dropdown:hover {
+  border-color: var(--foreground);
+}
+
+.rdp-dropdown:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: var(--ring);
+}
