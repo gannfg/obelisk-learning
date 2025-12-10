@@ -10,6 +10,7 @@ import {
   markAllNotificationsAsRead,
   formatNotificationTime,
   NotificationType,
+  deleteNotification,
 } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,15 +28,19 @@ import {
   Settings,
   Mail,
   Check,
+  X,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { acceptTeamInvitation, rejectTeamInvitation } from "@/lib/team-invitations";
 
 export default function NotificationsPage() {
   const { user, loading } = useAuth();
   const supabase = createClient();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const [processingInvitation, setProcessingInvitation] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || loading) return;
@@ -48,7 +53,34 @@ export default function NotificationsPage() {
       }
       try {
         const notifs = await getUserNotifications(user.id, supabase);
-        setNotifications(notifs);
+        
+        // Filter out notifications for already-processed team invitations
+        const validNotifications = await Promise.all(
+          notifs.map(async (notif) => {
+            if (notif.type === "team" && notif.metadata?.type === "team_invitation" && notif.metadata?.invitation_id) {
+              try {
+                const { data: invitation } = await supabase
+                  .from("team_invitations")
+                  .select("status")
+                  .eq("id", notif.metadata.invitation_id)
+                  .single();
+
+                // If invitation is already processed, delete the notification
+                if (invitation && (invitation.status === "accepted" || invitation.status === "rejected")) {
+                  await deleteNotification(notif.id, user.id, supabase);
+                  return null; // Filter out this notification
+                }
+              } catch (error) {
+                // Ignore errors, keep the notification
+              }
+            }
+            return notif;
+          })
+        );
+
+        // Remove null values (deleted notifications)
+        const filtered = validNotifications.filter((n): n is Notification => n !== null);
+        setNotifications(filtered);
       } catch (error) {
         console.error("Error fetching notifications:", error);
       } finally {
@@ -97,6 +129,78 @@ export default function NotificationsPage() {
 
     await markAllNotificationsAsRead(user.id, supabase);
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const handleAcceptInvitation = async (notification: Notification) => {
+    if (!user || !supabase || !notification.metadata?.invitation_id) return;
+
+    setProcessingInvitation(notification.id);
+    try {
+      const success = await acceptTeamInvitation(
+        notification.metadata.invitation_id,
+        user.id,
+        supabase
+      );
+
+      // Always delete notification after processing (whether success or failure)
+      // If it failed, the invitation was likely already processed
+      await deleteNotification(notification.id, user.id, supabase);
+      const notifs = await getUserNotifications(user.id, supabase);
+      setNotifications(notifs);
+    } catch (error) {
+      console.error("Error accepting invitation:", error);
+      // Still try to delete notification if invitation was already processed
+      try {
+        await deleteNotification(notification.id, user.id, supabase);
+        const notifs = await getUserNotifications(user.id, supabase);
+        setNotifications(notifs);
+      } catch (deleteError) {
+        console.error("Error deleting notification:", deleteError);
+      }
+    } finally {
+      setProcessingInvitation(null);
+    }
+  };
+
+  const handleRejectInvitation = async (notification: Notification) => {
+    if (!user || !supabase || !notification.metadata?.invitation_id) return;
+
+    setProcessingInvitation(notification.id);
+    try {
+      const success = await rejectTeamInvitation(
+        notification.metadata.invitation_id,
+        user.id,
+        supabase
+      );
+
+      // Always delete notification after processing
+      await deleteNotification(notification.id, user.id, supabase);
+      const notifs = await getUserNotifications(user.id, supabase);
+      setNotifications(notifs);
+    } catch (error) {
+      console.error("Error rejecting invitation:", error);
+      // Still try to delete notification
+      try {
+        await deleteNotification(notification.id, user.id, supabase);
+        const notifs = await getUserNotifications(user.id, supabase);
+        setNotifications(notifs);
+      } catch (deleteError) {
+        console.error("Error deleting notification:", deleteError);
+      }
+    } finally {
+      setProcessingInvitation(null);
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId: string) => {
+    if (!user || !supabase) return;
+    try {
+      await deleteNotification(notificationId, user.id, supabase);
+      const notifs = await getUserNotifications(user.id, supabase);
+      setNotifications(notifs);
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+    }
   };
 
   const getNotificationIcon = (type: NotificationType) => {
@@ -189,12 +293,19 @@ export default function NotificationsPage() {
             <Card
               key={notification.id}
               className={cn(
-                "transition-colors",
+                "group transition-colors hover:bg-muted/50 hover:text-foreground",
                 !notification.read && "bg-muted/50 border-primary/20"
               )}
             >
               <CardContent className="p-4">
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-4 relative">
+                  <button
+                    onClick={() => handleDeleteNotification(notification.id)}
+                    className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 z-10"
+                    aria-label="Delete notification"
+                  >
+                    <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                  </button>
                   <div className="mt-0.5 flex-shrink-0">
                     {getNotificationIcon(notification.type)}
                     {!notification.read && (
@@ -206,7 +317,7 @@ export default function NotificationsPage() {
                       <div className="flex-1">
                         <h3
                           className={cn(
-                            "text-sm font-medium mb-1",
+                            "text-sm font-medium mb-1 text-foreground",
                             !notification.read && "font-semibold"
                           )}
                         >
@@ -230,13 +341,50 @@ export default function NotificationsPage() {
                         </Button>
                       )}
                     </div>
-                    {notification.link && (
-                      <div className="mt-3">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={notification.link}>View</Link>
-                        </Button>
-                      </div>
-                    )}
+                    {/* Action Buttons */}
+                    <div className="mt-3 flex gap-2">
+                      {notification.type === "team" &&
+                        notification.metadata?.type === "team_invitation" &&
+                        notification.metadata?.invitation_id && (
+                          <>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleAcceptInvitation(notification)}
+                              disabled={processingInvitation === notification.id}
+                              className="flex-1"
+                            >
+                              {processingInvitation === notification.id ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4 mr-2" />
+                              )}
+                              Accept
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRejectInvitation(notification)}
+                              disabled={processingInvitation === notification.id}
+                              className="flex-1"
+                            >
+                              {processingInvitation === notification.id ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <X className="h-4 w-4 mr-2" />
+                              )}
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                      {notification.link &&
+                        notification.type !== "team" &&
+                        !(notification.metadata?.type === "team_invitation") && (
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={notification.link}>View</Link>
+                          </Button>
+                        )}
+                    </div>
                   </div>
                 </div>
               </CardContent>

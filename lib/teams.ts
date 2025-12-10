@@ -291,21 +291,58 @@ export async function addTeamMember(
   try {
     const supabase = supabaseClient || createClient();
 
-    const { error } = await supabase.from('team_members').insert({
-      team_id: teamId,
-      user_id: userId,
-      role,
-      joined_at: new Date().toISOString(),
-    });
+    // Check if user is already a member
+    const { data: existing } = await supabase
+      .from('team_members')
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('user_id', userId)
+      .single();
+
+    if (existing) {
+      console.warn('User is already a team member');
+      return true; // Already a member, consider it successful
+    }
+
+    const { data, error } = await supabase
+      .from('team_members')
+      .insert({
+        team_id: teamId,
+        user_id: userId,
+        role,
+        joined_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
 
     if (error) {
-      console.error('Error adding team member:', error);
+      console.error('Error adding team member:', {
+        error,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        teamId,
+        userId,
+        role,
+      });
+      
+      // If it's an RLS policy error, provide more context
+      if (error.code === '42501' || error.message?.includes('policy') || error.message?.includes('permission')) {
+        console.error('RLS Policy Error: User may not have permission to add team members');
+      }
+      
       return false;
     }
 
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in addTeamMember:', error);
+    console.error('Error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+    });
     return false;
   }
 }

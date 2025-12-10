@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/header";
+import { MobileNav } from "@/components/mobile-nav";
 import { Footer } from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { UserSync } from "@/components/user-sync";
@@ -57,7 +58,8 @@ export default function RootLayout({
           <UserSync />
           <div className="flex min-h-screen flex-col">
             <Header />
-            <main className="flex-1 pt-14 sm:pt-16">{children}</main>
+            <main className="flex-1 pt-14 sm:pt-16 pb-20 md:pb-0">{children}</main>
+            <MobileNav />
             <Footer />
           </div>
         </ThemeProvider>

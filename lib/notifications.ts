@@ -44,27 +44,57 @@ export async function createNotification(
   supabase: SupabaseClient
 ): Promise<Notification | null> {
   try {
+    // Ensure metadata is a proper JSONB object
+    const metadata = params.metadata && typeof params.metadata === 'object' 
+      ? params.metadata 
+      : {};
+
+    const notificationData = {
+      user_id: params.userId,
+      type: params.type,
+      title: params.title,
+      message: params.message,
+      link: params.link || null,
+      metadata: metadata,
+    };
+
     const { data, error } = await supabase
       .from("notifications")
-      .insert({
-        user_id: params.userId,
-        type: params.type,
-        title: params.title,
-        message: params.message,
-        link: params.link || null,
-        metadata: params.metadata || {},
-      })
+      .insert(notificationData)
       .select()
       .single();
 
     if (error) {
-      console.error("Error creating notification:", error);
+      console.error("Error creating notification:", {
+        error,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        notificationData,
+      });
+      
+      // If it's an RLS policy error, provide more context
+      if (error.code === '42501' || error.message?.includes('policy') || error.message?.includes('permission')) {
+        console.error("RLS Policy Error: User may not have permission to create notifications for this user_id");
+      }
+      
+      return null;
+    }
+
+    if (!data) {
+      console.error("No data returned from notification insert");
       return null;
     }
 
     return data as Notification;
-  } catch (error) {
-    console.error("Error creating notification:", error);
+  } catch (error: any) {
+    console.error("Error creating notification (catch):", error);
+    console.error("Error details:", {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+    });
     return null;
   }
 }
