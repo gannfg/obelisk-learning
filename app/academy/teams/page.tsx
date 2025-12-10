@@ -7,11 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Users, Plus, FolderKanban, Loader2 } from "lucide-react";
 import { getAllTeams, TeamWithDetails } from "@/lib/teams";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<TeamWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const { user } = useAuth();
 
   useEffect(() => {
     const loadTeams = async () => {
@@ -44,12 +46,21 @@ export default function TeamsPage() {
               Join or create teams to collaborate on projects together
             </p>
           </div>
-          <Button asChild>
-            <Link href="/academy/teams/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Team
-            </Link>
-          </Button>
+          {user ? (
+            <Button asChild>
+              <Link href="/academy/teams/new">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Team
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link href="/auth/sign-in?redirect=/academy/teams">
+                <Plus className="h-4 w-4 mr-2" />
+                Sign In to Create
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -124,14 +135,23 @@ export default function TeamsPage() {
       ) : (
         <div className="py-12 text-center">
           <p className="text-base text-muted-foreground mb-4">
-            No teams yet. Create your first team to start collaborating!
+            No teams yet. {user ? "Create your first team to start collaborating!" : "Sign in to create your first team!"}
           </p>
-          <Button asChild>
-            <Link href="/academy/teams/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Team
-            </Link>
-          </Button>
+          {user ? (
+            <Button asChild>
+              <Link href="/academy/teams/new">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Team
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link href="/auth/sign-in?redirect=/academy/teams">
+                <Plus className="h-4 w-4 mr-2" />
+                Sign In to Create
+              </Link>
+            </Button>
+          )}
         </div>
       )}
     </div>

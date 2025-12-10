@@ -9,11 +9,13 @@ import { FolderKanban, Plus, Loader2, Users } from "lucide-react";
 import { getAllProjects, ProjectWithMembers } from "@/lib/projects";
 import { getUserProfile } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const { user } = useAuth();
 
   useEffect(() => {
     const loadProjects = async () => {
@@ -87,12 +89,21 @@ export default function ProjectsPage() {
               Collaborate on real-world Web3 projects with your team
             </p>
           </div>
-          <Button asChild>
-            <Link href="/academy/projects/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Project
-            </Link>
-          </Button>
+          {user ? (
+            <Button asChild>
+              <Link href="/academy/projects/new">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Project
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link href="/auth/sign-in?redirect=/academy/projects">
+                <Plus className="h-4 w-4 mr-2" />
+                Sign In to Create
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -204,14 +215,23 @@ export default function ProjectsPage() {
       ) : (
         <div className="py-12 text-center">
           <p className="text-base text-muted-foreground mb-4">
-            No projects yet. Create your first project to get started!
+            No projects yet. {user ? "Create your first project to get started!" : "Sign in to create your first project!"}
           </p>
-          <Button asChild>
-            <Link href="/academy/projects/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Project
-            </Link>
-          </Button>
+          {user ? (
+            <Button asChild>
+              <Link href="/academy/projects/new">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Project
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild>
+              <Link href="/auth/sign-in?redirect=/academy/projects">
+                <Plus className="h-4 w-4 mr-2" />
+                Sign In to Create
+              </Link>
+            </Button>
+          )}
         </div>
       )}
     </div>

@@ -15,7 +15,8 @@ import {
   Share2, 
   Link as LinkIcon,
   MessageSquare,
-  FolderKanban
+  FolderKanban,
+  User
 } from "lucide-react";
 import { getProjectById, ProjectWithMembers } from "@/lib/projects";
 import { getTeamById, TeamWithDetails } from "@/lib/teams";
@@ -62,9 +63,11 @@ export default function ProjectPage() {
         setEditProgressLog(data.progressLog || "");
 
         // Fetch project member profiles for avatars
+        // For individual projects, load all members; for team projects, just first 3 for header
         if (data.members && data.members.length > 0) {
+          const membersToLoad = data.teamId ? data.members.slice(0, 3) : data.members;
           const profiles = await Promise.all(
-            data.members.slice(0, 3).map(async (member) => {
+            membersToLoad.map(async (member) => {
               try {
                 const profile = await getUserProfile(member.userId, undefined, supabase);
                 const fullName = [profile?.first_name, profile?.last_name]
@@ -341,8 +344,8 @@ export default function ProjectPage() {
           )}
         </div>
 
-        {/* Team Details Section */}
-        {team && (
+        {/* Team Details Section (only for team projects) */}
+        {team && project.teamId && (
           <div className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -414,6 +417,59 @@ export default function ProjectPage() {
                 </CardContent>
               </Card>
             </Link>
+          </div>
+        )}
+
+        {/* Member Details Section (only for individual projects) */}
+        {!project.teamId && project.members && project.members.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Member Details
+            </h2>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  {projectMemberProfiles.length > 0 ? (
+                    projectMemberProfiles.map((member) => (
+                      <div
+                        key={member.userId}
+                        className="flex items-center gap-4 p-3 rounded-lg border border-border bg-muted/30"
+                      >
+                        {member.avatar ? (
+                          <div className="relative h-12 w-12 rounded-full overflow-hidden flex-shrink-0">
+                            <Image
+                              src={member.avatar}
+                              alt={member.name}
+                              fill
+                              className="object-cover"
+                              sizes="48px"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-lg font-semibold text-primary">
+                              {member.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{member.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {project.members?.find((m) => m.userId === member.userId)?.role === "owner"
+                              ? "Project Owner"
+                              : "Project Member"}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Loading member details...</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 

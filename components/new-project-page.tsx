@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -23,8 +23,13 @@ import {
 import { createProject } from "@/lib/projects";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { Loader2, Image as ImageIcon, X } from "lucide-react";
+import { Loader2, Image as ImageIcon, X, Users, User, AlertCircle, FolderKanban } from "lucide-react";
 import { uploadProjectImage } from "@/lib/storage";
+import { getAllTeams, TeamWithDetails } from "@/lib/teams";
+import { getUserProfile } from "@/lib/profile";
+import Image from "next/image";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 interface NewProjectPageClientProps {
   initialTeamId?: string;
@@ -32,17 +37,106 @@ interface NewProjectPageClientProps {
 
 export function NewProjectPageClient({ initialTeamId }: NewProjectPageClientProps) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [projectType, setProjectType] = useState<"individual" | "team">(
+    initialTeamId ? "team" : "individual"
+  );
+  const [selectedTeamId, setSelectedTeamId] = useState<string | undefined>(initialTeamId);
+  const [teams, setTeams] = useState<TeamWithDetails[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<TeamWithDetails | null>(null);
+  const [userProfile, setUserProfile] = useState<{ name: string; avatar?: string } | null>(null);
+
+  // Check authentication
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/auth/sign-in?redirect=/academy/projects/new");
+    }
+  }, [user, authLoading, router]);
+
+  // Load user profile for individual projects
+  useEffect(() => {
+    if (user && projectType === "individual") {
+      const loadUserProfile = async () => {
+        try {
+          const profile = await getUserProfile(user.id, undefined, supabase);
+          const fullName = [profile?.first_name, profile?.last_name]
+            .filter(Boolean)
+            .join(" ")
+            .trim();
+          const username =
+            profile?.username ||
+            (fullName.length > 0 ? fullName : undefined) ||
+            profile?.email?.split("@")[0];
+
+          setUserProfile({
+            name: username || `User ${user.id.slice(0, 8)}`,
+            avatar: profile?.image_url || undefined,
+          });
+        } catch (error) {
+          console.error("Error loading user profile:", error);
+          setUserProfile({
+            name: user.email?.split("@")[0] || `User ${user.id.slice(0, 8)}`,
+            avatar: undefined,
+          });
+        }
+      };
+      loadUserProfile();
+    }
+  }, [user, projectType, supabase]);
+
+  // Load teams when team project type is selected
+  useEffect(() => {
+    if (user && projectType === "team") {
+      setLoadingTeams(true);
+      getAllTeams(supabase)
+        .then((teamList) => {
+          // Filter teams where user is a member
+          const userTeams = teamList.filter((team) =>
+            team.members?.some((member) => member.userId === user.id)
+          );
+          setTeams(userTeams);
+          
+          // If initialTeamId is provided, set it as selected
+          if (initialTeamId) {
+            const team = userTeams.find((t) => t.id === initialTeamId);
+            if (team) {
+              setSelectedTeam(team);
+              setSelectedTeamId(initialTeamId);
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("Error loading teams:", error);
+        })
+        .finally(() => {
+          setLoadingTeams(false);
+        });
+    }
+  }, [user, projectType, initialTeamId, supabase]);
+
+  // Update selected team when teamId changes
+  useEffect(() => {
+    if (selectedTeamId && teams.length > 0) {
+      const team = teams.find((t) => t.id === selectedTeamId);
+      setSelectedTeam(team || null);
+    }
+  }, [selectedTeamId, teams]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) {
       setError("You must be signed in to create a project");
+      return;
+    }
+
+    if (projectType === "team" && !selectedTeamId) {
+      setError("Please select a team for this project");
       return;
     }
 
@@ -85,7 +179,7 @@ export function NewProjectPageClient({ initialTeamId }: NewProjectPageClientProp
           difficulty,
           tags,
           thumbnail: thumbnailUrl,
-          teamId: initialTeamId,
+          teamId: projectType === "team" ? selectedTeamId : undefined,
           progressLog: progressLog || undefined,
         },
         user.id,
@@ -104,6 +198,37 @@ export function NewProjectPageClient({ initialTeamId }: NewProjectPageClientProp
       setLoading(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
+              <p className="text-muted-foreground mb-4">
+                You must be signed in to create a project.
+              </p>
+              <Button asChild>
+                <Link href="/auth/sign-in?redirect=/academy/projects/new">Sign In</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
@@ -133,10 +258,182 @@ export function NewProjectPageClient({ initialTeamId }: NewProjectPageClientProp
               </div>
             )}
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Project Type Selection */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Project Type</Label>
+                <RadioGroup
+                  value={projectType}
+                  onValueChange={(value) => {
+                    setProjectType(value as "individual" | "team");
+                    if (value === "individual") {
+                      setSelectedTeamId(undefined);
+                      setSelectedTeam(null);
+                    }
+                  }}
+                  className="grid grid-cols-2 gap-4"
+                >
+                  <div>
+                    <RadioGroupItem value="individual" id="individual" className="peer sr-only" />
+                    <Label
+                      htmlFor="individual"
+                      className="flex flex-col items-center justify-between rounded-md border-2 border-border bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                    >
+                      <User className="mb-3 h-6 w-6" />
+                      <div className="text-center">
+                        <div className="font-semibold">Individual</div>
+                        <div className="text-xs text-muted-foreground">Personal project</div>
+                      </div>
+                    </Label>
+                  </div>
+                  <div>
+                    <RadioGroupItem value="team" id="team" className="peer sr-only" />
+                    <Label
+                      htmlFor="team"
+                      className="flex flex-col items-center justify-between rounded-md border-2 border-border bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                    >
+                      <Users className="mb-3 h-6 w-6" />
+                      <div className="text-center">
+                        <div className="font-semibold">Team</div>
+                        <div className="text-xs text-muted-foreground">Team project</div>
+                      </div>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* Team Selector (only for team projects) */}
+              {projectType === "team" && (
+                <div className="space-y-2">
+                  <Label htmlFor="team-select" className="text-sm font-medium">
+                    Select Team
+                  </Label>
+                  {loadingTeams ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading teams...
+                    </div>
+                  ) : teams.length === 0 ? (
+                    <div className="p-4 rounded-md border border-border bg-muted/50">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        You are not a member of any teams yet.
+                      </p>
+                      <Button type="button" variant="outline" size="sm" asChild>
+                        <Link href="/academy/teams/new">Create a Team</Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select
+                      value={selectedTeamId}
+                      onValueChange={setSelectedTeamId}
+                      required={projectType === "team"}
+                    >
+                      <SelectTrigger id="team-select">
+                        <SelectValue placeholder="Select a team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teams.map((team) => (
+                          <SelectItem key={team.id} value={team.id}>
+                            {team.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
+
+              {/* Team Details Preview (only for team projects with selected team) */}
+              {projectType === "team" && selectedTeam && (
+                <Card className="bg-muted/30">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Team Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-start gap-4">
+                      {selectedTeam.avatar ? (
+                        <div className="relative h-16 w-16 rounded-lg overflow-hidden flex-shrink-0">
+                          <Image
+                            src={selectedTeam.avatar}
+                            alt={selectedTeam.name}
+                            fill
+                            className="object-cover"
+                            sizes="64px"
+                            unoptimized
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-16 w-16 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Users className="h-8 w-8 text-primary" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold mb-1">{selectedTeam.name}</h3>
+                        {selectedTeam.description && (
+                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                            {selectedTeam.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            <span>{selectedTeam.memberCount || 0} members</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <FolderKanban className="h-4 w-4" />
+                            <span>{selectedTeam.projectCount || 0} projects</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Member Details (only for individual projects) */}
+              {projectType === "individual" && userProfile && (
+                <Card className="bg-muted/30">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Member Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-4">
+                      {userProfile.avatar ? (
+                        <div className="relative h-16 w-16 rounded-full overflow-hidden flex-shrink-0">
+                          <Image
+                            src={userProfile.avatar}
+                            alt={userProfile.name}
+                            fill
+                            className="object-cover"
+                            sizes="64px"
+                            unoptimized
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xl font-semibold text-primary">
+                            {userProfile.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{userProfile.name}</h3>
+                        <p className="text-sm text-muted-foreground">Project Owner</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               <div className="space-y-2">
-                <label htmlFor="title" className="text-sm font-medium">
+                <Label htmlFor="title" className="text-sm font-medium">
                   Project Title
-                </label>
+                </Label>
                 <Input
                   id="title"
                   name="title"
@@ -224,9 +521,9 @@ export function NewProjectPageClient({ initialTeamId }: NewProjectPageClientProp
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="difficulty" className="text-sm font-medium">
+                <Label htmlFor="difficulty" className="text-sm font-medium">
                   Difficulty Level
-                </label>
+                </Label>
                 <Select name="difficulty" required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select difficulty" />
@@ -240,9 +537,9 @@ export function NewProjectPageClient({ initialTeamId }: NewProjectPageClientProp
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="tags" className="text-sm font-medium">
+                <Label htmlFor="tags" className="text-sm font-medium">
                   Tags (comma-separated)
-                </label>
+                </Label>
                 <Input
                   id="tags"
                   name="tags"

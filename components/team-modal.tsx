@@ -260,7 +260,7 @@ export function TeamModal({ team, open, onOpenChange }: TeamModalProps) {
           {/* Invite Members Button (only for team members) */}
           {isTeamMember && (
             <div className="pt-4 border-t border-border">
-              <Button variant="outline" className="w-full" asChild>
+              <Button variant="outline" className="w-full hover:bg-primary hover:text-primary-foreground transition-colors" asChild>
                 <a href={`/academy/teams/${team.id}/invite`}>
                   <UserPlus className="h-4 w-4 mr-2" />
                   Invite Members

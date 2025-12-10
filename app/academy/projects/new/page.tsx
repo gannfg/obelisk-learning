@@ -2,11 +2,12 @@ import { Suspense } from "react";
 import { NewProjectPageClient } from "@/components/new-project-page";
 
 interface NewProjectPageProps {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default function NewProjectPage({ searchParams }: NewProjectPageProps) {
-  const teamParam = searchParams?.teamId;
+export default async function NewProjectPage({ searchParams }: NewProjectPageProps) {
+  const params = await searchParams;
+  const teamParam = params?.teamId;
   const initialTeamId =
     typeof teamParam === "string"
       ? teamParam

@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
    DropdownMenuSeparator,
    DropdownMenuTrigger,
  } from "@/components/ui/dropdown-menu";
- import { useAuth } from "@/lib/hooks/use-auth";
- import { SearchBar } from "@/components/search-bar";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { SearchBar } from "@/components/search-bar";
 import {
   Menu,
   ChevronDown,
@@ -95,7 +95,7 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
        style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50 }}
      >
       <div className="container mx-auto flex h-14 sm:h-16 items-center gap-3 sm:gap-4 px-4 sm:px-6">
-        {/* Mobile Menu (hamburger) */}
+        {/* Mobile Menu (hamburger) - Left side */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="lg:hidden h-9 w-9 p-0">
@@ -186,18 +186,13 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Search Bar */}
-        <div className="hidden md:flex items-center w-full max-w-md mx-4">
+        {/* Search Bar - Desktop only */}
+        <div className="hidden lg:flex items-center w-full max-w-md mx-4">
           <SearchBar />
         </div>
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Mobile Search */}
-          <div className="md:hidden">
-            <SearchBar />
-          </div>
-
           {!loading && (
             <>
               {/* Theme Toggle - always visible */}
