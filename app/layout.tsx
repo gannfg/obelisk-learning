@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "react-easy-crop/react-easy-crop.css";
 import { Header } from "@/components/header";
 import { MobileNav } from "@/components/mobile-nav";
 import { Footer } from "@/components/footer";

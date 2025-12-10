@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useAdmin } from "@/lib/hooks/use-admin";
 import {
   Card,
@@ -21,12 +21,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 import { createLearningClient } from "@/lib/supabase/learning-client";
 import type { MissionSubmission } from "@/types";
 import { uploadMissionImage } from "@/lib/storage";
-import { Loader2, Target } from "lucide-react";
+import { COURSE_CATEGORIES } from "@/lib/categories";
+import { Loader2, Target, Plus, Calendar, Pencil } from "lucide-react";
+import { ImageCropper } from "@/components/image-cropper";
 import { notifySubmissionFeedback, notifyProjectReviewed } from "@/lib/notifications-helpers";
 
 export default function AdminMissionsPage() {
@@ -37,13 +46,34 @@ export default function AdminMissionsPage() {
   const [missions, setMissions] = useState<any[]>([]);
   const [missionsLoading, setMissionsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [submissionDeadline, setSubmissionDeadline] = useState<Date | undefined>(undefined);
+  const [missionDialogOpen, setMissionDialogOpen] = useState(false);
+  const [missionDialogError, setMissionDialogError] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [editingMissionId, setEditingMissionId] = useState<string | null>(null);
+  const [showImageCropper, setShowImageCropper] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  
+  // Mission form state
+  const [missionForm, setMissionForm] = useState({
+    title: "",
+    goal: "",
+    description: "",
+    category: "",
+    difficulty: "beginner" as "beginner" | "intermediate" | "advanced",
+    stackType: "none" as "none" | "nextjs" | "react" | "solana" | "node" | "python" | "other",
+    submissionDeadline: "",
+    endDate: "",
+  });
+  
   const supabase = createClient();
   const learningSupabase = createLearningClient();
 
   const [submissions, setSubmissions] = useState<MissionSubmission[]>([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(true);
   const [updatingSubmissionId, setUpdatingSubmissionId] = useState<string | null>(null);
+  const [userProfiles, setUserProfiles] = useState<Record<string, { email?: string; username?: string }>>({});
+  const [feedbackDrafts, setFeedbackDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -106,6 +136,8 @@ export default function AdminMissionsPage() {
         missionId: s.mission_id,
         gitUrl: s.git_url,
         repoDirectory: s.repo_directory ?? undefined,
+        websiteUrl: s.website_url ?? undefined,
+        pitchDeckUrl: s.pitch_deck_url ?? undefined,
         status: s.status,
         feedback: s.feedback ?? undefined,
         reviewerId: s.reviewer_id ?? undefined,
@@ -116,6 +148,32 @@ export default function AdminMissionsPage() {
       })) || [];
 
     setSubmissions(mapped);
+    // Seed feedback drafts
+    const drafts: Record<string, string> = {};
+    mapped.forEach((m) => {
+      drafts[m.id] = m.feedback || "";
+    });
+    setFeedbackDrafts(drafts);
+    // Load user profile info for admin display (best-effort)
+    try {
+      const userIds = Array.from(new Set(mapped.map((m) => m.userId)));
+      if (userIds.length > 0) {
+        const { data: usersData, error: usersError } = await learningSupabase
+          .from("users")
+          .select("id,email,username")
+          .in("id", userIds);
+
+        if (!usersError && usersData) {
+          const profiles: Record<string, { email?: string; username?: string }> = {};
+          usersData.forEach((u: any) => {
+            profiles[u.id] = { email: u.email ?? undefined, username: u.username ?? undefined };
+          });
+          setUserProfiles(profiles);
+        }
+      }
+    } catch (profileErr) {
+      console.warn("Unable to load user profiles for submissions", profileErr);
+    }
     setSubmissionsLoading(false);
   };
 
@@ -139,83 +197,193 @@ export default function AdminMissionsPage() {
     );
   }
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const resetMissionForm = () => {
+    setMissionDialogError(null);
+    setEditingMissionId(null);
+    setMissionForm({
+      title: "",
+      goal: "",
+      description: "",
+      category: "",
+      difficulty: "beginner",
+      stackType: "none",
+      submissionDeadline: "",
+      endDate: "",
+    });
+    setImageFile(null);
+    setImagePreview(null);
+    setImageToCrop(null);
+  };
+
+  const openEditDialog = (mission: any) => {
+    setEditingMissionId(mission.id);
+    setMissionForm({
+      title: mission.title || "",
+      goal: mission.goal || "",
+      description: mission.description || "",
+      category: mission.category || "",
+      difficulty: mission.difficulty || "beginner",
+      stackType: mission.stack_type || "none",
+      submissionDeadline: mission.submission_deadline
+        ? new Date(mission.submission_deadline).toISOString().split("T")[0]
+        : "",
+      endDate: mission.end_date
+        ? new Date(mission.end_date).toISOString().split("T")[0]
+        : "",
+    });
+    setImagePreview(mission.image_url || null);
+    setImageFile(null);
+    setImageToCrop(mission.image_url || null);
+    setShowImageCropper(false);
+    setMissionDialogError(null);
+    setMissionDialogOpen(true);
+  };
+
+  const handleCreateMission = async () => {
+    if (!missionForm.title || !missionForm.goal) {
+      setMissionDialogError("Title and Goal are required.");
+      return;
+    }
+
     setSaving(true);
-    setError(null);
+    setMissionDialogError(null);
 
-    const formData = new FormData(e.currentTarget);
-    const title = formData.get("title") as string;
-    const goal = formData.get("goal") as string;
-    const description = (formData.get("description") as string) || "";
-    const difficulty = formData.get("difficulty") as string;
-    const stackType = formData.get("stackType") as string;
-    const orderIndexRaw = formData.get("orderIndex") as string;
-    const imageFile = formData.get("image") as File | null;
-
-    const submissionDeadlineISO = submissionDeadline
-      ? submissionDeadline.toISOString()
+    const submissionDeadlineISO = missionForm.submissionDeadline
+      ? new Date(missionForm.submissionDeadline).toISOString()
       : null;
-    const orderIndex = orderIndexRaw
-      ? Number.parseInt(orderIndexRaw, 10)
-      : 0;
+    const endDateISO = missionForm.endDate
+      ? new Date(missionForm.endDate).toISOString()
+      : null;
 
     if (!supabase) {
-      setError("Supabase client not configured.");
+      setMissionDialogError("Supabase client not configured.");
       setSaving(false);
       return;
     }
 
     try {
-      let imageUrl: string | null = null;
+      let imageUrl: string | undefined = undefined;
 
+      // Upload new image if provided
       if (imageFile && imageFile instanceof File && imageFile.size > 0) {
-        imageUrl = await uploadMissionImage(imageFile, null, supabase);
+        try {
+          const uploadedUrl = await uploadMissionImage(imageFile, editingMissionId || null, supabase);
+          if (!uploadedUrl) {
+            setMissionDialogError("Failed to upload mission image. Please try again.");
+            setSaving(false);
+            return;
+          }
+          imageUrl = uploadedUrl;
+        } catch (uploadError: any) {
+          console.error("Error uploading mission image:", uploadError);
+          setMissionDialogError(
+            uploadError?.message || "Failed to upload mission image. Please try again with a different image."
+          );
+          setSaving(false);
+          return;
+        }
       }
 
-      const { data, error: insertError } = await supabase
-        .from("missions")
-        .insert({
-          title,
-          goal,
-          description,
-          difficulty,
-          stack_type: stackType,
-          submission_deadline: submissionDeadlineISO,
-          order_index: orderIndex,
-          image_url: imageUrl,
-          initial_files: {}, // start with empty files; can be edited later via IDE
-        })
-        .select("id")
-        .single();
+      // Build payload, only including fields that exist in the schema
+      const payload: any = {
+        title: missionForm.title,
+        goal: missionForm.goal,
+        description: missionForm.description || "",
+        difficulty: missionForm.difficulty,
+        stack_type: missionForm.stackType === "none" ? undefined : missionForm.stackType,
+        submission_deadline: submissionDeadlineISO,
+      };
 
-      if (insertError) {
-        console.error("Error creating mission:", {
-          message: insertError.message,
-          code: insertError.code,
-          details: insertError.details,
-          hint: insertError.hint,
-        });
-        setError(
-          insertError.message ||
-            "Failed to create mission. Check RLS policies for missions table."
-        );
-        setSaving(false);
-        return;
+      // Only add category and end_date if they have values (columns may not exist in older schemas)
+      if (missionForm.category) {
+        payload.category = missionForm.category;
+      }
+      if (endDateISO) {
+        payload.end_date = endDateISO;
       }
 
-      if (data?.id) {
-        await loadMissions();
-        router.push(`/missions/${data.id}`);
+      // Include image_url only if a new image was uploaded
+      // When editing, if no new image is uploaded, the existing image_url is preserved automatically
+      if (imageUrl !== undefined) {
+        payload.image_url = imageUrl;
+      }
+
+      if (editingMissionId) {
+        // Update existing mission
+        const { data, error: updateError } = await supabase
+          .from("missions")
+          .update(payload)
+          .eq("id", editingMissionId)
+          .select("id")
+          .single();
+
+        if (updateError) {
+          console.error("Error updating mission:", {
+            message: updateError.message,
+            code: updateError.code,
+            details: updateError.details,
+            hint: updateError.hint,
+          });
+          const errorMessage = updateError.message || 
+            updateError.hint || 
+            updateError.details || 
+            "Failed to update mission. Check RLS policies for missions table.";
+          setMissionDialogError(errorMessage);
+          setSaving(false);
+          return;
+        }
+
+        if (data?.id) {
+          setMissionDialogOpen(false);
+          resetMissionForm();
+          await loadMissions();
+        } else {
+          setMissionDialogError("Mission updated but no ID returned from Supabase.");
+        }
       } else {
-        setError("Mission created but no ID returned from Supabase.");
+        // Create new mission
+        // Use the current number of missions as the order index (new missions appear at the end)
+        const orderIndex = missions.length;
+        payload.order_index = orderIndex;
+        payload.initial_files = {}; // start with empty files; can be edited later via IDE
+
+        const { data, error: insertError } = await supabase
+          .from("missions")
+          .insert(payload)
+          .select("id")
+          .single();
+
+        if (insertError) {
+          console.error("Error creating mission:", {
+            message: insertError.message,
+            code: insertError.code,
+            details: insertError.details,
+            hint: insertError.hint,
+          });
+          const errorMessage = insertError.message || 
+            insertError.hint || 
+            insertError.details || 
+            "Failed to create mission. Check RLS policies for missions table.";
+          setMissionDialogError(errorMessage);
+          setSaving(false);
+          return;
+        }
+
+        if (data?.id) {
+          setMissionDialogOpen(false);
+          resetMissionForm();
+          await loadMissions();
+          router.push(`/missions/${data.id}`);
+        } else {
+          setMissionDialogError("Mission created but no ID returned from Supabase.");
+        }
       }
     } catch (err: any) {
-      console.error("Unexpected error creating mission:", err);
-      setError(
-        err?.message || "An unexpected error occurred while creating mission."
-      );
-    } finally {
+      console.error("Unexpected error saving mission:", err);
+      const errorMessage = err?.message || 
+        err?.toString() || 
+        `An unexpected error occurred while ${editingMissionId ? "updating" : "creating"} mission.`;
+      setMissionDialogError(errorMessage);
       setSaving(false);
     }
   };
@@ -246,6 +414,23 @@ export default function AdminMissionsPage() {
     }
 
     setDeletingId(null);
+  };
+
+  // Helper function to calculate progress percentage based on submission status
+  const getProgressPercentage = (status: MissionSubmission["status"] | undefined): number => {
+    if (!status) return 0;
+    switch (status) {
+      case "submitted":
+        return 50;
+      case "under_review":
+        return 75;
+      case "approved":
+        return 100;
+      case "changes_requested":
+        return 75;
+      default:
+        return 0;
+    }
   };
 
   const handleUpdateSubmission = async (
@@ -282,6 +467,48 @@ export default function AdminMissionsPage() {
       console.error("Error updating submission:", error);
       setError(error.message || "Failed to update submission.");
     } else {
+      // Update mission progress when status changes — only if admin is the same user (RLS-safe)
+      if (updates.status) {
+        try {
+          const currentUser = await supabase?.auth.getUser();
+          const currentUserId = currentUser?.data?.user?.id;
+
+          // RLS on mission_progress only allows auth.uid() = user_id.
+          // If admin is updating another user's submission, skip the progress update to avoid errors.
+          if (currentUserId && currentUserId === submission.userId) {
+            const newStatus = updates.status;
+            const { error: progressError } = await learningSupabase
+              .from("mission_progress")
+              .upsert(
+                {
+                  user_id: submission.userId,
+                  mission_id: submission.missionId,
+                  completed: newStatus === "approved" || newStatus === "changes_requested",
+                  completed_at:
+                    newStatus === "approved" || newStatus === "changes_requested"
+                      ? new Date().toISOString()
+                      : null,
+                },
+                {
+                  onConflict: "user_id,mission_id",
+                }
+              );
+
+            if (progressError) {
+              // Keep noisy errors out of console; log a concise warning for admins.
+              console.warn("Progress update skipped (RLS or other issue)", {
+                status: newStatus,
+                missionId: submission.missionId,
+                userId: submission.userId,
+                error: progressError.message,
+              });
+            }
+          }
+        } catch (progressCatchError) {
+          console.warn("Progress update skipped due to auth lookup failure", progressCatchError);
+        }
+      }
+
       await loadSubmissions();
 
       // Send notification to submitter if feedback or status was updated
@@ -350,10 +577,23 @@ export default function AdminMissionsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Create New Mission</CardTitle>
-          <CardDescription>
-            Creates a record in the Supabase <code>missions</code> table.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Missions</CardTitle>
+              <CardDescription>
+                Create and manage missions that appear on the public Mission Board.
+              </CardDescription>
+            </div>
+            <Button
+              onClick={() => {
+                resetMissionForm();
+                setMissionDialogOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Mission
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {error && (
@@ -363,149 +603,12 @@ export default function AdminMissionsPage() {
               </p>
             </div>
           )}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label htmlFor="title" className="text-sm font-medium">
-                Mission Title
-              </label>
-              <Input
-                id="title"
-                name="title"
-                placeholder="e.g., Build your first Solana dApp"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="goal" className="text-sm font-medium">
-                Short Goal
-              </label>
-              <Input
-                id="goal"
-                name="goal"
-                placeholder="What is the main outcome of this mission?"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="description" className="text-sm font-medium">
-                Description
-              </label>
-              <Textarea
-                id="description"
-                name="description"
-                placeholder="High-level description of the mission and what learners will do..."
-                rows={4}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Difficulty</label>
-                <Select name="difficulty" defaultValue="beginner" required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select difficulty" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Stack</label>
-                <Select name="stackType" defaultValue="nextjs" required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select stack" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nextjs">Next.js</SelectItem>
-                    <SelectItem value="react">React</SelectItem>
-                    <SelectItem value="solana">Solana</SelectItem>
-                    <SelectItem value="node">Node</SelectItem>
-                    <SelectItem value="python">Python</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="submissionDeadline" className="text-sm font-medium">
-                  Submission Date
-                </label>
-                <DatePicker
-                  name="submissionDeadline"
-                  value={submissionDeadline}
-                  onChange={setSubmissionDeadline}
-                  placeholder="dd/mm/yyyy"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="orderIndex" className="text-sm font-medium">
-                Ordering Index
-              </label>
-              <Input
-                id="orderIndex"
-                name="orderIndex"
-                type="number"
-                min={0}
-                step={1}
-                placeholder="0 (shown first), 1, 2, ..."
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="image" className="text-sm font-medium">
-                Mission Image (optional)
-              </label>
-              <Input
-                id="image"
-                name="image"
-                type="file"
-                accept="image/*"
-              />
-              <p className="text-xs text-muted-foreground">
-                This image will be used as the mission thumbnail on the Mission Board.
-              </p>
-            </div>
-
-            <div className="flex gap-4">
-              <Button type="submit" className="flex-1" disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Mission"
-                )}
-              </Button>
-              <Button type="button" variant="outline" asChild>
-                <Link href="/missions">View Mission Board</Link>
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Existing missions list */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Existing Missions</CardTitle>
-          <CardDescription>
-            Manage missions currently available on the Mission Board.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          
+          {/* Existing missions list */}
           {missionsLoading ? (
             <p className="text-sm text-muted-foreground">Loading missions...</p>
           ) : missions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No missions created yet.</p>
+            <p className="text-sm text-muted-foreground">No missions created yet. Click "New Mission" to create one.</p>
           ) : (
             <div className="space-y-2">
               {missions.map((mission) => (
@@ -524,6 +627,14 @@ export default function AdminMissionsPage() {
                   <div className="flex items-center gap-2">
                     <Button asChild variant="outline" size="sm">
                       <Link href={`/missions/${mission.id}`}>View</Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditDialog(mission)}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Edit
                     </Button>
                     <Button
                       variant="outline"
@@ -548,6 +659,305 @@ export default function AdminMissionsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Create Mission Dialog */}
+      <Dialog open={missionDialogOpen} onOpenChange={(open) => {
+        setMissionDialogOpen(open);
+        if (!open) {
+          setMissionDialogError(null);
+          resetMissionForm();
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingMissionId ? "Edit Mission" : "Create New Mission"}</DialogTitle>
+            <DialogDescription>
+              {editingMissionId 
+                ? "Update mission details that appear on the public Mission Board."
+                : "Create a new mission that will appear on the public Mission Board."}
+            </DialogDescription>
+          </DialogHeader>
+          {missionDialogError && (
+            <div 
+              className="p-4 rounded-md bg-red-500/20 dark:bg-red-500/30 border-2 border-red-500 dark:border-red-400 animate-in fade-in-0 slide-in-from-top-2"
+              role="alert"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-1.5">Error Creating Mission</p>
+                  <p className="text-sm text-red-700 dark:text-red-300 leading-relaxed">{missionDialogError}</p>
+                </div>
+                <button
+                  onClick={() => setMissionDialogError(null)}
+                  className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors flex-shrink-0"
+                  aria-label="Dismiss error"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium flex items-center gap-1">
+                Mission Title <span className="text-destructive">*</span>
+                {!missionForm.title && (
+                  <span className="text-xs text-destructive ml-1">(Required)</span>
+                )}
+              </label>
+              <Input
+                value={missionForm.title}
+                onChange={(e) => setMissionForm({ ...missionForm, title: e.target.value })}
+                placeholder="e.g., Build your first Solana dApp"
+                className={!missionForm.title ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium flex items-center gap-1">
+                Short Goal <span className="text-destructive">*</span>
+                {!missionForm.goal && (
+                  <span className="text-xs text-destructive ml-1">(Required)</span>
+                )}
+              </label>
+              <Input
+                value={missionForm.goal}
+                onChange={(e) => setMissionForm({ ...missionForm, goal: e.target.value })}
+                placeholder="What is the main outcome of this mission?"
+                className={!missionForm.goal ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                value={missionForm.description}
+                onChange={(e) => setMissionForm({ ...missionForm, description: e.target.value })}
+                placeholder="High-level description of the mission and what learners will do..."
+                rows={4}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Category</label>
+              <Select
+                value={missionForm.category}
+                onValueChange={(value) => setMissionForm({ ...missionForm, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COURSE_CATEGORIES.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Difficulty</label>
+                <Select
+                  value={missionForm.difficulty}
+                  onValueChange={(value: "beginner" | "intermediate" | "advanced") =>
+                    setMissionForm({ ...missionForm, difficulty: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select difficulty" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="beginner">Beginner</SelectItem>
+                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                    <SelectItem value="advanced">Advanced</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Stack</label>
+                <Select
+                  value={missionForm.stackType}
+                  onValueChange={(value: "none" | "nextjs" | "react" | "solana" | "node" | "python" | "other") =>
+                    setMissionForm({ ...missionForm, stackType: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select stack" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="nextjs">Next.js</SelectItem>
+                    <SelectItem value="react">React</SelectItem>
+                    <SelectItem value="solana">Solana</SelectItem>
+                    <SelectItem value="node">Node</SelectItem>
+                    <SelectItem value="python">Python</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Submission Date</label>
+                <div className="relative">
+                  <Input
+                    type="date"
+                    value={missionForm.submissionDeadline}
+                    onChange={(e) => setMissionForm({ ...missionForm, submissionDeadline: e.target.value })}
+                    className="pr-10"
+                  />
+                  <Calendar 
+                    className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                      if (input) {
+                        if (typeof input.showPicker === 'function') {
+                          input.showPicker();
+                        } else {
+                          input.click();
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">End Date</label>
+                <div className="relative">
+                  <Input
+                    type="date"
+                    value={missionForm.endDate}
+                    onChange={(e) => setMissionForm({ ...missionForm, endDate: e.target.value })}
+                    className="pr-10"
+                  />
+                  <Calendar 
+                    className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                      if (input) {
+                        if (typeof input.showPicker === 'function') {
+                          input.showPicker();
+                        } else {
+                          input.click();
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Mission Image (optional)</label>
+              {imagePreview && (
+                <div className="relative w-full h-32 rounded-lg overflow-hidden mb-2 border group">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setImageToCrop(imagePreview);
+                        setShowImageCropper(true);
+                      }}
+                    >
+                      Adjust Image
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    // Check file size (5MB limit)
+                    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+                    if (file.size > maxSize) {
+                      setMissionDialogError(`Image size exceeds the maximum limit of 5MB. Please use a smaller image. (Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+                      e.target.value = ""; // Clear the input
+                      setImageFile(null);
+                      setImagePreview(null);
+                      setImageToCrop(null);
+                      return;
+                    }
+                    const imageUrl = URL.createObjectURL(file);
+                    setImageFile(file);
+                    setImagePreview(imageUrl);
+                    setImageToCrop(imageUrl);
+                    setShowImageCropper(true);
+                    setMissionDialogError(null); // Clear any previous errors
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                This image will be used as the mission thumbnail on the Mission Board. Maximum file size: 5MB. Click "Adjust Image" to crop and rotate.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setMissionDialogOpen(false);
+              setMissionDialogError(null);
+              resetMissionForm();
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateMission} disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {editingMissionId ? "Updating..." : "Creating..."}
+                </>
+              ) : (
+                editingMissionId ? "Update" : "Create"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Cropper */}
+      {imageToCrop && (
+        <ImageCropper
+          imageSrc={imageToCrop}
+          open={showImageCropper}
+          onClose={() => {
+            setShowImageCropper(false);
+            // If user cancels cropping and there's no existing preview, clear the image
+            if (!imagePreview && !editingMissionId) {
+              setImageFile(null);
+              setImageToCrop(null);
+            }
+          }}
+          onCropComplete={(croppedBlob) => {
+            // Convert blob to file
+            const croppedFile = new File([croppedBlob], "mission-image.jpg", {
+              type: "image/jpeg",
+            });
+            setImageFile(croppedFile);
+            setImagePreview(URL.createObjectURL(croppedBlob));
+            setShowImageCropper(false);
+          }}
+          aspectRatio={1}
+        />
+      )}
 
       {/* Mission submissions manager */}
       <Card>
@@ -581,9 +991,23 @@ export default function AdminMissionsPage() {
                             ({sub.missionId})
                           </span>
                         </p>
-                        <p className="text-[11px] text-muted-foreground">
-                          User: <span className="font-mono">{sub.userId}</span>
-                        </p>
+                        {(() => {
+                          const profile = userProfiles[sub.userId];
+                          const label =
+                            profile?.username ||
+                            profile?.email ||
+                            sub.userId;
+                          return (
+                            <p className="text-[11px] text-muted-foreground">
+                              User: <span className="font-mono break-all">{label}</span>
+                              {profile?.email && profile?.username
+                                ? ` (${profile.email})`
+                                : profile?.email && profile?.email !== label
+                                ? ` (${profile.email})`
+                                : null}
+                            </p>
+                          );
+                        })()}
                         <a
                           href={sub.gitUrl}
                           target="_blank"
@@ -596,6 +1020,32 @@ export default function AdminMissionsPage() {
                           <p className="text-[11px] text-muted-foreground">
                             Directory: <span className="font-mono">{sub.repoDirectory}</span>
                           </p>
+                        )}
+                        {sub.websiteUrl && (
+                          <div className="mt-1">
+                            <p className="text-[11px] text-muted-foreground">Website:</p>
+                            <a
+                              href={sub.websiteUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary underline break-all"
+                            >
+                              {sub.websiteUrl}
+                            </a>
+                          </div>
+                        )}
+                        {sub.pitchDeckUrl && (
+                          <div className="mt-1">
+                            <p className="text-[11px] text-muted-foreground">Pitch Deck:</p>
+                            <a
+                              href={sub.pitchDeckUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary underline break-all"
+                            >
+                              {sub.pitchDeckUrl}
+                            </a>
+                          </div>
                         )}
                       </div>
                       <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -627,12 +1077,61 @@ export default function AdminMissionsPage() {
                         </label>
                       </div>
                     </div>
-                    <div className="space-y-1">
-                      {sub.feedback && (
-                        <p className="text-xs text-muted-foreground">
-                          Feedback: {sub.feedback}
-                        </p>
-                      )}
+                    <div className="space-y-2">
+                      {/* Progress Display */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-medium text-muted-foreground">Progress:</span>
+                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-300 ${
+                              getProgressPercentage(sub.status) === 100
+                                ? "bg-green-500"
+                                : getProgressPercentage(sub.status) >= 50
+                                ? "bg-blue-500"
+                                : "bg-primary"
+                            }`}
+                            style={{ width: `${getProgressPercentage(sub.status)}%` }}
+                          />
+                        </div>
+                        <span className="text-[11px] font-medium text-muted-foreground min-w-[3rem] text-right">
+                          {getProgressPercentage(sub.status)}%
+                        </span>
+                      </div>
+
+                      {/* Admin note / feedback */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-muted-foreground">Admin note (visible to user):</label>
+                        <textarea
+                          className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
+                          rows={2}
+                          value={feedbackDrafts[sub.id] ?? ""}
+                          onChange={(e) =>
+                            setFeedbackDrafts((prev) => ({
+                              ...prev,
+                              [sub.id]: e.target.value,
+                            }))
+                          }
+                          disabled={updatingSubmissionId === sub.id}
+                        />
+                        <div className="flex justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              handleUpdateSubmission(sub.id, { feedback: feedbackDrafts[sub.id] ?? "" })
+                            }
+                            disabled={updatingSubmissionId === sub.id}
+                          >
+                            Save note
+                          </Button>
+                        </div>
+                        {sub.feedback && (
+                          <p className="text-xs text-muted-foreground">
+                            Current note: {sub.feedback}
+                          </p>
+                        )}
+                      </div>
+
                       <p className="text-[10px] text-muted-foreground">
                         Submitted: {sub.createdAt.toLocaleString()}
                         {sub.reviewedAt && ` • Reviewed: ${sub.reviewedAt.toLocaleString()}`}
