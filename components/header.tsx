@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
    DropdownMenuSeparator,
    DropdownMenuTrigger,
  } from "@/components/ui/dropdown-menu";
- import { useAuth } from "@/lib/hooks/use-auth";
- import { SearchBar } from "@/components/search-bar";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { SearchBar } from "@/components/search-bar";
 import {
   Menu,
   ChevronDown,
@@ -95,6 +95,57 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
        style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50 }}
      >
       <div className="container mx-auto flex h-14 sm:h-16 items-center gap-3 sm:gap-4 px-4 sm:px-6">
+        {/* Mobile Menu (hamburger) - Left side */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="lg:hidden h-9 w-9 p-0">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            {navItems.map((item) => (
+              <DropdownMenuItem key={item.href} asChild>
+                <Link href={item.href}>{item.label}</Link>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            {!user ? (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/auth/sign-in">
+                    <User className="mr-2 h-4 w-4" />
+                    Sign In
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/auth/sign-up">Get Started</Link>
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard">
+                    <User className="mr-2 h-4 w-4" />
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/profile">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {/* Logo + Study */}
           <Link
             href="/"
@@ -135,18 +186,13 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Search Bar */}
-        <div className="hidden md:flex items-center w-full max-w-md mx-4">
+        {/* Search Bar - Desktop only */}
+        <div className="hidden lg:flex items-center w-full max-w-md mx-4">
           <SearchBar />
         </div>
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Mobile Search */}
-          <div className="md:hidden">
-            <SearchBar />
-          </div>
-
           {!loading && (
             <>
               {/* Theme Toggle - always visible */}
@@ -243,56 +289,6 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
             </>
           )}
 
-          {/* Mobile Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="lg:hidden h-9 w-9 p-0">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {navItems.map((item) => (
-                <DropdownMenuItem key={item.href} asChild>
-                  <Link href={item.href}>{item.label}</Link>
-              </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              {!user ? (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link href="/auth/sign-in">
-                      <User className="mr-2 h-4 w-4" />
-                      Sign In
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/auth/sign-up">Get Started</Link>
-                  </DropdownMenuItem>
-                </>
-              ) : (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard">
-                      <User className="mr-2 h-4 w-4" />
-                      Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                      <User className="mr-2 h-4 w-4" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     </header>

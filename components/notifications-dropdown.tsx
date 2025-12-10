@@ -23,6 +23,9 @@ import {
   Trophy,
   Settings,
   Mail,
+  Check,
+  X,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -33,8 +36,10 @@ import {
   markAllNotificationsAsRead,
   formatNotificationTime,
   NotificationType,
+  deleteNotification,
 } from "@/lib/notifications";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { acceptTeamInvitation, rejectTeamInvitation } from "@/lib/team-invitations";
 
 interface NotificationsDropdownProps {
   userId: string;
@@ -49,6 +54,7 @@ export function NotificationsDropdown({
   const [notificationCount, setNotificationCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [processingInvitation, setProcessingInvitation] = useState<string | null>(null);
 
   // Fetch notifications
   const fetchNotifications = async () => {
@@ -60,8 +66,37 @@ export function NotificationsDropdown({
         getUnreadNotificationCount(userId, supabase),
       ]);
 
-      setNotifications(notifs);
-      setNotificationCount(count);
+      // Filter out notifications for already-processed team invitations
+      const validNotifications = await Promise.all(
+        notifs.map(async (notif) => {
+          if (notif.type === "team" && notif.metadata?.type === "team_invitation" && notif.metadata?.invitation_id) {
+            try {
+              const { data: invitation } = await supabase
+                .from("team_invitations")
+                .select("status")
+                .eq("id", notif.metadata.invitation_id)
+                .single();
+
+              // If invitation is already processed, delete the notification
+              if (invitation && (invitation.status === "accepted" || invitation.status === "rejected")) {
+                await deleteNotification(notif.id, userId, supabase);
+                return null; // Filter out this notification
+              }
+            } catch (error) {
+              // Ignore errors, keep the notification
+            }
+          }
+          return notif;
+        })
+      );
+
+      // Remove null values (deleted notifications)
+      const filtered = validNotifications.filter((n): n is Notification => n !== null);
+      setNotifications(filtered);
+      
+      // Recalculate unread count after filtering
+      const unreadCount = filtered.filter(n => !n.read).length;
+      setNotificationCount(unreadCount);
     } catch (error) {
       console.error("Error fetching notifications:", error);
     } finally {
@@ -96,6 +131,7 @@ export function NotificationsDropdown({
   }, [userId, supabase]);
 
   const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read if not already read
     if (!notification.read) {
       await markNotificationAsRead(notification.id, userId, supabase);
       setNotifications((prev) =>
@@ -105,6 +141,26 @@ export function NotificationsDropdown({
       );
       setNotificationCount((prev) => Math.max(0, prev - 1));
     }
+
+    // If it's a team invitation notification, check if invitation is already processed
+    if (notification.type === "team" && notification.metadata?.type === "team_invitation" && notification.metadata?.invitation_id) {
+      try {
+        const { data: invitation } = await supabase
+          .from("team_invitations")
+          .select("status")
+          .eq("id", notification.metadata.invitation_id)
+          .single();
+
+        // If invitation is already accepted or rejected, remove the notification
+        if (invitation && (invitation.status === "accepted" || invitation.status === "rejected")) {
+          await deleteNotification(notification.id, userId, supabase);
+          fetchNotifications();
+        }
+      } catch (error) {
+        // Ignore errors checking invitation status
+      }
+    }
+
     setOpen(false);
   };
 
@@ -112,6 +168,73 @@ export function NotificationsDropdown({
     await markAllNotificationsAsRead(userId, supabase);
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setNotificationCount(0);
+  };
+
+  const handleAcceptInvitation = async (notification: Notification) => {
+    if (!notification.metadata?.invitation_id) return;
+
+    setProcessingInvitation(notification.id);
+    try {
+      const success = await acceptTeamInvitation(
+        notification.metadata.invitation_id,
+        userId,
+        supabase
+      );
+
+      // Always delete notification after processing (whether success or failure)
+      // If it failed, the invitation was likely already processed
+      await deleteNotification(notification.id, userId, supabase);
+      fetchNotifications();
+    } catch (error) {
+      console.error("Error accepting invitation:", error);
+      // Still try to delete notification if invitation was already processed
+      try {
+        await deleteNotification(notification.id, userId, supabase);
+        fetchNotifications();
+      } catch (deleteError) {
+        console.error("Error deleting notification:", deleteError);
+      }
+    } finally {
+      setProcessingInvitation(null);
+    }
+  };
+
+  const handleRejectInvitation = async (notification: Notification) => {
+    if (!notification.metadata?.invitation_id) return;
+
+    setProcessingInvitation(notification.id);
+    try {
+      const success = await rejectTeamInvitation(
+        notification.metadata.invitation_id,
+        userId,
+        supabase
+      );
+
+      // Always delete notification after processing
+      await deleteNotification(notification.id, userId, supabase);
+      fetchNotifications();
+    } catch (error) {
+      console.error("Error rejecting invitation:", error);
+      // Still try to delete notification
+      try {
+        await deleteNotification(notification.id, userId, supabase);
+        fetchNotifications();
+      } catch (deleteError) {
+        console.error("Error deleting notification:", deleteError);
+      }
+    } finally {
+      setProcessingInvitation(null);
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deleteNotification(notificationId, userId, supabase);
+      fetchNotifications();
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+    }
   };
 
   const getNotificationIcon = (type: NotificationType) => {
@@ -191,50 +314,103 @@ export function NotificationsDropdown({
             </div>
           ) : notifications.length > 0 ? (
             <div className="py-1">
-              {notifications.map((notification) => (
-                <DropdownMenuItem
-                  key={notification.id}
-                  asChild
-                  className={cn(
-                    "flex items-start gap-3 px-3 py-3 cursor-pointer",
-                    !notification.read && "bg-muted/50"
-                  )}
-                >
-                  <Link
-                    href={notification.link || "#"}
-                    onClick={() => handleNotificationClick(notification)}
-                    className="flex items-start gap-3 w-full"
+              {notifications.map((notification) => {
+                const isTeamInvitation =
+                  notification.type === "team" &&
+                  notification.metadata?.type === "team_invitation" &&
+                  notification.metadata?.invitation_id;
+
+                return (
+                  <DropdownMenuItem
+                    key={notification.id}
+                    className={cn(
+                      "group flex flex-col items-start gap-3 px-3 py-3",
+                      !notification.read && "bg-muted/50",
+                      !isTeamInvitation && "cursor-pointer",
+                      "hover:bg-muted/60 focus:bg-muted/60 hover:text-foreground focus:text-foreground transition-colors"
+                    )}
+                    onSelect={(e) => {
+                      if (isTeamInvitation) {
+                        e.preventDefault();
+                      } else {
+                        handleNotificationClick(notification);
+                        if (notification.link && notification.link !== "#") {
+                          window.location.href = notification.link;
+                        }
+                      }
+                    }}
                   >
-                    <div
-                      className={cn(
-                        "mt-0.5 flex-shrink-0",
-                        !notification.read && "relative"
-                      )}
-                    >
-                      {getNotificationIcon(notification.type)}
-                      {!notification.read && (
-                        <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
+                    <div className="flex items-start gap-3 w-full relative">
+                      <button
+                        onClick={(e) => handleDeleteNotification(notification.id, e)}
+                        className="absolute top-0 right-0 p-1.5 rounded-md hover:bg-muted/80 transition-all opacity-0 group-hover:opacity-100 z-10"
+                        aria-label="Delete notification"
+                      >
+                        <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
+                      </button>
+                      <div
                         className={cn(
-                          "text-sm font-medium mb-0.5",
-                          !notification.read && "font-semibold"
+                          "mt-0.5 flex-shrink-0",
+                          !notification.read && "relative"
                         )}
                       >
-                        {notification.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mb-1">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatNotificationTime(notification.created_at)}
-                      </p>
+                        {getNotificationIcon(notification.type)}
+                        {!notification.read && (
+                          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={cn(
+                            "text-sm font-medium mb-0.5 text-foreground",
+                            !notification.read && "font-semibold"
+                          )}
+                        >
+                          {notification.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mb-1">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {formatNotificationTime(notification.created_at)}
+                        </p>
+                        {isTeamInvitation && (
+                          <div className="flex gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleAcceptInvitation(notification)}
+                              disabled={processingInvitation === notification.id}
+                              className="h-6 text-xs px-2"
+                            >
+                              {processingInvitation === notification.id ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <Check className="h-3 w-3 mr-1" />
+                              )}
+                              Accept
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRejectInvitation(notification)}
+                              disabled={processingInvitation === notification.id}
+                              className="h-6 text-xs px-2"
+                            >
+                              {processingInvitation === notification.id ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <X className="h-3 w-3 mr-1" />
+                              )}
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </Link>
-                </DropdownMenuItem>
-              ))}
+                  </DropdownMenuItem>
+                );
+              })}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center">

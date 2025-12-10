@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Target, Clock, CheckCircle2, Circle, Trophy, Filter, Sparkles, Code2 } from "lucide-react";
+import { Target, Clock, CheckCircle2, Circle, Trophy, Filter, Sparkles, Code2, Calendar, Users } from "lucide-react";
 import { MissionCardSkeleton } from "@/components/mission-card-skeleton";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createLearningClient } from "@/lib/supabase/learning-client";
@@ -98,8 +98,8 @@ export default function MissionBoardPage() {
           <div className="h-8 sm:h-10 bg-muted rounded w-48 sm:w-64 mb-3 sm:mb-4 animate-pulse" />
           <div className="h-5 sm:h-6 bg-muted rounded w-full max-w-md animate-pulse" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <MissionCardSkeleton key={i} />
           ))}
         </div>
@@ -112,23 +112,18 @@ export default function MissionBoardPage() {
   );
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
-      <div className="mb-8">
-        <div className="flex items-start gap-3 mb-4">
-          <div className="p-3 bg-primary/10 rounded-lg shrink-0">
-            <Target className="h-6 w-6 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-3">Mission Board</h1>
-            <p className="text-base sm:text-lg text-muted-foreground">
-              Choose a mission to start learning. Complete missions to earn badges and unlock new content.
-            </p>
-          </div>
+    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div className="mb-6">
+        <div className="mb-4">
+          <h1 className="text-2xl sm:text-3xl font-bold leading-tight mb-2">Mission Board</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Choose a mission to start learning. Complete missions to earn badges and unlock new content.
+          </p>
         </div>
         {user && (
-          <div className="flex items-center gap-3 mt-4 p-4 bg-muted/50 rounded-lg">
-            <Sparkles className="h-5 w-5 text-primary shrink-0" />
-            <span className="text-sm">
+          <div className="flex items-center gap-2 mt-3 p-3 bg-muted/50 rounded-lg">
+            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-xs sm:text-sm">
               <span className="font-semibold">AI Assistant</span> is ready to help you learn!
             </span>
           </div>
@@ -136,7 +131,7 @@ export default function MissionBoardPage() {
       </div>
 
       {/* Filters */}
-      <Card className="p-4 mb-6">
+      <Card className="p-3 sm:p-4 mb-4">
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="flex items-center gap-2">
@@ -187,7 +182,7 @@ export default function MissionBoardPage() {
           <p className="text-base text-muted-foreground">No missions found. Check back later!</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {missions.map((mission) => {
             const progress = progressMap[mission.id];
             const isCompleted = progress?.completed || false;
@@ -196,80 +191,84 @@ export default function MissionBoardPage() {
             const totalItems = checklistProgress.length;
 
             return (
-              <Link key={mission.id} href={`/missions/${mission.id}`}>
+              <Link key={mission.id} href={`/missions/${mission.id}`} className="block w-full group aspect-square">
                 <Card
-                  className={`overflow-hidden h-full transition-all duration-300 ease-out cursor-pointer hover:scale-105 hover:shadow-xl hover:-translate-y-1 ${
+                  className={`overflow-hidden h-full transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] hover:shadow-lg ${
                     isCompleted ? "border-green-500/50 bg-green-500/5" : ""
                   }`}
                 >
-                  {mission.imageUrl && (
-                    <div className="relative w-full h-36 mb-4">
-                      <Image
-                        src={mission.imageUrl}
-                        alt={mission.title}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  )}
-                  <div className="flex items-start gap-3 mb-4 px-6">
-                    <div className={`p-2 rounded-lg shrink-0 ${isCompleted ? "bg-green-500/20" : "bg-primary/10"}`}>
-                      <Target className={`h-5 w-5 ${isCompleted ? "text-green-600" : "text-primary"}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-lg mb-1 leading-tight">{mission.title}</h3>
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>
-                        {mission.submissionDeadline
-                          ? mission.submissionDeadline.toLocaleDateString()
-                          : "No submission date"}
-                      </span>
-                    </div>
-                        <span className="px-2 py-0.5 rounded bg-muted text-xs">
-                          {mission.difficulty}
+                  <div className="p-4 sm:p-5">
+                    {/* Top Section - Icon and Title */}
+                    <div className="flex items-start gap-3 mb-3">
+                      {/* Small Icon/Image on Left */}
+                      <div className="flex-shrink-0">
+                        {mission.imageUrl ? (
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+                            <Image
+                              src={mission.imageUrl}
+                              alt={mission.title}
+                              fill
+                              sizes="48px"
+                              className="object-cover transition-transform group-hover:scale-105"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                            <Target className="h-6 w-6 text-primary" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Title and Level */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base sm:text-lg font-bold mb-1 leading-tight">
+                          {mission.title}
+                        </h3>
+                        <span className={`text-xs font-medium capitalize ${
+                          mission.difficulty === "beginner"
+                            ? "text-green-600 dark:text-green-400"
+                            : mission.difficulty === "intermediate"
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-purple-600 dark:text-purple-400"
+                        }`}>
+                          {mission.difficulty} level
                         </span>
                       </div>
                     </div>
-                    {isCompleted && (
-                      <Trophy className="h-5 w-5 text-green-600 flex-shrink-0" />
-                    )}
-                  </div>
 
-                  <div className="px-6">
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                      {mission.goal}
-                    </p>
-
-                  {totalItems > 0 && (
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Progress</span>
-                        <span className="font-medium">
-                          {completedItems} / {totalItems}
-                        </span>
+                    {/* Statistics Row */}
+                    <div className="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
+                      {mission.estimatedTime && (
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3.5 w-3.5" />
+                          <span>{mission.estimatedTime}</span>
+                        </div>
+                      )}
+                      {mission.submissionDeadline && (
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5" />
+                          <span>{mission.submissionDeadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3.5 w-3.5" />
+                        <span>{Math.floor(Math.random() * 100) + 10}</span>
                       </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="mb-2">
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-primary transition-all duration-300"
-                          style={{ width: `${(completedItems / totalItems) * 100}%` }}
+                          style={{ width: `${totalItems > 0 ? (completedItems / totalItems) * 100 : (isCompleted ? 100 : 0)}%` }}
                         />
                       </div>
                     </div>
-                  )}
 
-                    <div className="flex items-center justify-between px-6 pb-4">
-                      <div className="flex items-center gap-2">
-                        <Code2 className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-xs px-2 py-1 rounded bg-muted font-medium">
-                          {mission.stackType}
-                        </span>
-                      </div>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        {isCompleted ? "Review" : "Start"}
-                        <Circle className="h-3 w-3" />
-                      </Button>
+                    {/* Completion Status */}
+                    <div className="text-xs text-green-600 dark:text-green-400 font-medium">
+                      Completed: {totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : (isCompleted ? 100 : 0)}%
                     </div>
                   </div>
                 </Card>

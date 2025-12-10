@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS session_attendance (
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   checkin_time TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
   method TEXT NOT NULL CHECK (method IN ('qr', 'manual')),
-  checked_in_by UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Admin/instructor who checked in
+  checked_in_by UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Admin/mentor who checked in
   UNIQUE(session_id, user_id)
 );
 
@@ -257,7 +257,7 @@ CREATE TABLE IF NOT EXISTS class_instructors (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   instructor_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role TEXT DEFAULT 'instructor' CHECK (role IN ('instructor', 'assistant', 'ta')),
+  role TEXT DEFAULT 'mentor' CHECK (role IN ('mentor', 'assistant', 'ta')),
   assigned_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
   UNIQUE(class_id, instructor_id)
 );
@@ -331,7 +331,7 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Helper function to check if user is instructor of class
+-- Helper function to check if user is mentor of class
 CREATE OR REPLACE FUNCTION is_class_instructor(user_id UUID, class_uuid UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -356,15 +356,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Classes: Admins and instructors can manage, enrolled users can view
+-- Classes: Admins and mentors can manage, enrolled users can view
 DROP POLICY IF EXISTS "Admins can manage classes" ON classes;
 CREATE POLICY "Admins can manage classes"
   ON classes FOR ALL
   USING (is_admin(auth.uid()))
   WITH CHECK (is_admin(auth.uid()));
 
-DROP POLICY IF EXISTS "Instructors can manage their classes" ON classes;
-CREATE POLICY "Instructors can manage their classes"
+DROP POLICY IF EXISTS "Mentors can manage their classes" ON classes;
+CREATE POLICY "Mentors can manage their classes"
   ON classes FOR ALL
   USING (is_class_instructor(auth.uid(), id))
   WITH CHECK (is_class_instructor(auth.uid(), id));
@@ -375,9 +375,9 @@ CREATE POLICY "Anyone can view published classes"
   ON classes FOR SELECT
   USING (published = TRUE);
 
--- Class Modules: Admins and instructors can manage, enrolled users can view
-DROP POLICY IF EXISTS "Admins and instructors can manage modules" ON class_modules;
-CREATE POLICY "Admins and instructors can manage modules"
+-- Class Modules: Admins and mentors can manage, enrolled users can view
+DROP POLICY IF EXISTS "Admins and mentors can manage modules" ON class_modules;
+CREATE POLICY "Admins and mentors can manage modules"
   ON class_modules FOR ALL
   USING (
     is_admin(auth.uid()) OR 
@@ -399,8 +399,8 @@ CREATE POLICY "Enrolled users can view unlocked modules"
   );
 
 -- Live Sessions: Similar to modules
-DROP POLICY IF EXISTS "Admins and instructors can manage sessions" ON live_sessions;
-CREATE POLICY "Admins and instructors can manage sessions"
+DROP POLICY IF EXISTS "Admins and mentors can manage sessions" ON live_sessions;
+CREATE POLICY "Admins and mentors can manage sessions"
   ON live_sessions FOR ALL
   USING (
     is_admin(auth.uid()) OR 
@@ -426,8 +426,8 @@ CREATE POLICY "Admins can manage enrollments"
   USING (is_admin(auth.uid()))
   WITH CHECK (is_admin(auth.uid()));
 
-DROP POLICY IF EXISTS "Instructors can view enrollments" ON class_enrollments;
-CREATE POLICY "Instructors can view enrollments"
+DROP POLICY IF EXISTS "Mentors can view enrollments" ON class_enrollments;
+CREATE POLICY "Mentors can view enrollments"
   ON class_enrollments FOR SELECT
   USING (is_class_instructor(auth.uid(), class_id));
 
@@ -450,9 +450,9 @@ CREATE POLICY "Users can enroll in published classes"
     )
   );
 
--- Session Attendance: Admins and instructors can manage, users can view their own
-DROP POLICY IF EXISTS "Admins and instructors can manage attendance" ON session_attendance;
-CREATE POLICY "Admins and instructors can manage attendance"
+-- Session Attendance: Admins and mentors can manage, users can view their own
+DROP POLICY IF EXISTS "Admins and mentors can manage attendance" ON session_attendance;
+CREATE POLICY "Admins and mentors can manage attendance"
   ON session_attendance FOR ALL
   USING (
     is_admin(auth.uid()) OR 
@@ -468,9 +468,9 @@ CREATE POLICY "Users can view own attendance"
   ON session_attendance FOR SELECT
   USING (user_id = auth.uid());
 
--- Assignments: Admins and instructors can manage, enrolled users can view
-DROP POLICY IF EXISTS "Admins and instructors can manage assignments" ON class_assignments;
-CREATE POLICY "Admins and instructors can manage assignments"
+-- Assignments: Admins and mentors can manage, enrolled users can view
+DROP POLICY IF EXISTS "Admins and mentors can manage assignments" ON class_assignments;
+CREATE POLICY "Admins and mentors can manage assignments"
   ON class_assignments FOR ALL
   USING (
     is_admin(auth.uid()) OR 
@@ -489,7 +489,7 @@ CREATE POLICY "Enrolled users can view assignments"
     is_class_instructor(auth.uid(), class_id)
   );
 
--- Submissions: Users can create their own, admins/instructors can view all
+-- Submissions: Users can create their own, admins/mentors can view all
 DROP POLICY IF EXISTS "Users can create own submissions" ON assignment_submissions;
 CREATE POLICY "Users can create own submissions"
   ON assignment_submissions FOR INSERT
@@ -501,8 +501,8 @@ CREATE POLICY "Users can update own submissions"
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
 
-DROP POLICY IF EXISTS "Admins and instructors can manage submissions" ON assignment_submissions;
-CREATE POLICY "Admins and instructors can manage submissions"
+DROP POLICY IF EXISTS "Admins and mentors can manage submissions" ON assignment_submissions;
+CREATE POLICY "Admins and mentors can manage submissions"
   ON assignment_submissions FOR ALL
   USING (
     is_admin(auth.uid()) OR 
@@ -518,9 +518,9 @@ CREATE POLICY "Users can view own submissions"
   ON assignment_submissions FOR SELECT
   USING (user_id = auth.uid());
 
--- Announcements: Admins and instructors can manage, enrolled users can view
-DROP POLICY IF EXISTS "Admins and instructors can manage announcements" ON class_announcements;
-CREATE POLICY "Admins and instructors can manage announcements"
+-- Announcements: Admins and mentors can manage, enrolled users can view
+DROP POLICY IF EXISTS "Admins and mentors can manage announcements" ON class_announcements;
+CREATE POLICY "Admins and mentors can manage announcements"
   ON class_announcements FOR ALL
   USING (
     is_admin(auth.uid()) OR 
@@ -540,8 +540,8 @@ CREATE POLICY "Enrolled users can view announcements"
   );
 
 -- Class Instructors: Admins can manage
-DROP POLICY IF EXISTS "Admins can manage class instructors" ON class_instructors;
-CREATE POLICY "Admins can manage class instructors"
+DROP POLICY IF EXISTS "Admins can manage class mentors" ON class_instructors;
+CREATE POLICY "Admins can manage class mentors"
   ON class_instructors FOR ALL
   USING (is_admin(auth.uid()))
   WITH CHECK (is_admin(auth.uid()));

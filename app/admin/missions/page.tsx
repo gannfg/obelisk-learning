@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import { createClient } from "@/lib/supabase/client";
 import { createLearningClient } from "@/lib/supabase/learning-client";
 import type { MissionSubmission } from "@/types";
@@ -36,6 +37,7 @@ export default function AdminMissionsPage() {
   const [missions, setMissions] = useState<any[]>([]);
   const [missionsLoading, setMissionsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [submissionDeadline, setSubmissionDeadline] = useState<Date | undefined>(undefined);
   const supabase = createClient();
   const learningSupabase = createLearningClient();
 
@@ -148,12 +150,11 @@ export default function AdminMissionsPage() {
     const description = (formData.get("description") as string) || "";
     const difficulty = formData.get("difficulty") as string;
     const stackType = formData.get("stackType") as string;
-    const submissionDeadlineRaw = formData.get("submissionDeadline") as string;
     const orderIndexRaw = formData.get("orderIndex") as string;
     const imageFile = formData.get("image") as File | null;
 
-    const submissionDeadline = submissionDeadlineRaw
-      ? new Date(submissionDeadlineRaw).toISOString()
+    const submissionDeadlineISO = submissionDeadline
+      ? submissionDeadline.toISOString()
       : null;
     const orderIndex = orderIndexRaw
       ? Number.parseInt(orderIndexRaw, 10)
@@ -180,7 +181,7 @@ export default function AdminMissionsPage() {
           description,
           difficulty,
           stack_type: stackType,
-          submission_deadline: submissionDeadline,
+          submission_deadline: submissionDeadlineISO,
           order_index: orderIndex,
           image_url: imageUrl,
           initial_files: {}, // start with empty files; can be edited later via IDE
@@ -435,11 +436,11 @@ export default function AdminMissionsPage() {
                 <label htmlFor="submissionDeadline" className="text-sm font-medium">
                   Submission Date
                 </label>
-                <Input
-                  id="submissionDeadline"
+                <DatePicker
                   name="submissionDeadline"
-                  type="date"
-                  placeholder="Select submission date"
+                  value={submissionDeadline}
+                  onChange={setSubmissionDeadline}
+                  placeholder="dd/mm/yyyy"
                 />
               </div>
             </div>

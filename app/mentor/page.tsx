@@ -18,11 +18,12 @@ export default function MentorPage() {
           <div className="relative w-64 h-64 mx-auto mb-8 overflow-hidden rounded-2xl border-2 border-border bg-muted/20 shadow-lg">
             <div className="absolute inset-0 animate-dementor-float">
               <Image
-                src="/dementor.png"
+                src="/dementor_avatar.png"
                 alt="DeMentor"
                 fill
                 className="object-cover object-top"
                 priority
+                unoptimized
               />
             </div>
           </div>

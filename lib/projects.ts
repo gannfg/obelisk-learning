@@ -11,6 +11,7 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_OBELISK_LEARNING_AUTH_SUPABASE
 export interface ProjectWithMembers extends Project {
   members?: ProjectMember[];
   memberCount?: number;
+  memberProfiles?: Record<string, { name: string; avatar?: string }>;
 }
 
 /**
