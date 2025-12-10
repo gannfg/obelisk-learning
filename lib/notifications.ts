@@ -65,20 +65,25 @@ export async function createNotification(
       .single();
 
     if (error) {
-      console.error("Error creating notification:", {
-        error,
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        notificationData,
-      });
-      
-      // If it's an RLS policy error, provide more context
-      if (error.code === '42501' || error.message?.includes('policy') || error.message?.includes('permission')) {
-        console.error("RLS Policy Error: User may not have permission to create notifications for this user_id");
+      const isRls =
+        error.code === "42501" ||
+        error.message?.toLowerCase().includes("policy") ||
+        error.message?.toLowerCase().includes("permission");
+
+      if (!isRls) {
+        console.warn("Error creating notification (non-RLS):", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+      } else {
+        console.warn("Notification skipped due to RLS/permission", {
+          code: error.code,
+          message: error.message,
+        });
       }
-      
+
       return null;
     }
 

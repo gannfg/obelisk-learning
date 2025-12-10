@@ -19,6 +19,7 @@ export default function MissionBoardPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "beginner" | "intermediate" | "advanced">("all");
   const [stackFilter, setStackFilter] = useState<string>("all");
+  const [joinFilter, setJoinFilter] = useState<"all" | "joined" | "not_joined">("all");
 
   useEffect(() => {
     if (authLoading) return;
@@ -203,6 +204,32 @@ export default function MissionBoardPage() {
               ))}
             </div>
           </div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <span className="text-sm font-medium whitespace-nowrap">Joined:</span>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={joinFilter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setJoinFilter("all")}
+              >
+                All
+              </Button>
+              <Button
+                variant={joinFilter === "joined" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setJoinFilter("joined")}
+              >
+                Joined
+              </Button>
+              <Button
+                variant={joinFilter === "not_joined" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setJoinFilter("not_joined")}
+              >
+                Not Joined
+              </Button>
+            </div>
+          </div>
         </div>
       </Card>
 
@@ -213,7 +240,15 @@ export default function MissionBoardPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-          {missions.map((mission) => {
+          {missions
+            .filter((mission) => {
+              const progress = progressMap[mission.id];
+              const isJoined = !!progress;
+              if (joinFilter === "joined") return isJoined;
+              if (joinFilter === "not_joined") return !isJoined;
+              return true;
+            })
+            .map((mission) => {
             const progress = progressMap[mission.id];
             const submission = submissionMap[mission.id];
             const isJoined = !!progress;
@@ -227,32 +262,43 @@ export default function MissionBoardPage() {
                 progressPercentage = 0;
                 statusText = "Joined";
               } else {
-                switch (submission.status) {
-                  case "submitted":
-                    progressPercentage = 50;
-                    statusText = "Submitted";
-                    break;
-                  case "under_review":
-                    progressPercentage = 75;
-                    statusText = "Under Review";
-                    break;
-                  case "approved":
-                  case "changes_requested":
-                    progressPercentage = 100;
-                    statusText = submission.status === "approved" ? "Approved" : "Changes Requested";
-                    break;
-                  default:
-                    progressPercentage = 0;
-                    statusText = "Joined";
-                }
+            switch (submission.status) {
+              case "submitted":
+                progressPercentage = 50;
+                statusText = "Submitted";
+                break;
+              case "under_review":
+                progressPercentage = 75;
+                statusText = "Under Review";
+                break;
+              case "changes_requested":
+                progressPercentage = 75;
+                statusText = "Changes Requested";
+                break;
+              case "approved":
+                progressPercentage = 100;
+                statusText = "Approved";
+                break;
+              default:
+                progressPercentage = 0;
+                statusText = "Joined";
+            }
               }
             }
+
+            const status = submission?.status;
 
             return (
               <Link key={mission.id} href={`/missions/${mission.id}`} className="block w-full group aspect-square">
                 <Card
                   className={`overflow-hidden h-full transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] hover:shadow-lg ${
-                    progressPercentage === 100 ? "border-green-500/50 bg-green-500/5" : isJoined ? "border-blue-500/30 bg-blue-500/5" : ""
+                    progressPercentage === 100
+                      ? "border-green-500/50 bg-green-500/5"
+                      : status === "changes_requested"
+                      ? "border-amber-400/60 bg-amber-50"
+                      : isJoined
+                      ? "border-blue-500/30 bg-blue-500/5"
+                      : ""
                   }`}
                 >
                   <div className="p-4 sm:p-5">
@@ -328,6 +374,8 @@ export default function MissionBoardPage() {
                           className={`h-full transition-all duration-300 ${
                             progressPercentage === 100 
                               ? "bg-green-500" 
+                              : status === "changes_requested"
+                              ? "bg-amber-500"
                               : progressPercentage >= 50 
                               ? "bg-blue-500" 
                               : "bg-primary"
@@ -341,6 +389,8 @@ export default function MissionBoardPage() {
                     <div className={`text-xs font-medium ${
                       progressPercentage === 100
                         ? "text-green-600 dark:text-green-400"
+                        : status === "changes_requested"
+                        ? "text-amber-600 dark:text-amber-500"
                         : progressPercentage >= 50
                         ? "text-blue-600 dark:text-blue-400"
                         : isJoined
