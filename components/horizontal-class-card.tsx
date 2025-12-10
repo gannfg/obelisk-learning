@@ -89,3 +89,5 @@ export function HorizontalClassCard({ classItem }: HorizontalClassCardProps) {
   );
 }
 
+
+
