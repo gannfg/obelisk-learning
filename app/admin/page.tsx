@@ -7,7 +7,7 @@ import { useAdmin } from "@/lib/hooks/use-admin";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, FolderKanban, Users as UsersIcon, Target, Image as ImageIcon } from "lucide-react";
+import { BookOpen, FolderKanban, Users as UsersIcon, Target, Image as ImageIcon, Calendar } from "lucide-react";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -120,6 +120,23 @@ export default function AdminPage() {
                 <Link href="/academy/teams">View All Teams</Link>
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Workshops
+            </CardTitle>
+            <CardDescription>
+              Create and manage workshops with QR code check-in and attendance tracking.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full">
+              <Link href="/admin/workshops">Manage Workshops</Link>
+            </Button>
           </CardContent>
         </Card>
 

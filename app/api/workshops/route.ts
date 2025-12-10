@@ -47,11 +47,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    console.log("Creating workshop with payload:", JSON.stringify(body, null, 2));
+    
     const workshop = await createWorkshop(body, user.id, learningSupabase);
 
     if (!workshop) {
       return NextResponse.json(
-        { error: "Failed to create workshop" },
+        { error: "Failed to create workshop - no data returned" },
         { status: 500 }
       );
     }
@@ -59,8 +61,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ workshop }, { status: 201 });
   } catch (error: any) {
     console.error("Error in POST /api/workshops:", error);
+    console.error("Error stack:", error.stack);
     return NextResponse.json(
-      { error: error.message || "Failed to create workshop" },
+      { 
+        error: error.message || "Failed to create workshop",
+        details: error.code || undefined,
+      },
       { status: 500 }
     );
   }

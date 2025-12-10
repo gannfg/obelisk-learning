@@ -145,11 +145,11 @@ export function AcademyPageClient() {
   }, [currentTab, supabase, learningSupabase, isAdmin]);
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
       {/* Academy Header */}
       <div className="mb-8">
-        <h1 className="mb-3 text-3xl sm:text-4xl font-bold bg-gradient-to-r from-foreground via-foreground/80 to-foreground/60 bg-clip-text text-transparent">
-          Web3 Coding Academy
+        <h1 className="text-3xl sm:text-4xl font-bold mb-3">
+          Academy
         </h1>
         <p className="text-base sm:text-lg text-muted-foreground">
           Your comprehensive learning space for Web3 development. Enroll in

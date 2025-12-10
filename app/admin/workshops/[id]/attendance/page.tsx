@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAdmin } from "@/lib/hooks/use-admin";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { ArrowLeft, CheckCircle2, QrCode, UserPlus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, QrCode, UserPlus, Download, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { createLearningClient } from "@/lib/supabase/learning-client";
+import { QRCodeSVG } from "qrcode.react";
 
 interface AttendanceRecord {
   id: string;
@@ -138,6 +139,51 @@ export default function WorkshopAttendancePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* QR Code Display */}
+          {workshop?.qrToken && (
+            <div className="border rounded-lg p-6 space-y-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                <QrCode className="h-5 w-5" />
+                QR Code for Check-in
+              </h3>
+              <div className="flex flex-col sm:flex-row gap-6 items-start">
+                <div className="flex-shrink-0 bg-white p-4 rounded-lg">
+                  <QRCodeSVG
+                    value={`${typeof window !== "undefined" ? window.location.origin : ""}/checkin/${workshop.qrToken}`}
+                    size={200}
+                  />
+                </div>
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Check-in URL:</p>
+                    <div className="flex gap-2">
+                      <Input
+                        readOnly
+                        value={`${typeof window !== "undefined" ? window.location.origin : ""}/checkin/${workshop.qrToken}`}
+                        className="flex-1 font-mono text-sm"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            `${typeof window !== "undefined" ? window.location.origin : ""}/checkin/${workshop.qrToken}`
+                          );
+                          alert("URL copied to clipboard!");
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Share this QR code with attendees. They can scan it to check in to the workshop.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Manual Check-in */}
           <div className="border rounded-lg p-4 space-y-3">
             <h3 className="font-semibold flex items-center gap-2">
@@ -150,6 +196,11 @@ export default function WorkshopAttendancePage() {
                 placeholder="Enter user email"
                 value={manualCheckInEmail}
                 onChange={(e) => setManualCheckInEmail(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter" && manualCheckInEmail.trim() && !checkingIn) {
+                    handleManualCheckIn();
+                  }
+                }}
                 className="flex-1"
               />
               <Button
@@ -159,6 +210,46 @@ export default function WorkshopAttendancePage() {
                 {checkingIn ? "Checking in..." : "Check In"}
               </Button>
             </div>
+          </div>
+
+          {/* Export CSV */}
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const response = await fetch(`/api/workshops/${workshopId}/attendance`);
+                  if (!response.ok) throw new Error("Failed to fetch attendance");
+                  const data = await response.json();
+                  
+                  const headers = ["Name", "Email", "Check-in Time", "Method"];
+                  const rows = data.attendance.map((att: any) => [
+                    att.user?.name || "Unknown",
+                    att.user?.email || "Unknown",
+                    format(new Date(att.checkinTime), "yyyy-MM-dd HH:mm:ss"),
+                    att.method === "qr" ? "QR Code" : "Manual",
+                  ]);
+
+                  const csv = [headers, ...rows]
+                    .map((row) => row.map((cell: any) => `"${cell}"`).join(","))
+                    .join("\n");
+
+                  const blob = new Blob([csv], { type: "text/csv" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `workshop-attendance-${workshopId}-${format(new Date(), "yyyy-MM-dd")}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                } catch (error) {
+                  console.error("Error exporting attendance:", error);
+                  alert("Failed to export attendance");
+                }
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
           </div>
 
           {/* Attendance List */}

@@ -10,10 +10,23 @@ import { getUserProfile, updateUserProfile, UserProfile } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/client";
 import { createLearningClient } from "@/lib/supabase/learning-client";
 import { uploadProfilePicture } from "@/lib/storage";
-import { Loader2, Save, ArrowLeft, Upload, X, BookOpen, Calendar, FolderKanban } from "lucide-react";
+import {
+  Loader2,
+  Save,
+  ArrowLeft,
+  Upload,
+  X,
+  BookOpen,
+  Calendar,
+  FolderKanban,
+  CheckCircle2,
+  MapPin,
+  Video,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { format } from "date-fns";
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
@@ -39,6 +52,8 @@ export default function ProfilePage() {
     projectsCount: 0,
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [attendedWorkshops, setAttendedWorkshops] = useState<any[]>([]);
+  const [loadingAttendance, setLoadingAttendance] = useState(true);
 
   // Load profile data
   useEffect(() => {
@@ -587,6 +602,98 @@ export default function ProfilePage() {
                       {displayProfile.bio || "No bio added yet."}
                     </p>
                   </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Proof of Attendance Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Proof of Attendance</CardTitle>
+              <CardDescription>
+                Workshops you&apos;ve attended and verified
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingAttendance ? (
+                <div className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                </div>
+              ) : attendedWorkshops.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground">
+                    No workshop attendance records yet. Attend a workshop and check in to see your proof of attendance here.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {attendedWorkshops.map((attendance: any) => {
+                    const workshop = attendance.workshops;
+                    if (!workshop) return null;
+
+                    return (
+                      <div
+                        key={attendance.id}
+                        className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                              <h4 className="font-semibold text-base line-clamp-1">
+                                {workshop.title || "Workshop"}
+                              </h4>
+                              <span className="px-2 py-0.5 bg-green-500/10 text-green-600 text-xs font-medium rounded">
+                                Verified
+                              </span>
+                            </div>
+                            <div className="space-y-1 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 flex-shrink-0" />
+                                <span>
+                                  {format(new Date(workshop.datetime), "MMM d, yyyy 'at' h:mm a")}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {workshop.location_type === "online" ? (
+                                  <>
+                                    <Video className="h-4 w-4 flex-shrink-0" />
+                                    <span>Online</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                                    <span className="truncate">
+                                      {workshop.venue_name || "Offline"}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+                                <span>
+                                  Checked in: {format(new Date(attendance.checkin_time), "MMM d, yyyy 'at' h:mm a")}
+                                </span>
+                                <span className="text-xs">
+                                  ({attendance.method === "qr" ? "QR Code" : "Manual"})
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                          >
+                            <Link href={`/workshops/${workshop.id}`}>
+                              View Workshop
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

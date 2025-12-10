@@ -115,8 +115,8 @@ export default function MissionBoardPage() {
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <div className="mb-8">
         <div className="mb-4">
-          <h1 className="text-2xl sm:text-3xl font-bold leading-tight mb-2">Mission Board</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-3">Mission Board</h1>
+          <p className="text-base sm:text-lg text-muted-foreground">
             Choose a mission to start learning. Complete missions to earn badges and unlock new content.
           </p>
         </div>

@@ -256,47 +256,47 @@ export default function WorkshopDetailPage() {
           </Link>
         </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8 lg:gap-12">
+        <div className="flex flex-col lg:grid lg:grid-cols-[400px_1fr] gap-6 lg:gap-12">
           {/* Left Panel - Workshop Image */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6 order-2 lg:order-1">
             {/* Workshop Image */}
             {workshop.imageUrl ? (
-              <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden">
+              <div className="relative w-full aspect-[3/4] sm:aspect-[3/4] rounded-xl sm:rounded-2xl overflow-hidden">
                 <Image
                   src={workshop.imageUrl}
                   alt={workshop.title}
                   fill
                   className="object-cover"
-                  sizes="400px"
+                  sizes="(max-width: 640px) 100vw, 400px"
                   priority
                 />
               </div>
             ) : (
-              <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 flex items-center justify-center">
+              <div className="relative w-full aspect-[3/4] rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 flex items-center justify-center">
                 <p className="text-white/50 text-sm">No image available</p>
               </div>
             )}
 
             {/* Hosted By */}
-            <div className="bg-card rounded-lg p-4 border border-border">
-              <h3 className="text-sm font-semibold mb-3">Hosted By</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Rocket className="h-4 w-4 text-primary" />
+            <div className="bg-card rounded-lg p-3 sm:p-4 border border-border">
+              <h3 className="text-xs sm:text-sm font-semibold mb-2 sm:mb-3">Hosted By</h3>
+              <div className="space-y-2 sm:space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Rocket className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
                     </div>
-                    <span className="text-sm font-medium">{workshop.hostName}</span>
+                    <span className="text-xs sm:text-sm font-medium truncate">{workshop.hostName}</span>
                   </div>
-                  <X className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground" />
+                  <X className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground flex-shrink-0" />
                 </div>
               </div>
             </div>
 
             {/* Attendees */}
-            <div className="bg-card rounded-lg p-4 border border-border">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold">
+            <div className="bg-card rounded-lg p-3 sm:p-4 border border-border">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <span className="text-xs sm:text-sm font-semibold">
                   {registrationCount} {registrationCount === 1 ? "Went" : "Went"}
                 </span>
               </div>
@@ -350,35 +350,31 @@ export default function WorkshopDetailPage() {
           </div>
 
           {/* Right Panel - Main Content */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
             {/* Title */}
             <div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 leading-tight">
-                {workshop.title}
-                <Rocket className="inline-block h-8 w-8 ml-2 text-primary" />
+              <h1 className="text-3xl sm:text-4xl font-bold mb-3 leading-tight">
+                <span className="inline-block">{workshop.title}</span>
+                <Rocket className="inline-block h-6 w-6 sm:h-7 sm:w-7 ml-2 text-primary align-middle" />
               </h1>
             </div>
 
             {/* Date & Time */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-lg font-semibold">
-                <Calendar className="h-5 w-5" />
-                <span>{getDateShort(workshop.datetime)}</span>
-              </div>
-              <div className="text-muted-foreground">
+              <div className="text-base sm:text-lg font-semibold">
                 {formatDateIndonesian(workshop.datetime)}
               </div>
               {endTime && (
-                <div className="text-muted-foreground">
+                <div className="text-sm sm:text-base text-muted-foreground">
                   {formatTimeRange(workshop.datetime, endTime)} GMT+7
                 </div>
               )}
             </div>
 
             {/* Location */}
-            <div className="flex items-start gap-3">
-              <MapPin className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-              <div className="flex-1">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-primary mt-1 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
                 {workshop.locationType === "online" ? (
                   <>
                     <p className="font-medium">Online Workshop</p>
@@ -395,15 +391,37 @@ export default function WorkshopDetailPage() {
                   </>
                 ) : (
                   <>
-                    <p className="font-medium">{workshop.venueName || "Offline Workshop"}</p>
-                    {workshop.venueName && (
+                    <p className="font-medium">
+                      {workshop.venueName && 
+                       workshop.venueName !== "View on Google Maps" && 
+                       workshop.venueName !== "See Google Maps location" &&
+                       workshop.venueName !== "View Location on Google Maps"
+                        ? workshop.venueName
+                        : "Offline Workshop"}
+                    </p>
+                    {(workshop as any).venueAddress && (
                       <p className="text-sm text-muted-foreground mt-1">
-                        Kota Yogyakarta, Daerah Istimewa Yogyakarta
+                        {(workshop as any).venueAddress}
                       </p>
                     )}
-                    <button className="text-sm text-primary hover:underline flex items-center gap-1 mt-2">
-                      View on Map <ArrowRight className="h-3 w-3" />
-                    </button>
+                    {((workshop as any).googleMapsUrl || 
+                      ((workshop as any).venueLat && (workshop as any).venueLng)) && (
+                      <a
+                        href={
+                          (workshop as any).googleMapsUrl
+                            ? (workshop as any).googleMapsUrl.startsWith("http://") ||
+                              (workshop as any).googleMapsUrl.startsWith("https://")
+                              ? (workshop as any).googleMapsUrl
+                              : `https://${(workshop as any).googleMapsUrl}`
+                            : `https://www.google.com/maps?q=${(workshop as any).venueLat},${(workshop as any).venueLng}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:underline flex items-center gap-1 mt-2"
+                      >
+                        View on Map <ArrowRight className="h-3 w-3" />
+                      </a>
+                    )}
                   </>
                 )}
               </div>
@@ -421,13 +439,13 @@ export default function WorkshopDetailPage() {
 
             {/* About Event */}
             {workshop.description && (
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold">About Event</h2>
+              <div className="space-y-3 sm:space-y-4">
+                <h2 className="text-xl sm:text-2xl font-bold">About Event</h2>
                 <div className="prose prose-invert max-w-none">
-                  <p className="text-lg font-semibold mb-3">
-                    {workshop.title} <Rocket className="inline-block h-5 w-5 ml-1 text-primary" />
+                  <p className="text-base sm:text-lg font-semibold mb-2 sm:mb-3">
+                    {workshop.title} <Rocket className="inline-block h-4 w-4 sm:h-5 sm:w-5 ml-1 text-primary align-middle" />
                   </p>
-                  <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  <p className="text-sm sm:text-base text-muted-foreground whitespace-pre-wrap leading-relaxed">
                     {workshop.description}
                   </p>
                 </div>
