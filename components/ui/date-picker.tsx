@@ -3,7 +3,7 @@
 import * as React from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { DayPicker, DayPickerSingleProps } from "react-day-picker";
+import { DayPicker } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -109,10 +109,6 @@ export function DatePicker({
               day_disabled: "text-muted-foreground opacity-50",
               day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
               day_hidden: "invisible",
-            }}
-            components={{
-              IconLeft: ({ ...props }) => <span className="h-4 w-4">‹</span>,
-              IconRight: ({ ...props }) => <span className="h-4 w-4">›</span>,
             }}
           />
           <div className="flex justify-between p-3 border-t">
