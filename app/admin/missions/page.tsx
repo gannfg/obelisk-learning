@@ -72,6 +72,8 @@ export default function AdminMissionsPage() {
   const [submissions, setSubmissions] = useState<MissionSubmission[]>([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(true);
   const [updatingSubmissionId, setUpdatingSubmissionId] = useState<string | null>(null);
+  const [userProfiles, setUserProfiles] = useState<Record<string, { email?: string; username?: string }>>({});
+  const [feedbackDrafts, setFeedbackDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -146,6 +148,32 @@ export default function AdminMissionsPage() {
       })) || [];
 
     setSubmissions(mapped);
+    // Seed feedback drafts
+    const drafts: Record<string, string> = {};
+    mapped.forEach((m) => {
+      drafts[m.id] = m.feedback || "";
+    });
+    setFeedbackDrafts(drafts);
+    // Load user profile info for admin display (best-effort)
+    try {
+      const userIds = Array.from(new Set(mapped.map((m) => m.userId)));
+      if (userIds.length > 0) {
+        const { data: usersData, error: usersError } = await learningSupabase
+          .from("users")
+          .select("id,email,username")
+          .in("id", userIds);
+
+        if (!usersError && usersData) {
+          const profiles: Record<string, { email?: string; username?: string }> = {};
+          usersData.forEach((u: any) => {
+            profiles[u.id] = { email: u.email ?? undefined, username: u.username ?? undefined };
+          });
+          setUserProfiles(profiles);
+        }
+      }
+    } catch (profileErr) {
+      console.warn("Unable to load user profiles for submissions", profileErr);
+    }
     setSubmissionsLoading(false);
   };
 
@@ -388,6 +416,23 @@ export default function AdminMissionsPage() {
     setDeletingId(null);
   };
 
+  // Helper function to calculate progress percentage based on submission status
+  const getProgressPercentage = (status: MissionSubmission["status"] | undefined): number => {
+    if (!status) return 0;
+    switch (status) {
+      case "submitted":
+        return 50;
+      case "under_review":
+        return 75;
+      case "approved":
+        return 100;
+      case "changes_requested":
+        return 75;
+      default:
+        return 0;
+    }
+  };
+
   const handleUpdateSubmission = async (
     submissionId: string,
     updates: Partial<MissionSubmission>
@@ -422,6 +467,48 @@ export default function AdminMissionsPage() {
       console.error("Error updating submission:", error);
       setError(error.message || "Failed to update submission.");
     } else {
+      // Update mission progress when status changes — only if admin is the same user (RLS-safe)
+      if (updates.status) {
+        try {
+          const currentUser = await supabase?.auth.getUser();
+          const currentUserId = currentUser?.data?.user?.id;
+
+          // RLS on mission_progress only allows auth.uid() = user_id.
+          // If admin is updating another user's submission, skip the progress update to avoid errors.
+          if (currentUserId && currentUserId === submission.userId) {
+            const newStatus = updates.status;
+            const { error: progressError } = await learningSupabase
+              .from("mission_progress")
+              .upsert(
+                {
+                  user_id: submission.userId,
+                  mission_id: submission.missionId,
+                  completed: newStatus === "approved" || newStatus === "changes_requested",
+                  completed_at:
+                    newStatus === "approved" || newStatus === "changes_requested"
+                      ? new Date().toISOString()
+                      : null,
+                },
+                {
+                  onConflict: "user_id,mission_id",
+                }
+              );
+
+            if (progressError) {
+              // Keep noisy errors out of console; log a concise warning for admins.
+              console.warn("Progress update skipped (RLS or other issue)", {
+                status: newStatus,
+                missionId: submission.missionId,
+                userId: submission.userId,
+                error: progressError.message,
+              });
+            }
+          }
+        } catch (progressCatchError) {
+          console.warn("Progress update skipped due to auth lookup failure", progressCatchError);
+        }
+      }
+
       await loadSubmissions();
 
       // Send notification to submitter if feedback or status was updated
@@ -868,7 +955,7 @@ export default function AdminMissionsPage() {
             setImagePreview(URL.createObjectURL(croppedBlob));
             setShowImageCropper(false);
           }}
-          aspectRatio={4 / 3}
+          aspectRatio={1}
         />
       )}
 
@@ -904,9 +991,23 @@ export default function AdminMissionsPage() {
                             ({sub.missionId})
                           </span>
                         </p>
-                        <p className="text-[11px] text-muted-foreground">
-                          User: <span className="font-mono">{sub.userId}</span>
-                        </p>
+                        {(() => {
+                          const profile = userProfiles[sub.userId];
+                          const label =
+                            profile?.username ||
+                            profile?.email ||
+                            sub.userId;
+                          return (
+                            <p className="text-[11px] text-muted-foreground">
+                              User: <span className="font-mono break-all">{label}</span>
+                              {profile?.email && profile?.username
+                                ? ` (${profile.email})`
+                                : profile?.email && profile?.email !== label
+                                ? ` (${profile.email})`
+                                : null}
+                            </p>
+                          );
+                        })()}
                         <a
                           href={sub.gitUrl}
                           target="_blank"
@@ -976,12 +1077,61 @@ export default function AdminMissionsPage() {
                         </label>
                       </div>
                     </div>
-                    <div className="space-y-1">
-                      {sub.feedback && (
-                        <p className="text-xs text-muted-foreground">
-                          Feedback: {sub.feedback}
-                        </p>
-                      )}
+                    <div className="space-y-2">
+                      {/* Progress Display */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-medium text-muted-foreground">Progress:</span>
+                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-300 ${
+                              getProgressPercentage(sub.status) === 100
+                                ? "bg-green-500"
+                                : getProgressPercentage(sub.status) >= 50
+                                ? "bg-blue-500"
+                                : "bg-primary"
+                            }`}
+                            style={{ width: `${getProgressPercentage(sub.status)}%` }}
+                          />
+                        </div>
+                        <span className="text-[11px] font-medium text-muted-foreground min-w-[3rem] text-right">
+                          {getProgressPercentage(sub.status)}%
+                        </span>
+                      </div>
+
+                      {/* Admin note / feedback */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-muted-foreground">Admin note (visible to user):</label>
+                        <textarea
+                          className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs"
+                          rows={2}
+                          value={feedbackDrafts[sub.id] ?? ""}
+                          onChange={(e) =>
+                            setFeedbackDrafts((prev) => ({
+                              ...prev,
+                              [sub.id]: e.target.value,
+                            }))
+                          }
+                          disabled={updatingSubmissionId === sub.id}
+                        />
+                        <div className="flex justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              handleUpdateSubmission(sub.id, { feedback: feedbackDrafts[sub.id] ?? "" })
+                            }
+                            disabled={updatingSubmissionId === sub.id}
+                          >
+                            Save note
+                          </Button>
+                        </div>
+                        {sub.feedback && (
+                          <p className="text-xs text-muted-foreground">
+                            Current note: {sub.feedback}
+                          </p>
+                        )}
+                      </div>
+
                       <p className="text-[10px] text-muted-foreground">
                         Submitted: {sub.createdAt.toLocaleString()}
                         {sub.reviewedAt && ` • Reviewed: ${sub.reviewedAt.toLocaleString()}`}

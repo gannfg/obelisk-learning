@@ -222,7 +222,7 @@ export default function MissionPage() {
         mission_id: missionId,
         git_url: submissionGitUrl.trim(),
         website_url: submissionWebsiteUrl.trim(),
-        status: "under_review",
+        status: "submitted", // Set to "submitted" first (50% progress)
       };
 
       // Add Developer-specific fields if mission category is Developer
@@ -243,6 +243,26 @@ export default function MissionPage() {
       if (error) {
         console.error("Error submitting mission:", error);
         return;
+      }
+
+      // Update mission progress to 50% when submitted
+      const { error: progressError } = await supabase
+        .from("mission_progress")
+        .upsert(
+          {
+            user_id: user.id,
+            mission_id: missionId,
+            completed: false,
+            completed_at: null,
+          },
+          {
+            onConflict: "user_id,mission_id",
+          }
+        );
+
+      if (progressError) {
+        console.error("Error updating mission progress:", progressError);
+        // Don't fail the submission if progress update fails
       }
 
       const s = data as any;
@@ -451,7 +471,7 @@ export default function MissionPage() {
           <div className="space-y-6">
             {/* Mission Image */}
             {mission.imageUrl ? (
-              <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden">
+              <div className="relative w-full aspect-square rounded-2xl overflow-hidden">
                 <Image
                   src={mission.imageUrl}
                   alt={mission.title}
@@ -462,7 +482,7 @@ export default function MissionPage() {
                 />
               </div>
             ) : (
-              <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 flex items-center justify-center">
+              <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 flex items-center justify-center">
                 <Target className="h-16 w-16 text-white" />
               </div>
             )}
@@ -934,9 +954,10 @@ export default function MissionPage() {
                                 </span>
                               </div>
                               {sub.feedback && (
-                                <p className="text-xs text-muted-foreground">
-                                  Feedback: {sub.feedback}
-                                </p>
+                                <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
+                                  <p className="font-semibold mb-1">Admin note</p>
+                                  <p className="leading-snug">{sub.feedback}</p>
+                                </div>
                               )}
                             </div>
                           ))}
