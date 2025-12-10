@@ -1,6 +1,6 @@
 export default function ContactPage() {
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-4xl">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-4xl">
       <h1 className="text-3xl sm:text-4xl font-bold mb-8">Contact Us</h1>
       <div className="prose prose-zinc dark:prose-invert max-w-none">
         <p className="text-base sm:text-lg text-muted-foreground mb-6">

@@ -4,6 +4,7 @@
 
 import { createLearningClient } from "@/lib/supabase/learning-client";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { v4 as uuidv4 } from "uuid";
 import type {
   Workshop,
   WorkshopRegistration,
@@ -37,6 +38,10 @@ function normalizeWorkshop(data: any): Workshop {
     datetime: new Date(data.datetime),
     locationType: data.location_type,
     venueName: data.venue_name,
+    venueAddress: data.venue_address || null,
+    venueLat: data.venue_lat || null,
+    venueLng: data.venue_lng || null,
+    googleMapsUrl: data.google_maps_url || null,
     meetingLink: data.meeting_link,
     hostName: data.host_name,
     capacity: data.capacity,
@@ -127,6 +132,15 @@ export async function createWorkshop(
 ): Promise<Workshop | null> {
   try {
     const supabase = ensureSupabaseClient(supabaseClient);
+    
+    // Generate QR token and expiration date (1 hour after workshop end, or 24 hours after start if no end time)
+    const workshopStart = new Date(input.datetime);
+    const workshopEnd = new Date(workshopStart.getTime() + 4 * 60 * 60 * 1000); // Default 4 hours
+    const qrExpiresAt = new Date(workshopEnd.getTime() + 60 * 60 * 1000); // 1 hour after end
+    
+    // Generate unique QR token
+    const qrToken = uuidv4();
+    
     const { data, error } = await supabase
       .from("workshops")
       .insert({
@@ -135,24 +149,33 @@ export async function createWorkshop(
         datetime: input.datetime,
         location_type: input.locationType,
         venue_name: input.venueName || null,
+        venue_address: input.venueAddress || null,
+        venue_lat: input.venueLat || null,
+        venue_lng: input.venueLng || null,
+        google_maps_url: input.googleMapsUrl || null,
         meeting_link: input.meetingLink || null,
         host_name: input.hostName,
         capacity: input.capacity || null,
         image_url: input.imageUrl || null,
         created_by: userId,
+        qr_token: qrToken,
+        qr_expires_at: qrExpiresAt.toISOString(),
       })
       .select()
       .single();
 
     if (error) {
       console.error("Error creating workshop:", error);
-      return null;
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      // Re-throw to let API route handle it with proper error message
+      throw error;
     }
 
     return data ? normalizeWorkshop(data) : null;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in createWorkshop:", error);
-    return null;
+    // Re-throw to let API route handle it
+    throw error;
   }
 }
 
@@ -173,6 +196,10 @@ export async function updateWorkshop(
     if (input.datetime) updates.datetime = input.datetime;
     if (input.locationType) updates.location_type = input.locationType;
     if (input.venueName !== undefined) updates.venue_name = input.venueName;
+    if (input.venueAddress !== undefined) updates.venue_address = input.venueAddress;
+    if (input.venueLat !== undefined) updates.venue_lat = input.venueLat;
+    if (input.venueLng !== undefined) updates.venue_lng = input.venueLng;
+    if (input.googleMapsUrl !== undefined) updates.google_maps_url = input.googleMapsUrl;
     if (input.meetingLink !== undefined) updates.meeting_link = input.meetingLink;
     if (input.hostName) updates.host_name = input.hostName;
     if (input.capacity !== undefined) updates.capacity = input.capacity;

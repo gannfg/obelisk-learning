@@ -238,7 +238,7 @@ export default function NotificationsPage() {
 
   if (loading || loadingNotifications) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 py-4">
         <div className="flex items-center justify-center min-h-[400px]">
           <p className="text-muted-foreground">Loading notifications...</p>
         </div>
@@ -248,7 +248,7 @@ export default function NotificationsPage() {
 
   if (!user) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 py-4">
         <Card>
           <CardContent className="py-8 text-center">
             <p className="text-muted-foreground">Please sign in to view your notifications.</p>
@@ -259,7 +259,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-3 py-4 max-w-4xl">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold mb-2">Notifications</h1>

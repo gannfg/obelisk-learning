@@ -70,7 +70,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
   ) || 0;
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <div className="grid gap-4 sm:gap-6 md:gap-8 md:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)_minmax(0,1.5fr)]">
         {/* Left: course content sidebar */}
         <div className="order-2 md:order-1 min-w-0">

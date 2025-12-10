@@ -61,7 +61,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
     : "#";
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <div className="mb-8">
         <Link
           href="/academy"
@@ -165,7 +165,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
                   ))}
                 </div>
               ) : (
-                <div className="py-8 text-center">
+                <div className="py-4 text-center">
                   <p className="text-muted-foreground">
                     No modules available yet. Check back soon!
                   </p>

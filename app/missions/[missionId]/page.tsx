@@ -418,7 +418,7 @@ export default function MissionPage() {
 
   if (loading || authLoading) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-center min-h-[400px]">
           <p className="text-base text-muted-foreground">Loading mission...</p>
         </div>
@@ -428,7 +428,7 @@ export default function MissionPage() {
 
   if (!mission) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <p className="text-base text-destructive mb-4">Mission not found</p>
         <Link href="/missions">
           <Button variant="outline">

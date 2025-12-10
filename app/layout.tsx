@@ -59,7 +59,7 @@ export default function RootLayout({
           <UserSync />
           <div className="flex min-h-screen flex-col">
             <Header />
-            <main className="flex-1 pt-14 sm:pt-16 pb-20 md:pb-0">{children}</main>
+            <main className="flex-1 pt-14 sm:pt-16 pb-16 md:pb-0">{children}</main>
             <MobileNav />
             <Footer />
           </div>

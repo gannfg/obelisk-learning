@@ -65,7 +65,7 @@ export default function MyClassesPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
@@ -75,7 +75,7 @@ export default function MyClassesPage() {
 
   if (!user) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground mb-4">Please sign in to view your classes.</p>
@@ -89,7 +89,7 @@ export default function MyClassesPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <div className="mb-8">
         <h1 className="text-3xl sm:text-4xl font-bold mb-3">My Classes</h1>
         <p className="text-base sm:text-lg text-muted-foreground">

@@ -23,7 +23,7 @@ export function ThemeToggle() {
         aria-label="Toggle theme"
         disabled
       >
-        <Moon className="h-4 w-4" />
+        <Moon className="h-5 w-5" />
         <span className="sr-only">Toggle theme</span>
       </Button>
     );
@@ -41,9 +41,9 @@ export function ThemeToggle() {
       aria-label="Toggle theme"
     >
       {theme === "light" ? (
-        <Moon className="h-4 w-4" />
+        <Moon className="h-5 w-5" />
       ) : (
-        <Sun className="h-4 w-4" />
+        <Sun className="h-5 w-5" />
       )}
       <span className="sr-only">Toggle theme</span>
     </Button>

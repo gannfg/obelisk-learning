@@ -21,6 +21,7 @@ import {
   BookOpen,
   Users as UsersIcon,
   HelpCircle,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -29,6 +30,12 @@ import { getUserProfile } from "@/lib/profile";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAdmin } from "@/lib/hooks/use-admin";
 import { NotificationsDropdown } from "@/components/notifications-dropdown";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
  
  export function Header() {
   const { user, loading } = useAuth();
@@ -37,6 +44,7 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
   const { isAdmin } = useAdmin();
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("");
+  const [searchOpen, setSearchOpen] = useState(false);
 
   // Fetch user profile
   useEffect(() => {
@@ -94,7 +102,7 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
       className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-sm safe-area-inset-top"
        style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50 }}
      >
-      <div className="container mx-auto flex h-14 sm:h-16 items-center gap-3 sm:gap-4 px-4 sm:px-6">
+      <div className="container mx-auto flex h-14 sm:h-16 items-center gap-2 sm:gap-3 px-3 sm:px-4">
         {/* Mobile Menu (hamburger) - Left side */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -192,9 +200,32 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
         </div>
 
         {/* Right Side Actions */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {!loading && (
             <>
+              {/* Search Icon - Mobile only */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="lg:hidden h-9 w-9 p-0"
+                onClick={() => setSearchOpen(true)}
+              >
+                <Search className="h-5 w-5" />
+                <span className="sr-only">Search</span>
+              </Button>
+
+              {/* Mobile Search Dialog */}
+              <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Search</DialogTitle>
+                  </DialogHeader>
+                  <div className="mt-4">
+                    <SearchBar />
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               {/* Theme Toggle - always visible */}
               <ThemeToggle />
 

@@ -778,7 +778,7 @@ export default function AdminClassesPage() {
 
   if (adminLoading || loading) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-8">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-muted rounded w-1/3" />
           <div className="h-64 bg-muted rounded" />
@@ -792,7 +792,7 @@ export default function AdminClassesPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8">
+    <div className="container mx-auto px-3 sm:px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl sm:text-4xl font-bold mb-2">Classes Admin</h1>
         <p className="text-muted-foreground">
