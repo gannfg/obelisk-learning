@@ -532,12 +532,12 @@ export default function MissionPage() {
                 </div>
               )}
 
-              {/* Submission Deadline */}
+              {/* Submission Start */}
               {mission.submissionDeadline && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Submission Deadline</p>
+                  <p className="text-sm text-muted-foreground mb-1">Submission Start</p>
                   <p className="font-medium">
-                    {format(mission.submissionDeadline, "MMM d, yyyy")}
+                    {format(mission.submissionDeadline, "yyyy/MM/dd")}
                   </p>
                 </div>
               )}
@@ -616,19 +616,23 @@ export default function MissionPage() {
             </div>
 
             {/* Date & Time */}
-            {mission.submissionDeadline && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-lg font-semibold">
-                  <Calendar className="h-5 w-5" />
-                  <span>
+            {(mission.submissionDeadline || mission.endDate) && (
+              <div className="space-y-1">
+                <div className="text-lg font-semibold">
                     {mission.submissionDeadline
-                      ? getDateShort(mission.submissionDeadline)
-                      : "No submission date"}
-                  </span>
+                    ? format(mission.submissionDeadline, "yyyy/MM/dd")
+                    : "No start date"}
+                  {mission.endDate &&
+                    ` - ${format(mission.endDate, "yyyy/MM/dd")}`}
                 </div>
-                {mission.submissionDeadline && (
+                {(mission.submissionDeadline || mission.endDate) && (
                   <div className="text-muted-foreground">
-                    {format(mission.submissionDeadline, "EEEE, MMMM d, yyyy")}
+                    {mission.submissionDeadline
+                      ? format(mission.submissionDeadline, "PPP")
+                      : null}
+                    {mission.endDate
+                      ? ` • Ends: ${format(mission.endDate, "PPP")}`
+                      : null}
                   </div>
                 )}
               </div>
@@ -704,7 +708,10 @@ export default function MissionPage() {
                             <li>Category: {mission.category}</li>
                           )}
                           {mission.submissionDeadline && (
-                            <li>Submission Deadline: {format(mission.submissionDeadline, "MMMM d, yyyy")}</li>
+                            <li>
+                              Submission Start:{" "}
+                              {format(mission.submissionDeadline, "yyyy/MM/dd")}
+                            </li>
                           )}
                           {mission.endDate && (
                             <li>End Date: {format(mission.endDate, "MMMM d, yyyy")}</li>
@@ -831,23 +838,23 @@ export default function MissionPage() {
                             required
                           />
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium" htmlFor="website-url">
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium" htmlFor="website-url">
                             Website URL
-                          </label>
-                          <input
-                            id="website-url"
-                            type="url"
-                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                            placeholder="https://your-project.com"
-                            value={submissionWebsiteUrl}
-                            onChange={(e) => setSubmissionWebsiteUrl(e.target.value)}
+                              </label>
+                              <input
+                                id="website-url"
+                                type="url"
+                                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                                placeholder="https://your-project.com"
+                                value={submissionWebsiteUrl}
+                                onChange={(e) => setSubmissionWebsiteUrl(e.target.value)}
                             required
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            URL of your deployed website or web application
-                          </p>
-                        </div>
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                URL of your deployed website or web application
+                              </p>
+                            </div>
                         {mission.category === "Developer" && (
                           <>
                             <div className="space-y-2">

@@ -483,11 +483,10 @@ export default function AdminMissionsPage() {
                 {
                   user_id: submission.userId,
                   mission_id: submission.missionId,
-                  completed: newStatus === "approved" || newStatus === "changes_requested",
-                  completed_at:
-                    newStatus === "approved" || newStatus === "changes_requested"
-                      ? new Date().toISOString()
-                      : null,
+                  completed: newStatus === "approved",
+                  completed_at: newStatus === "approved"
+                    ? new Date().toISOString()
+                    : null,
                 },
                 {
                   onConflict: "user_id,mission_id",
