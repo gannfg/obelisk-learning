@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Target, Clock, CheckCircle2, Circle, Trophy, Filter, Sparkles, Code2, Calendar, Users } from "lucide-react";
+import { Target, Clock, CheckCircle2, Circle, Trophy, Filter, Sparkles, Calendar, Users, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { MissionCardSkeleton } from "@/components/mission-card-skeleton";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createLearningClient } from "@/lib/supabase/learning-client";
@@ -16,10 +16,12 @@ export default function MissionBoardPage() {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [progressMap, setProgressMap] = useState<Record<string, MissionProgress>>({});
   const [submissionMap, setSubmissionMap] = useState<Record<string, MissionSubmission>>({});
+  const [joinCounts, setJoinCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "beginner" | "intermediate" | "advanced">("all");
-  const [stackFilter, setStackFilter] = useState<string>("all");
   const [joinFilter, setJoinFilter] = useState<"all" | "joined" | "not_joined">("all");
+  const [featuredMissions, setFeaturedMissions] = useState<Mission[]>([]);
+  const [currentFeaturedIndex, setCurrentFeaturedIndex] = useState(0);
 
   useEffect(() => {
     if (authLoading) return;
@@ -37,10 +39,6 @@ export default function MissionBoardPage() {
 
       if (filter !== "all") {
         query = query.eq("difficulty", filter);
-      }
-
-      if (stackFilter !== "all") {
-        query = query.eq("stack_type", stackFilter);
       }
 
       const { data: missionsData, error } = await query;
@@ -65,11 +63,37 @@ export default function MissionBoardPage() {
           difficulty: m.difficulty,
           estimatedTime: m.estimated_time ?? undefined,
           submissionDeadline: m.submission_deadline ? new Date(m.submission_deadline) : undefined,
+          endDate: m.end_date ? new Date(m.end_date) : undefined,
           orderIndex: m.order_index,
           badgeId: m.badge_id ?? undefined,
         })) || [];
 
       setMissions(normalizedMissions);
+
+      // Randomly pick 2 missions for featured hero card
+      if (normalizedMissions.length > 0) {
+        const shuffled = [...normalizedMissions].sort(() => Math.random() - 0.5);
+        const selected = shuffled.slice(0, Math.min(2, shuffled.length));
+        setFeaturedMissions(selected);
+        setCurrentFeaturedIndex(0);
+      }
+
+      // Fetch join counts for all missions
+      const missionIds = normalizedMissions.map(m => m.id);
+      if (missionIds.length > 0) {
+        const { data: joinCountData } = await supabase
+          .from("mission_progress")
+          .select("mission_id")
+          .in("mission_id", missionIds);
+
+        if (joinCountData) {
+          const counts: Record<string, number> = {};
+          joinCountData.forEach((item) => {
+            counts[item.mission_id] = (counts[item.mission_id] || 0) + 1;
+          });
+          setJoinCounts(counts);
+        }
+      }
 
       // Fetch progress and submissions for authenticated users
       if (user) {
@@ -120,14 +144,56 @@ export default function MissionBoardPage() {
     }
 
     loadMissions();
-  }, [user, authLoading, filter, stackFilter]);
+  }, [user, authLoading, filter]);
+
+  // Auto-rotate between featured missions
+  useEffect(() => {
+    if (featuredMissions.length < 2) return;
+
+    const interval = setInterval(() => {
+      setCurrentFeaturedIndex((prev) => (prev + 1) % featuredMissions.length);
+    }, 5000); // Rotate every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [featuredMissions.length]);
+
+  // Manual navigation functions
+  const goToPrevious = () => {
+    if (featuredMissions.length < 2) return;
+    setCurrentFeaturedIndex((prev) => (prev - 1 + featuredMissions.length) % featuredMissions.length);
+  };
+
+  const goToNext = () => {
+    if (featuredMissions.length < 2) return;
+    setCurrentFeaturedIndex((prev) => (prev + 1) % featuredMissions.length);
+  };
 
   if (loading || authLoading) {
     return (
-      <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 pb-20 md:pb-8">
-        <div className="mb-4 sm:mb-6 md:mb-8">
-          <div className="h-8 sm:h-10 bg-muted rounded w-48 sm:w-64 mb-3 sm:mb-4 animate-pulse" />
-          <div className="h-5 sm:h-6 bg-muted rounded w-full max-w-md animate-pulse" />
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        {/* Hero Card Skeleton */}
+        <div className="mb-6">
+          <Card className="overflow-hidden border">
+            <div className="flex flex-col md:flex-row gap-4 p-6 md:p-8">
+              <div className="flex-1 min-h-[200px] flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="h-8 w-3/4 bg-muted rounded animate-pulse" />
+                  <div className="h-4 w-full bg-muted rounded animate-pulse" />
+                  <div className="h-4 w-2/3 bg-muted rounded animate-pulse" />
+                  <div className="flex gap-4 mt-4">
+                    <div className="h-4 w-20 bg-muted rounded animate-pulse" />
+                    <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="h-1.5 w-6 bg-muted rounded-full animate-pulse" />
+                  ))}
+                </div>
+              </div>
+              <div className="w-full md:w-48 h-48 bg-muted rounded-lg animate-pulse flex-shrink-0" />
+            </div>
+          </Card>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
@@ -138,43 +204,154 @@ export default function MissionBoardPage() {
     );
   }
 
-  const stackTypes = Array.from(
-    new Set(missions.map((m) => m.stackType).filter((stack): stack is NonNullable<typeof stack> => Boolean(stack)))
-  );
+  // Get current featured mission from rotation
+  const featuredMission = featuredMissions.length > 0 ? featuredMissions[currentFeaturedIndex] : null;
+  const featuredProgress = featuredMission ? progressMap[featuredMission.id] : null;
+  const featuredSubmission = featuredMission ? submissionMap[featuredMission.id] : null;
+  const featuredIsJoined = featuredMission ? !!featuredProgress : false;
+
+  // Calculate days remaining for featured mission
+  const getDaysRemaining = (mission: Mission | null) => {
+    if (!mission) return null;
+    const deadlineDate = mission.endDate || mission.submissionDeadline;
+    if (!deadlineDate) return null;
+    const now = new Date();
+    const deadline = new Date(deadlineDate);
+    const diffTime = deadline.getTime() - now.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const featuredDaysRemaining = getDaysRemaining(featuredMission);
 
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-      <div className="mb-8">
-        <div className="mb-4">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-3">Mission Board</h1>
-          <p className="text-base sm:text-lg text-muted-foreground">
-            Choose a mission to start learning. Complete missions to earn badges and unlock new content.
-          </p>
-        </div>
-        {user && (
-          <div className="flex items-center gap-2 mt-3 p-3 bg-muted/50 rounded-lg">
-            <Sparkles className="h-4 w-4 text-primary shrink-0" />
-            <span className="text-xs sm:text-sm">
-              <span className="font-semibold">AI Assistant</span> is ready to help you learn!
-            </span>
-          </div>
-        )}
-      </div>
+      {/* Hero Mission Card */}
+      {featuredMission && (
+        <Link href={`/missions/${featuredMission.id}`} className="block mb-6 group">
+          <Card className="overflow-visible border shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer relative">
+            {/* Background Image */}
+            <div 
+              className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none z-0 bg-cover bg-center bg-no-repeat"
+              style={{ backgroundImage: 'url(/superteam_color.svg)' }}
+            />
+            
+            {/* Left Navigation Button - Only visible on hover */}
+            {featuredMissions.length >= 2 && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  goToPrevious();
+                }}
+                className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white dark:bg-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:scale-110"
+                aria-label="Previous mission"
+              >
+                <ChevronLeft className="h-5 w-5 text-black" />
+              </button>
+            )}
+
+            {/* Right Navigation Button - Only visible on hover */}
+            {featuredMissions.length >= 2 && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  goToNext();
+                }}
+                className="absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white dark:bg-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:scale-110"
+                aria-label="Next mission"
+              >
+                <ChevronRight className="h-5 w-5 text-black" />
+              </button>
+            )}
+
+            <div className="relative z-10 flex flex-col md:flex-row gap-4 p-6 md:p-8">
+              {/* Left Side - Mission Info */}
+              <div className="flex-1 flex flex-col justify-between min-h-[200px]">
+                <div>
+                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 text-white">
+                    {featuredMission.title}
+                  </h2>
+                  
+                  {/* Stats */}
+                  <div className="flex flex-wrap gap-4 text-base md:text-lg text-white">
+                    <div className="flex items-center gap-1.5">
+                      <Users className="h-5 w-5 text-white" />
+                      <span>{joinCounts[featuredMission.id] || 0} joined</span>
+                    </div>
+                    {featuredDaysRemaining !== null && (
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-5 w-5 text-white" />
+                        <span>
+                          {featuredDaysRemaining < 0
+                            ? "Closed"
+                            : featuredDaysRemaining === 0
+                            ? "Due today"
+                            : `Due in ${featuredDaysRemaining} day${featuredDaysRemaining !== 1 ? 's' : ''}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Pagination */}
+                <div className="flex items-center gap-2 mt-4">
+                  {featuredMissions.length >= 2 && (
+                    <div className="flex items-center gap-2">
+                      {featuredMissions.slice(0, 2).map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setCurrentFeaturedIndex(i);
+                          }}
+                          className={`h-1.5 rounded-full transition-all ${
+                            i === currentFeaturedIndex ? "w-6 bg-white" : "w-1.5 bg-white/50"
+                          }`}
+                          aria-label={`Go to mission ${i + 1}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Side - Mission Image (Square) */}
+              <div className="relative w-full md:w-64 h-64 md:h-64 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                {featuredMission.imageUrl ? (
+                  <Image
+                    src={featuredMission.imageUrl}
+                    alt={featuredMission.title}
+                    fill
+                    className="object-cover"
+                    sizes="192px"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Target className="h-12 w-12 text-muted-foreground/50" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        </Link>
+      )}
 
       {/* Filters */}
-      <Card className="p-3 sm:p-4 mb-4">
+      <Card className="p-4 sm:p-5 mb-4">
           <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="text-sm font-medium whitespace-nowrap">Difficulty:</span>
+              <Filter className="h-5 w-5 text-muted-foreground shrink-0" />
+              <span className="text-base font-medium whitespace-nowrap">Difficulty:</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {["all", "beginner", "intermediate", "advanced"].map((level) => (
                 <Button
                   key={level}
                   variant={filter === level ? "default" : "outline"}
-                  size="sm"
+                  size="default"
                   onClick={() => setFilter(level as typeof filter)}
                 >
                   {level.charAt(0).toUpperCase() + level.slice(1)}
@@ -183,47 +360,25 @@ export default function MissionBoardPage() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <span className="text-sm font-medium whitespace-nowrap">Stack:</span>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={stackFilter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStackFilter("all")}
-              >
-                All
-              </Button>
-              {stackTypes.map((stack) => (
-                <Button
-                  key={stack}
-                  variant={stackFilter === stack ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setStackFilter(stack)}
-                >
-                  {stack}
-                </Button>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <span className="text-sm font-medium whitespace-nowrap">Joined:</span>
+            <span className="text-base font-medium whitespace-nowrap">Joined:</span>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant={joinFilter === "all" ? "default" : "outline"}
-                size="sm"
+                size="default"
                 onClick={() => setJoinFilter("all")}
               >
                 All
               </Button>
               <Button
                 variant={joinFilter === "joined" ? "default" : "outline"}
-                size="sm"
+                size="default"
                 onClick={() => setJoinFilter("joined")}
               >
                 Joined
               </Button>
               <Button
                 variant={joinFilter === "not_joined" ? "default" : "outline"}
-                size="sm"
+                size="default"
                 onClick={() => setJoinFilter("not_joined")}
               >
                 Not Joined
@@ -289,9 +444,9 @@ export default function MissionBoardPage() {
             const status = submission?.status;
 
             return (
-              <Link key={mission.id} href={`/missions/${mission.id}`} className="block w-full group aspect-square">
+              <Link key={mission.id} href={`/missions/${mission.id}`} className="block w-full group">
                 <Card
-                  className={`overflow-hidden h-full transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] hover:shadow-lg ${
+                  className={`overflow-hidden transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] hover:shadow-lg ${
                     progressPercentage === 100
                       ? "border-green-500/50 bg-green-500/5"
                       : status === "changes_requested"
@@ -301,34 +456,34 @@ export default function MissionBoardPage() {
                       : ""
                   }`}
                 >
-                  <div className="p-4 sm:p-5">
+                  <div className="p-4">
                     {/* Top Section - Icon and Title */}
-                    <div className="flex items-start gap-3 mb-3">
+                    <div className="flex items-start gap-2 mb-2">
                       {/* Small Icon/Image on Left */}
                       <div className="flex-shrink-0">
                         {mission.imageUrl ? (
-                          <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+                          <div className="relative w-16 h-16 rounded-lg overflow-hidden">
                             <Image
                               src={mission.imageUrl}
                               alt={mission.title}
                               fill
-                              sizes="48px"
+                              sizes="64px"
                               className="object-cover transition-transform group-hover:scale-105"
                             />
                           </div>
                         ) : (
-                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                            <Target className="h-6 w-6 text-primary" />
+                          <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                            <Target className="h-8 w-8 text-primary" />
                           </div>
                         )}
                       </div>
 
                       {/* Title and Level */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-base sm:text-lg font-bold mb-1 leading-tight">
+                        <h3 className="text-base md:text-lg font-bold mb-0.5 leading-tight line-clamp-2">
                           {mission.title}
                         </h3>
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className={`text-xs font-medium capitalize ${
                             mission.difficulty === "beginner"
                               ? "text-green-600 dark:text-green-400"
@@ -339,7 +494,7 @@ export default function MissionBoardPage() {
                             {mission.difficulty} level
                           </span>
                           {isJoined && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
+                            <span className="text-xs px-2 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
                               Joined
                             </span>
                           )}
@@ -348,27 +503,54 @@ export default function MissionBoardPage() {
                     </div>
 
                     {/* Statistics Row */}
-                    <div className="flex items-center gap-4 mb-3 text-xs text-muted-foreground">
-                      {mission.estimatedTime && (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5" />
-                          <span>{mission.estimatedTime}</span>
+                    <div className="space-y-1 mb-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {mission.submissionDeadline && (
+                          <div className="flex items-center gap-0.5">
+                            <Clock className="h-4 w-4" />
+                            <span>{mission.submissionDeadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-0.5">
+                          <Users className="h-4 w-4" />
+                          <span>{joinCounts[mission.id] || 0}</span>
                         </div>
-                      )}
-                      {mission.submissionDeadline && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" />
-                          <span>{mission.submissionDeadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5" />
-                        <span>{Math.floor(Math.random() * 100) + 10}</span>
                       </div>
+                      
+                      {/* Days Remaining to Join */}
+                      {(mission.endDate || mission.submissionDeadline) && (() => {
+                        const deadlineDate = mission.endDate || mission.submissionDeadline;
+                        if (!deadlineDate) return null;
+                        
+                        const now = new Date();
+                        const deadline = new Date(deadlineDate);
+                        const diffTime = deadline.getTime() - now.getTime();
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays < 0) {
+                          return (
+                            <div className="text-xs text-muted-foreground">
+                              <span className="text-red-600 dark:text-red-400">Closed</span>
+                            </div>
+                          );
+                        } else if (diffDays === 0) {
+                          return (
+                            <div className="text-xs text-muted-foreground">
+                              <span className="text-amber-600 dark:text-amber-400">Due today</span>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="text-xs text-muted-foreground">
+                              <span>Due in {diffDays} day{diffDays !== 1 ? 's' : ''}</span>
+                            </div>
+                          );
+                        }
+                      })()}
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="mb-2">
+                    <div className="mb-1.5">
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className={`h-full transition-all duration-300 ${

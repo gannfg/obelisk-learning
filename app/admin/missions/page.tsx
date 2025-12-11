@@ -64,6 +64,10 @@ export default function AdminMissionsPage() {
     stackType: "none" as "none" | "nextjs" | "react" | "solana" | "node" | "python" | "other",
     submissionDeadline: "",
     endDate: "",
+    submissionFields: [
+      { type: "git", label: "Git Repository URL", required: true, placeholder: "https://github.com/username/repo", helper: "" },
+      { type: "website", label: "Website URL", required: true, placeholder: "https://your-project.com", helper: "URL of your deployed website or web application" }
+    ] as Array<{ type: string; label: string; required: boolean; placeholder: string; helper?: string }>,
   });
   
   const supabase = createClient();
@@ -209,6 +213,10 @@ export default function AdminMissionsPage() {
       stackType: "none",
       submissionDeadline: "",
       endDate: "",
+      submissionFields: [
+        { type: "git", label: "Git Repository URL", required: true, placeholder: "https://github.com/username/repo", helper: "" },
+        { type: "website", label: "Website URL", required: true, placeholder: "https://your-project.com", helper: "URL of your deployed website or web application" }
+      ],
     });
     setImageFile(null);
     setImagePreview(null);
@@ -230,6 +238,12 @@ export default function AdminMissionsPage() {
       endDate: mission.end_date
         ? new Date(mission.end_date).toISOString().split("T")[0]
         : "",
+      submissionFields: mission.submission_fields && Array.isArray(mission.submission_fields) && mission.submission_fields.length > 0
+        ? mission.submission_fields
+        : [
+            { type: "git", label: "Git Repository URL", required: true, placeholder: "https://github.com/username/repo", helper: "" },
+            { type: "website", label: "Website URL", required: true, placeholder: "https://your-project.com", helper: "URL of your deployed website or web application" }
+          ],
     });
     setImagePreview(mission.image_url || null);
     setImageFile(null);
@@ -292,6 +306,7 @@ export default function AdminMissionsPage() {
         difficulty: missionForm.difficulty,
         stack_type: missionForm.stackType === "none" ? undefined : missionForm.stackType,
         submission_deadline: submissionDeadlineISO,
+        submission_fields: missionForm.submissionFields,
       };
 
       // Only add category and end_date if they have values (columns may not exist in older schemas)
@@ -853,6 +868,129 @@ export default function AdminMissionsPage() {
                     }}
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Submission Fields Configuration */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Submission Fields</label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Configure what fields users need to fill when submitting this mission. You can choose from predefined types or create custom fields.
+              </p>
+              <div className="space-y-3">
+                {missionForm.submissionFields.map((field, index) => (
+                  <div key={index} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Field {index + 1}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const newFields = missionForm.submissionFields.filter((_, i) => i !== index);
+                          setMissionForm({ ...missionForm, submissionFields: newFields });
+                        }}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-muted-foreground">Type</label>
+                        <Select
+                          value={field.type}
+                          onValueChange={(value) => {
+                            const newFields = [...missionForm.submissionFields];
+                            newFields[index] = { ...field, type: value };
+                            setMissionForm({ ...missionForm, submissionFields: newFields });
+                          }}
+                        >
+                          <SelectTrigger className="h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="git">Git Repository</SelectItem>
+                            <SelectItem value="website">Website URL</SelectItem>
+                            <SelectItem value="video">Video Link</SelectItem>
+                            <SelectItem value="custom">Custom</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-end">
+                        <label className="flex items-center gap-2 text-xs cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={field.required}
+                            onChange={(e) => {
+                              const newFields = [...missionForm.submissionFields];
+                              newFields[index] = { ...field, required: e.target.checked };
+                              setMissionForm({ ...missionForm, submissionFields: newFields });
+                            }}
+                            className="rounded"
+                          />
+                          Required
+                        </label>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Label</label>
+                      <Input
+                        value={field.label}
+                        onChange={(e) => {
+                          const newFields = [...missionForm.submissionFields];
+                          newFields[index] = { ...field, label: e.target.value };
+                          setMissionForm({ ...missionForm, submissionFields: newFields });
+                        }}
+                        placeholder="e.g., Video Link"
+                        className="h-8"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Placeholder</label>
+                      <Input
+                        value={field.placeholder}
+                        onChange={(e) => {
+                          const newFields = [...missionForm.submissionFields];
+                          newFields[index] = { ...field, placeholder: e.target.value };
+                          setMissionForm({ ...missionForm, submissionFields: newFields });
+                        }}
+                        placeholder="e.g., https://youtube.com/watch?v=..."
+                        className="h-8"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Helper Text (optional)</label>
+                      <Input
+                        value={field.helper || ""}
+                        onChange={(e) => {
+                          const newFields = [...missionForm.submissionFields];
+                          newFields[index] = { ...field, helper: e.target.value };
+                          setMissionForm({ ...missionForm, submissionFields: newFields });
+                        }}
+                        placeholder="Additional instructions for users"
+                        className="h-8"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setMissionForm({
+                      ...missionForm,
+                      submissionFields: [
+                        ...missionForm.submissionFields,
+                        { type: "custom", label: "", required: false, placeholder: "", helper: "" }
+                      ]
+                    });
+                  }}
+                  className="w-full"
+                >
+                  + Add Field
+                </Button>
               </div>
             </div>
 
