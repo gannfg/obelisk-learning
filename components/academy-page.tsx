@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CourseCard } from "@/components/course-card";
 import { CategoryFilter } from "@/components/category-filter";
 import { CourseCategory, Course } from "@/types";
-import { BookOpen, FolderKanban, Users } from "lucide-react";
+import { BookOpen, FolderKanban, Users, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -34,9 +33,9 @@ export function AcademyPageClient() {
   const selectedCategory = searchParams.get("category") as
     | CourseCategory
     | undefined;
-  const initialTab = (searchParams.get("tab") as "classes" | "projects" | "teams") || "classes";
+  const initialTab = (searchParams.get("tab") as "classes" | "projects" | "teams") || null;
 
-  const [currentTab, setCurrentTab] = useState<"classes" | "projects" | "teams">(initialTab);
+  const [currentTab, setCurrentTab] = useState<"classes" | "projects" | "teams" | null>(initialTab);
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
   const [teams, setTeams] = useState<TeamWithDetails[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -55,136 +54,218 @@ export function AcademyPageClient() {
     ? classes.filter((classItem) => classItem.category === selectedCategory)
     : classes;
 
+  // Sync currentTab with URL parameter
   useEffect(() => {
-    if (currentTab === "classes") {
-      if (!learningSupabase) {
-        setClasses([]);
-        setLoadingCourses(false);
-        return;
-      }
-      setLoadingCourses(true);
-      // Non-admin users should only see published classes
+    const tab = searchParams.get("tab") as "classes" | "projects" | "teams" | null;
+    setCurrentTab(tab);
+  }, [searchParams]);
+
+  // Load all data for ticker icons (always load, not just when tab is selected)
+  useEffect(() => {
+    // Load classes for ticker
+    if (learningSupabase) {
       getAllClasses({ publishedOnly: !isAdmin }, learningSupabase)
         .then(setClasses)
         .catch((error) => {
           console.error("Error loading classes:", error);
           setClasses([]);
-        })
-        .finally(() => setLoadingCourses(false));
-    } else if (currentTab === "projects") {
-      if (!supabase) {
-        setProjects([]);
-        setLoadingProjects(false);
-        return;
-      }
-      setLoadingProjects(true);
+        });
+    }
+    
+    // Load projects for ticker
+    if (supabase) {
       getAllProjects(supabase)
-        .then(async (projectsData) => {
-          // Fetch member avatars & names for projects
-          try {
-            const authSupabase = createClient();
-            const projectsWithProfiles = await Promise.all(
-              projectsData.map(async (project) => {
-                if (!project.members || project.members.length === 0) {
-                  return { ...project, memberProfiles: {} };
-                }
-
-                const profiles: Record<string, { name: string; avatar?: string }> = {};
-                await Promise.all(
-                  project.members.map(async (member) => {
-                    try {
-                      const profile = await getUserProfile(member.userId, undefined, authSupabase);
-                      const fullName = [profile?.first_name, profile?.last_name]
-                        .filter(Boolean)
-                        .join(" ")
-                        .trim();
-                      const username =
-                        profile?.username ||
-                        (fullName.length > 0 ? fullName : undefined) ||
-                        profile?.email?.split("@")[0];
-
-                      profiles[member.userId] = {
-                        name: username || `User ${member.userId.slice(0, 8)}`,
-                        avatar: profile?.image_url || profile?.email?.charAt(0).toUpperCase(),
-                      };
-                    } catch (error) {
-                      console.error(`Error loading avatar for ${member.userId}:`, error);
-                    }
-                  })
-                );
-
-                return { ...project, memberProfiles: profiles };
-              })
-            );
-            setProjects(projectsWithProfiles);
-          } catch (error) {
-            console.error("Error loading member avatars:", error);
-            setProjects(projectsData);
-          }
-        })
+        .then(setProjects)
         .catch((error) => {
           console.error("Error loading projects:", error);
           setProjects([]);
-        })
-        .finally(() => setLoadingProjects(false));
-    } else if (currentTab === "teams") {
-      if (!supabase) {
-        setTeams([]);
-        setLoadingTeams(false);
-        return;
-      }
-      setLoadingTeams(true);
+        });
+    }
+    
+    // Load teams for ticker
+    if (supabase) {
       getAllTeams(supabase)
         .then(setTeams)
         .catch((error) => {
           console.error("Error loading teams:", error);
           setTeams([]);
-        })
-        .finally(() => setLoadingTeams(false));
+        });
+    }
+  }, [supabase, learningSupabase, isAdmin]);
+
+  useEffect(() => {
+    const shouldLoadClasses = currentTab === "classes" || currentTab === null;
+    const shouldLoadProjects = currentTab === "projects" || currentTab === null;
+    const shouldLoadTeams = currentTab === "teams" || currentTab === null;
+
+    if (shouldLoadClasses) {
+      if (!learningSupabase) {
+        setClasses([]);
+        setLoadingCourses(false);
+      } else {
+        setLoadingCourses(true);
+        getAllClasses({ publishedOnly: !isAdmin }, learningSupabase)
+          .then(setClasses)
+          .catch((error) => {
+            console.error("Error loading classes:", error);
+            setClasses([]);
+          })
+          .finally(() => setLoadingCourses(false));
+      }
+    }
+
+    if (shouldLoadProjects) {
+      if (!supabase) {
+        setProjects([]);
+        setLoadingProjects(false);
+      } else {
+        setLoadingProjects(true);
+        getAllProjects(supabase)
+          .then(async (projectsData) => {
+            try {
+              const authSupabase = createClient();
+              const projectsWithProfiles = await Promise.all(
+                projectsData.map(async (project) => {
+                  if (!project.members || project.members.length === 0) {
+                    return { ...project, memberProfiles: {} };
+                  }
+
+                  const profiles: Record<string, { name: string; avatar?: string }> = {};
+                  await Promise.all(
+                    project.members.map(async (member) => {
+                      try {
+                        const profile = await getUserProfile(member.userId, undefined, authSupabase);
+                        const fullName = [profile?.first_name, profile?.last_name]
+                          .filter(Boolean)
+                          .join(" ")
+                          .trim();
+                        const username =
+                          profile?.username ||
+                          (fullName.length > 0 ? fullName : undefined) ||
+                          profile?.email?.split("@")[0];
+
+                        profiles[member.userId] = {
+                          name: username || `User ${member.userId.slice(0, 8)}`,
+                          avatar: profile?.image_url || profile?.email?.charAt(0).toUpperCase(),
+                        };
+                      } catch (error) {
+                        console.error(`Error loading avatar for ${member.userId}:`, error);
+                      }
+                    })
+                  );
+
+                  return { ...project, memberProfiles: profiles };
+                })
+              );
+              setProjects(projectsWithProfiles);
+            } catch (error) {
+              console.error("Error loading member avatars:", error);
+              setProjects(projectsData);
+            }
+          })
+          .catch((error) => {
+            console.error("Error loading projects:", error);
+            setProjects([]);
+          })
+          .finally(() => setLoadingProjects(false));
+      }
+    }
+
+    if (shouldLoadTeams) {
+      if (!supabase) {
+        setTeams([]);
+        setLoadingTeams(false);
+      } else {
+        setLoadingTeams(true);
+        getAllTeams(supabase)
+          .then(setTeams)
+          .catch((error) => {
+            console.error("Error loading teams:", error);
+            setTeams([]);
+          })
+          .finally(() => setLoadingTeams(false));
+      }
     }
   }, [currentTab, supabase, learningSupabase, isAdmin]);
 
+  // Collect all icons from classes, projects, and teams for ticker
+  const allIcons = [
+    ...classes.filter(c => c.thumbnail).map(c => ({ src: c.thumbnail!, alt: c.title, type: 'class' })),
+    ...projects.filter(p => p.thumbnail).map(p => ({ src: p.thumbnail!, alt: p.title, type: 'project' })),
+    ...teams.filter(t => t.avatar).map(t => ({ src: t.avatar!, alt: t.name, type: 'team' })),
+  ];
+
+  // Duplicate icons 10 times for seamless infinite loop
+  // With 10 duplicates, animation moves -50% to loop seamlessly
+  // At -50%, we're at the start of the 6th set (identical to 1st), creating seamless loop
+  const duplicatedIcons = allIcons.length > 0 
+    ? Array(10).fill(allIcons).flat()
+    : [];
+
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-      {/* Academy Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-3">
-          Academy
-        </h1>
-        <p className="text-base sm:text-lg text-muted-foreground">
-          Your comprehensive learning space for Web3 development. Enroll in
-          courses, collaborate on projects, and join teams.
-        </p>
-      </div>
+      {/* Scrolling Icons Ticker - Only show when no tab is selected */}
+      {!currentTab && allIcons.length > 0 && (
+        <div className="mb-8 relative overflow-hidden">
+          {/* Left fade gradient */}
+          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-background via-background/80 to-transparent z-10 pointer-events-none" />
+          {/* Right fade gradient */}
+          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none" />
+          
+          <div className="relative overflow-hidden w-full h-20">
+            <div className="absolute top-0 left-0 flex animate-scroll-left gap-6 whitespace-nowrap items-center">
+              {duplicatedIcons.map((icon, i) => (
+                <div 
+                  key={`${icon.type}-${i}`} 
+                  className="w-16 h-16 shrink-0 flex-shrink-0 rounded-xl overflow-hidden border-2 border-border/60 shadow-md hover:shadow-lg transition-shadow duration-300 bg-background/50 backdrop-blur-sm"
+                >
+                  <Image
+                    src={icon.src}
+                    alt={icon.alt}
+                    width={64}
+                    height={64}
+                    quality={90}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    unoptimized={icon.src?.startsWith('http') ? false : undefined}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Tabs Navigation */}
-      <Tabs value={currentTab} onValueChange={(val) => setCurrentTab(val as "classes" | "projects" | "teams")} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8">
-          <TabsTrigger value="classes" className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4" />
-            <span className="hidden sm:inline">Classes</span>
-          </TabsTrigger>
-          <TabsTrigger value="projects" className="flex items-center gap-2">
-            <FolderKanban className="h-4 w-4" />
-            <span className="hidden sm:inline">Projects</span>
-          </TabsTrigger>
-          <TabsTrigger value="teams" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Teams</span>
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Classes Tab */}
-        <TabsContent value="classes" className="space-y-6">
+      {/* Content Section - Show all when no tab is selected, otherwise single tab */}
+      {(currentTab === "classes" || currentTab === null) && (
+        <div className={`space-y-4 ${currentTab ? "" : "mb-8 sm:mb-10"}`}>
+          {currentTab === "classes" && (
+            <Button
+              variant="ghost"
+              asChild
+              className="mb-4"
+            >
+              <Link href="/academy">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Link>
+            </Button>
+          )}
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Classes</h2>
+            <Link href="/academy?tab=classes" className="text-xs text-primary hover:underline">
+              View all
+            </Link>
+          </div>
           <CategoryFilter />
           {loadingCourses ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : filteredClasses.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredClasses.map((classItem) => (
-                <ClassCard key={classItem.id} classItem={classItem} />
+                <ClassCard key={classItem.id} classItem={classItem} compact />
               ))}
             </div>
           ) : (
@@ -196,20 +277,38 @@ export function AcademyPageClient() {
               </p>
             </div>
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        {/* Projects Tab */}
-        <TabsContent value="projects" className="space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      {(currentTab === "projects" || currentTab === null) && (
+        <div className={`space-y-4 ${currentTab ? "" : "mb-8 sm:mb-10"}`}>
+          {currentTab === "projects" && (
+            <Button
+              variant="ghost"
+              asChild
+              className="mb-4"
+            >
+              <Link href="/academy">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Link>
+            </Button>
+          )}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
             <div>
-              <h2 className="text-2xl font-semibold mb-2">Projects</h2>
+              <h2 className="text-xl font-semibold mb-1">Projects</h2>
               <p className="text-muted-foreground">
                 Collaborate on real-world Web3 projects
               </p>
             </div>
-            <Button asChild>
-              <Link href="/academy/projects/new">Create Project</Link>
-            </Button>
+            <div className="flex items-center gap-3">
+              <Link href="/academy?tab=projects" className="text-xs text-primary hover:underline">
+                View all
+              </Link>
+              <Button asChild>
+                <Link href="/academy/projects/new">Create Project</Link>
+              </Button>
+            </div>
           </div>
 
           {loadingProjects ? (
@@ -217,7 +316,7 @@ export function AcademyPageClient() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : projects.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (
                 <Link
                   key={project.id}
@@ -226,7 +325,7 @@ export function AcademyPageClient() {
                 >
                   <Card className="overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl cursor-pointer h-full">
                     {project.thumbnail && (
-                      <div className="relative w-full h-40 overflow-hidden">
+                      <div className="relative w-full h-28 overflow-hidden">
                         <Image
                           src={project.thumbnail}
                           alt={project.title}
@@ -252,68 +351,7 @@ export function AcademyPageClient() {
                           {project.status}
                         </span>
                       </div>
-                      <CardDescription>{project.description}</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {project.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-full border border-border bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm text-muted-foreground">
-                          Difficulty:{" "}
-                          <span className="font-medium capitalize">
-                            {project.difficulty}
-                          </span>
-                        </span>
-                      </div>
-                      {project.members && project.members.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <div className="flex -space-x-2">
-                            {project.members.slice(0, 5).map((member) => {
-                              const profile = project.memberProfiles?.[member.userId];
-                              const avatar = profile?.avatar;
-                              const name = profile?.name || `User ${member.userId.slice(0, 8)}`;
-                              return (
-                                <div
-                                  key={member.userId}
-                                  className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground overflow-hidden"
-                                  title={name}
-                                >
-                                  {avatar ? (
-                                    typeof avatar === "string" && avatar.startsWith("http") ? (
-                                      <Image
-                                        src={avatar}
-                                        alt={name}
-                                        fill
-                                        className="object-cover"
-                                        sizes="32px"
-                                        unoptimized
-                                      />
-                                    ) : (
-                                      <span>{avatar}</span>
-                                    )
-                                  ) : (
-                                    <Users className="h-4 w-4" />
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                          {project.members.length > 5 && (
-                            <span className="text-xs text-muted-foreground">
-                              +{project.members.length - 5} more
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
                   </Card>
                 </Link>
               ))}
@@ -328,20 +366,41 @@ export function AcademyPageClient() {
               </Button>
             </div>
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        {/* Teams Tab */}
-        <TabsContent value="teams" className="space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      {(currentTab === "teams" || currentTab === null) && (
+        <div className={`space-y-4 pb-6 ${currentTab ? "" : "mt-2"}`}>
+          {currentTab === "teams" && (
+            <Button
+              variant="ghost"
+              asChild
+              className="mb-4"
+            >
+              <Link href="/academy">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Link>
+            </Button>
+          )}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
             <div>
-              <h2 className="text-2xl font-semibold mb-2">Teams</h2>
+              <h2 className="text-xl font-semibold mb-1">Teams</h2>
               <p className="text-muted-foreground">
                 Join or create teams to collaborate on projects
               </p>
             </div>
-            <Button asChild>
-              <Link href="/academy/teams/new">Create Team</Link>
-            </Button>
+            <div className="flex items-center gap-3">
+              <Link href="/academy?tab=teams" className="text-xs text-primary hover:underline">
+                View all
+              </Link>
+              <Button variant="outline" asChild>
+                <Link href="/academy/teams">Browse Teams</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/academy/teams/new">Create Team</Link>
+              </Button>
+            </div>
           </div>
 
           {loadingTeams ? (
@@ -349,7 +408,7 @@ export function AcademyPageClient() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : teams.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
               {teams.map((team) => (
                 <Card
                   key={team.id}
@@ -357,59 +416,23 @@ export function AcademyPageClient() {
                     setSelectedTeam(team);
                     setTeamModalOpen(true);
                   }}
-                  className="overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl cursor-pointer"
+                  className="w-full aspect-square flex flex-col items-center justify-center text-center gap-2 overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl cursor-pointer"
                 >
-                  <CardHeader>
-                    <CardTitle className="text-xl flex items-center gap-2">
-                      {team.avatar ? (
-                        <div className="relative w-10 h-10 rounded-full overflow-hidden">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={team.avatar}
-                            alt={team.name}
-                            className="w-10 h-10 object-cover rounded-full"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Users className="h-5 w-5 text-primary" />
-                        </div>
-                      )}
-                      {team.name}
-                    </CardTitle>
-                    <CardDescription>{team.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-4 mb-3 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        <span>{team.memberCount} members</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <FolderKanban className="h-4 w-4" />
-                        <span>{team.projectCount} projects</span>
-                      </div>
+                  {team.avatar ? (
+                    <div className="relative w-16 h-16 rounded-full overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={team.avatar}
+                        alt={team.name}
+                        className="w-16 h-16 object-cover rounded-full"
+                      />
                     </div>
-                    {team.members && team.members.length > 0 && (
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="flex -space-x-2">
-                          {team.members.slice(0, 5).map((member) => (
-                            <div
-                              key={member.userId}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-muted text-xs font-medium text-muted-foreground"
-                            >
-                              {member.role === "owner" ? "O" : member.role === "admin" ? "A" : "M"}
-                            </div>
-                          ))}
-                        </div>
-                        {team.members.length > 5 && (
-                          <span className="text-xs text-muted-foreground">
-                            +{team.members.length - 5} more
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Users className="h-7 w-7 text-primary" />
+                    </div>
+                  )}
+                  <p className="text-base font-semibold">{team.name}</p>
                 </Card>
               ))}
             </div>
@@ -423,8 +446,8 @@ export function AcademyPageClient() {
               </Button>
             </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
       
       <TeamModal
         team={selectedTeam}
