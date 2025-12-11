@@ -131,9 +131,9 @@ export default function EnrollPage() {
       if (enrollment) {
         setSuccess(true);
         setIsEnrolled(true);
-        // Redirect to class page after 2 seconds
+        // Redirect to classroom system after 2 seconds
         setTimeout(() => {
-          router.push(`/academy/classes/${classId}`);
+          router.push(`/class/${classId}`);
         }, 2000);
       } else {
         setError("Failed to enroll. You may already be enrolled or the class may be full.");
@@ -299,8 +299,8 @@ export default function EnrollPage() {
                   Redirecting you to the class page...
                 </p>
                 <Button asChild className="w-full">
-                  <Link href={`/academy/classes/${classId}`}>
-                    Go to Class
+                  <Link href={`/class/${classId}`}>
+                    Enter Class
                   </Link>
                 </Button>
               </div>
@@ -311,8 +311,8 @@ export default function EnrollPage() {
                   <span className="font-medium">You are enrolled</span>
                 </div>
                 <Button asChild className="w-full">
-                  <Link href={`/academy/classes/${classId}`}>
-                    View Class
+                  <Link href={`/class/${classId}`}>
+                    Enter Class
                   </Link>
                 </Button>
               </div>

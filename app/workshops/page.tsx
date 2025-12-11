@@ -8,14 +8,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   MapPin,
   Video,
-  Clock,
   Users,
-  List,
-  Grid3x3,
   Search,
   Plus,
-  Filter,
-  Calendar,
 } from "lucide-react";
 import type { Workshop } from "@/types/workshops";
 import { format, isSameDay, parseISO } from "date-fns";
@@ -30,9 +25,8 @@ export default function WorkshopsPage() {
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "upcoming" | "past">("upcoming");
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [countryFilter, setCountryFilter] = useState<string | null>(null);
+  const [locationFilter, setLocationFilter] = useState<"all" | "online" | "offline">("all");
   const [myWorkshops, setMyWorkshops] = useState<{
     attending: Workshop[];
     attended: Workshop[];
@@ -97,24 +91,6 @@ export default function WorkshopsPage() {
     loadMyWorkshops();
   }, [user]);
 
-  // Extract unique countries from workshops
-  const countries = useMemo(() => {
-    const countrySet = new Set<string>();
-    workshops.forEach((workshop) => {
-      if (workshop.venueName) {
-        // Extract country from venue (e.g., "Exeter, England" -> "UK")
-        // For now, we'll use a simple approach - you can enhance this
-        const parts = workshop.venueName.split(",");
-        if (parts.length > 1) {
-          const country = parts[parts.length - 1].trim();
-          countrySet.add(country);
-        }
-      } else if (workshop.locationType === "online") {
-        countrySet.add("Online");
-      }
-    });
-    return Array.from(countrySet).sort();
-  }, [workshops]);
 
   // Format date like "Dec 12 Friday"
   const formatDateLabel = (date: Date) => {
@@ -136,14 +112,14 @@ export default function WorkshopsPage() {
       });
     }
 
-    // Filter by country
-    if (countryFilter) {
+    // Filter by location type
+    if (locationFilter !== "all") {
       filtered = filtered.filter((workshop) => {
-        if (countryFilter === "Online") {
+        if (locationFilter === "online") {
           return workshop.locationType === "online";
         }
-        if (workshop.venueName) {
-          return workshop.venueName.includes(countryFilter);
+        if (locationFilter === "offline") {
+          return workshop.locationType === "offline";
         }
         return false;
       });
@@ -161,7 +137,7 @@ export default function WorkshopsPage() {
     }, {} as Record<string, Workshop[]>);
 
     return grouped;
-  }, [workshops, selectedDate, countryFilter]);
+  }, [workshops, selectedDate, locationFilter]);
 
   const formatTime = (date: Date) => {
     return format(new Date(date), "h:mm a");
@@ -178,7 +154,7 @@ export default function WorkshopsPage() {
     return new Date(new Date(startDate).getTime() + 4 * 60 * 60 * 1000);
   };
 
-  // Get country code from venue name
+  // Get country code from venue name or location type
   const getCountryCode = (workshop: Workshop): string => {
     if (workshop.locationType === "online") return "Online";
     if (workshop.venueName) {
@@ -192,7 +168,7 @@ export default function WorkshopsPage() {
         return country.substring(0, 2).toUpperCase();
       }
     }
-    return "WW";
+    return "Offline";
   };
 
   return (
@@ -220,7 +196,7 @@ export default function WorkshopsPage() {
         </div>
 
         {/* Mobile: Tabs | Desktop: Side-by-side */}
-        <div className="lg:grid lg:grid-cols-[1fr_400px] lg:gap-8">
+        <div className="lg:grid lg:grid-cols-[1fr_320px]" style={{ gap: 0 }}>
           {/* Mobile Tabs */}
           <Tabs defaultValue="discover" className="lg:hidden w-full">
             <TabsList className="grid w-full grid-cols-3 mb-4">
@@ -238,55 +214,36 @@ export default function WorkshopsPage() {
             <TabsContent value="discover" className="space-y-4 sm:space-y-6 mt-4">
               {/* Filters and View Toggles - Same Line */}
               <div className="flex items-center justify-between gap-3 sm:gap-4">
-                {/* Country Filters */}
-                {countries.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      variant={countryFilter === null ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCountryFilter(null)}
-                      className="text-xs sm:text-sm"
-                    >
-                      All
-                    </Button>
-                    {countries.map((country) => {
-                      const count = workshops.filter((w) => {
-                        if (country === "Online") return w.locationType === "online";
-                        return w.venueName?.includes(country);
-                      }).length;
-                      return (
-                        <Button
-                          key={country}
-                          variant={countryFilter === country ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCountryFilter(country)}
-                          className="text-xs sm:text-sm"
-                        >
-                          {country} {count}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                )}
+                {/* Location Filters */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={locationFilter === "all" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setLocationFilter("all")}
+                    className="text-xs sm:text-sm"
+                  >
+                    All
+                  </Button>
+                  <Button
+                    variant={locationFilter === "online" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setLocationFilter("online")}
+                    className="text-xs sm:text-sm"
+                  >
+                    Online
+                  </Button>
+                  <Button
+                    variant={locationFilter === "offline" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setLocationFilter("offline")}
+                    className="text-xs sm:text-sm"
+                  >
+                    Offline
+                  </Button>
+                </div>
                 
-                {/* View Toggles */}
+                {/* Search Button */}
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant={viewMode === "list" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("list")}
-                    className="h-8 w-8 p-0"
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === "grid" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("grid")}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Grid3x3 className="h-4 w-4" />
-                  </Button>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                     <Search className="h-4 w-4" />
                   </Button>
@@ -336,7 +293,7 @@ export default function WorkshopsPage() {
                         </div>
 
                         {/* Workshop Cards */}
-                        <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-4"}>
+                        <div className="space-y-4">
                           {dateWorkshops.map((workshop) => {
                             const endTime = getEndTime(workshop.datetime);
                             const countryCode = getCountryCode(workshop);
@@ -539,58 +496,38 @@ export default function WorkshopsPage() {
           </Tabs>
 
           {/* Desktop: Side-by-side layout */}
-          <div className="hidden lg:grid lg:grid-cols-[1fr_400px] lg:gap-8">
+          <div className="hidden lg:grid" style={{ gridTemplateColumns: '1fr 320px', gap: 0 }}>
             {/* Left Panel - Workshop List */}
-            <div className="space-y-6">
+            <div className="space-y-6" style={{ marginRight: 0 }}>
               {/* Filters and View Toggles - Same Line */}
               <div className="flex items-center justify-between gap-4">
-                {/* Country Filters */}
-                {countries.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      variant={countryFilter === null ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCountryFilter(null)}
-                    >
-                      All
-                    </Button>
-                    {countries.map((country) => {
-                      const count = workshops.filter((w) => {
-                        if (country === "Online") return w.locationType === "online";
-                        return w.venueName?.includes(country);
-                      }).length;
-                      return (
-                        <Button
-                          key={country}
-                          variant={countryFilter === country ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCountryFilter(country)}
-                        >
-                          {country} {count}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                )}
+                {/* Location Filters */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={locationFilter === "all" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setLocationFilter("all")}
+                  >
+                    All
+                  </Button>
+                  <Button
+                    variant={locationFilter === "online" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setLocationFilter("online")}
+                  >
+                    Online
+                  </Button>
+                  <Button
+                    variant={locationFilter === "offline" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setLocationFilter("offline")}
+                  >
+                    Offline
+                  </Button>
+                </div>
                 
-                {/* View Toggles */}
+                {/* Search Button */}
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant={viewMode === "list" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("list")}
-                    className="h-8 w-8 p-0"
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === "grid" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("grid")}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Grid3x3 className="h-4 w-4" />
-                  </Button>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                     <Search className="h-4 w-4" />
                   </Button>
@@ -640,7 +577,7 @@ export default function WorkshopsPage() {
                     </div>
 
                     {/* Workshop Cards */}
-                        <div className={viewMode === "grid" ? "grid grid-cols-2 gap-4" : "space-y-4"}>
+                        <div className="space-y-4">
                       {dateWorkshops.map((workshop) => {
                         const endTime = getEndTime(workshop.datetime);
                         const countryCode = getCountryCode(workshop);
@@ -713,7 +650,7 @@ export default function WorkshopsPage() {
           </div>
 
           {/* Right Panel - Calendar & My Workshops */}
-          <div className="hidden lg:block space-y-6">
+          <div className="hidden lg:block space-y-6" style={{ marginLeft: 0 }}>
             <WorkshopCalendar
               workshops={workshops}
               selectedDate={selectedDate}

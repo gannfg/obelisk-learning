@@ -359,3 +359,43 @@ export async function uploadWorkshopImage(
   }
 }
 
+/**
+ * Generic file upload function for assignments and other files
+ * @param filePath - Full path including bucket (e.g., "assignments/class-id/user-id/file.pdf")
+ * @param file - The file to upload
+ * @param supabaseClient - Authenticated Supabase client
+ * @param bucket - The storage bucket name (default: "assignments")
+ * @returns The public URL of the uploaded file, or null if upload failed
+ */
+export async function uploadFile(
+  filePath: string,
+  file: File,
+  supabaseClient: any,
+  bucket: string = "assignments"
+): Promise<string | null> {
+  try {
+    // Upload the file
+    const { data, error } = await supabaseClient.storage
+      .from(bucket)
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("Error uploading file:", error);
+      return null;
+    }
+
+    // Get the public URL
+    const { data: urlData } = supabaseClient.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error("Error in uploadFile:", error);
+    return null;
+  }
+}
+

@@ -79,7 +79,11 @@ function normalizeModule(data: any): ClassModule {
     locked: data.locked,
     createdAt: new Date(data.created_at),
     updatedAt: new Date(data.updated_at),
-  };
+    // Support classroom system fields
+    content: data.content,
+    isReleased: data.is_released,
+    releaseDate: data.release_date ? new Date(data.release_date) : undefined,
+  } as ClassModule;
 }
 
 /**
@@ -498,6 +502,9 @@ export async function updateModule(
     if (updates.endDate !== undefined) updateData.end_date = updates.endDate;
     if (updates.liveSessionLink !== undefined) updateData.live_session_link = updates.liveSessionLink;
     if (updates.learningMaterials !== undefined) updateData.learning_materials = updates.learningMaterials;
+    // Support content and releaseDate from classroom system
+    if ((updates as any).content !== undefined) updateData.content = (updates as any).content;
+    if ((updates as any).releaseDate !== undefined) updateData.release_date = (updates as any).releaseDate;
 
     const { data, error } = await supabase
       .from("class_modules")

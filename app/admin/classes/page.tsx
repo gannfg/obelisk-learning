@@ -200,11 +200,16 @@ export default function AdminClassesPage() {
   });
 
   // Announcement form
-  const [announcementForm, setAnnouncementForm] = useState({
+  const [announcementForm, setAnnouncementForm] = useState<{
+    title: string;
+    content: string;
+    pinned: boolean;
+    moduleId?: string;
+  }>({
     title: "",
     content: "",
     pinned: false,
-    moduleId: "",
+    moduleId: undefined,
   });
   const [editingAnnouncement, setEditingAnnouncement] = useState<ClassAnnouncement | null>(null);
 
@@ -2086,7 +2091,7 @@ export default function AdminClassesPage() {
                     `${assignmentForm.dueDate}T${assignmentForm.dueTime || "23:59"}`
                   );
 
-                  await createAssignment(
+                  const newAssignment = await createAssignment(
                     {
                       moduleId: selectedModuleId,
                       classId: selectedClass.id,
@@ -2101,6 +2106,29 @@ export default function AdminClassesPage() {
                     user.id,
                     learningSupabase
                   );
+                  
+                  // Send notifications to all enrolled students
+                  if (newAssignment) {
+                    try {
+                      const { notifyNewAssignment } = await import("@/lib/classroom-notifications");
+                      // Fetch module to get title
+                      const modules = await getClassModules(selectedClass.id, learningSupabase);
+                      const module = modules.find(m => m.id === selectedModuleId);
+                      await notifyNewAssignment(
+                        selectedClass.id,
+                        selectedClass.title,
+                        assignmentForm.title,
+                        dueDateTime,
+                        learningSupabase,
+                        authSupabase,
+                        module?.title
+                      );
+                    } catch (notifError) {
+                      console.error("Error sending assignment notifications:", notifError);
+                      // Don't fail the assignment creation if notification fails
+                    }
+                  }
+                  
                   setAssignmentDialogOpen(false);
                   // Reload assignments
                   const moduleAssignments = await getModuleAssignments(selectedModuleId, learningSupabase);
@@ -2155,16 +2183,16 @@ export default function AdminClassesPage() {
             <div>
               <label className="text-sm font-medium">Target Module (Optional)</label>
               <Select
-                value={announcementForm.moduleId}
+                value={announcementForm.moduleId || "all"}
                 onValueChange={(value) =>
-                  setAnnouncementForm({ ...announcementForm, moduleId: value })
+                  setAnnouncementForm({ ...announcementForm, moduleId: value === "all" ? undefined : value })
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Entire class" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Entire class</SelectItem>
+                  <SelectItem value="all">Entire class</SelectItem>
                   {modules.map((module) => (
                     <SelectItem key={module.id} value={module.id}>
                       Week {module.weekNumber}: {module.title}
@@ -2213,7 +2241,7 @@ export default function AdminClassesPage() {
                     const { data: { user } } = await authSupabase.auth.getUser();
                     if (!user) return;
 
-                    await createAnnouncement(
+                    const newAnnouncement = await createAnnouncement(
                       {
                         classId: selectedClass.id,
                         moduleId: announcementForm.moduleId || undefined,
@@ -2224,8 +2252,28 @@ export default function AdminClassesPage() {
                       user.id,
                       learningSupabase
                     );
+                    
+                    // Send notifications to all enrolled students
+                    if (newAnnouncement) {
+                      try {
+                        const { notifyNewAnnouncement } = await import("@/lib/classroom-notifications");
+                        await notifyNewAnnouncement(
+                          selectedClass.id,
+                          selectedClass.title,
+                          announcementForm.title,
+                          announcementForm.content,
+                          learningSupabase,
+                          authSupabase,
+                          announcementForm.moduleId || undefined
+                        );
+                      } catch (notifError) {
+                        console.error("Error sending announcement notifications:", notifError);
+                        // Don't fail the announcement creation if notification fails
+                      }
+                    }
+                    
                     setAnnouncementDialogOpen(false);
-                    setAnnouncementForm({ title: "", content: "", pinned: false, moduleId: "" });
+                    setAnnouncementForm({ title: "", content: "", pinned: false, moduleId: undefined });
                     await loadClassData(selectedClass.id);
                   }
                 } catch (error) {
