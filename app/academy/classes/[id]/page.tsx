@@ -84,7 +84,7 @@ export default async function ClassPage({ params }: ClassPageProps) {
         }} />
       </div>
 
-      <div className="relative container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="relative container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <Button variant="ghost" asChild className="mb-6">
           <Link href="/academy">
             <ArrowLeft className="h-4 w-4 mr-2" />

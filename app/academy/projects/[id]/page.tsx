@@ -149,7 +149,7 @@ export default function ProjectPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -159,7 +159,7 @@ export default function ProjectPage() {
 
   if (notFound || !project) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold mb-4">Project Not Found</h1>
           <p className="text-muted-foreground mb-4">The project you're looking for doesn't exist.</p>
@@ -242,7 +242,7 @@ export default function ProjectPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Header Section */}
         <div className="mb-8">
           <Link

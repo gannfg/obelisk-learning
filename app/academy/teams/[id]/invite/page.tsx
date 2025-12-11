@@ -139,7 +139,7 @@ export default function InviteMembersPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -152,7 +152,7 @@ export default function InviteMembersPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <div className="mb-8">
         <Link
           href={`/academy/teams/${team.id}`}

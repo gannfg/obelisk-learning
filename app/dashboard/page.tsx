@@ -98,7 +98,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-base text-muted-foreground">Loading...</div>
         </div>
@@ -108,7 +108,7 @@ export default function Dashboard() {
 
   if (!user) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Please sign in</CardTitle>
@@ -125,7 +125,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <div className="mb-8">
         <h1 className="text-3xl sm:text-4xl font-bold mb-3">
           Welcome, {profile?.first_name || user.email?.split('@')[0] || 'User'}!

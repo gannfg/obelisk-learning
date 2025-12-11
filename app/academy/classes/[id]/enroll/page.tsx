@@ -148,7 +148,7 @@ export default function EnrollPage() {
 
   if (authLoading || loading || checkingEnrollment) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -158,7 +158,7 @@ export default function EnrollPage() {
 
   if (!user) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-2xl">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-2xl">
         <Card>
           <CardHeader>
             <CardTitle>Sign In Required</CardTitle>
@@ -186,7 +186,7 @@ export default function EnrollPage() {
 
   if (error && !classItem) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-2xl">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-2xl">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -213,7 +213,7 @@ export default function EnrollPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 max-w-4xl">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-4xl">
       <div className="mb-6">
         <Button asChild variant="ghost" size="sm" className="mb-4">
           <Link href={`/academy/classes/${classId}`}>

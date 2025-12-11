@@ -12,6 +12,10 @@ export interface Workshop {
   datetime: Date;
   locationType: WorkshopLocationType;
   venueName: string | null;
+  venueAddress?: string | null;
+  venueLat?: number | null;
+  venueLng?: number | null;
+  googleMapsUrl?: string | null;
   meetingLink: string | null;
   hostName: string;
   capacity: number | null;
@@ -68,6 +72,10 @@ export interface CreateWorkshopInput {
   datetime: string; // ISO string
   locationType: WorkshopLocationType;
   venueName?: string;
+  venueAddress?: string;
+  venueLat?: number | null;
+  venueLng?: number | null;
+  googleMapsUrl?: string;
   meetingLink?: string;
   hostName: string;
   capacity?: number;

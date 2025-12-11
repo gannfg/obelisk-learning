@@ -7,7 +7,7 @@ import { useAdmin } from "@/lib/hooks/use-admin";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, FolderKanban, Users as UsersIcon, Target, Image as ImageIcon } from "lucide-react";
+import { BookOpen, FolderKanban, Users as UsersIcon, Target, Image as ImageIcon, Calendar } from "lucide-react";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -22,7 +22,7 @@ export default function AdminPage() {
 
   if (loading || !isAdmin) {
     return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-center min-height-[300px]">
           <p className="text-base text-muted-foreground">Checking admin access...</p>
         </div>
@@ -31,7 +31,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-8">
       <div>
         <h1 className="text-3xl sm:text-4xl font-bold mb-3">Admin Panel</h1>
         <p className="text-base sm:text-lg text-muted-foreground">
@@ -68,14 +68,9 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col gap-2">
-              <Button asChild>
-                <Link href="/admin/missions">Open Missions Admin</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/missions">View Mission Board</Link>
-              </Button>
-            </div>
+            <Button asChild className="w-full">
+              <Link href="/admin/missions">Open Missions Admin</Link>
+            </Button>
           </CardContent>
         </Card>
 
@@ -120,6 +115,23 @@ export default function AdminPage() {
                 <Link href="/academy/teams">View All Teams</Link>
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Workshops
+            </CardTitle>
+            <CardDescription>
+              Create and manage workshops with QR code check-in and attendance tracking.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full">
+              <Link href="/admin/workshops">Manage Workshops</Link>
+            </Button>
           </CardContent>
         </Card>
 

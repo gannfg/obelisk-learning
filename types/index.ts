@@ -82,10 +82,12 @@ export type Mission = {
   description?: string;
   imageUrl?: string;
   initialFiles: Record<string, string>;
-  stackType: "nextjs" | "python" | "solana" | "node" | "react" | "other";
+  stackType?: "nextjs" | "python" | "solana" | "node" | "react" | "other" | "none";
   difficulty: "beginner" | "intermediate" | "advanced";
   estimatedTime?: number;
   submissionDeadline?: Date;
+  endDate?: Date;
+  category?: string;
   orderIndex: number;
   badgeId?: string;
 };
@@ -169,6 +171,8 @@ export type MissionSubmission = {
   missionId: string;
   gitUrl: string;
   repoDirectory?: string;
+  websiteUrl?: string;
+  pitchDeckUrl?: string;
   status: MissionSubmissionStatus;
   feedback?: string;
   reviewerId?: string;
