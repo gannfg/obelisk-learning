@@ -70,10 +70,10 @@ export default function MissionBoardPage() {
 
       setMissions(normalizedMissions);
 
-      // Randomly pick 2 missions for featured hero card
+      // Randomly pick 4 missions for featured hero card
       if (normalizedMissions.length > 0) {
         const shuffled = [...normalizedMissions].sort(() => Math.random() - 0.5);
-        const selected = shuffled.slice(0, Math.min(2, shuffled.length));
+        const selected = shuffled.slice(0, Math.min(4, shuffled.length));
         setFeaturedMissions(selected);
         setCurrentFeaturedIndex(0);
       }
@@ -296,9 +296,9 @@ export default function MissionBoardPage() {
                 
                 {/* Pagination */}
                 <div className="flex items-center gap-2 mt-4">
-                  {featuredMissions.length >= 2 && (
+                  {featuredMissions.length > 1 && (
                     <div className="flex items-center gap-2">
-                      {featuredMissions.slice(0, 2).map((_, i) => (
+                      {featuredMissions.slice(0, 4).map((_, i) => (
                         <button
                           key={i}
                           onClick={(e) => {
@@ -339,47 +339,51 @@ export default function MissionBoardPage() {
       )}
 
       {/* Filters */}
-      <Card className="p-4 sm:p-5 mb-4">
-          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-muted-foreground shrink-0" />
-              <span className="text-base font-medium whitespace-nowrap">Difficulty:</span>
+      <Card className="p-2 sm:p-3 mb-4">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+            <div className="flex items-center gap-1.5">
+              <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Difficulty:</span>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {["all", "beginner", "intermediate", "advanced"].map((level) => (
                 <Button
                   key={level}
                   variant={filter === level ? "default" : "outline"}
-                  size="default"
+                  size="sm"
                   onClick={() => setFilter(level as typeof filter)}
+                  className="text-xs h-7 px-2.5"
                 >
                   {level.charAt(0).toUpperCase() + level.slice(1)}
                 </Button>
               ))}
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <span className="text-base font-medium whitespace-nowrap">Joined:</span>
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+            <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Joined:</span>
+            <div className="flex flex-wrap gap-1.5">
               <Button
                 variant={joinFilter === "all" ? "default" : "outline"}
-                size="default"
+                size="sm"
                 onClick={() => setJoinFilter("all")}
+                className="text-xs h-7 px-2.5"
               >
                 All
               </Button>
               <Button
                 variant={joinFilter === "joined" ? "default" : "outline"}
-                size="default"
+                size="sm"
                 onClick={() => setJoinFilter("joined")}
+                className="text-xs h-7 px-2.5"
               >
                 Joined
               </Button>
               <Button
                 variant={joinFilter === "not_joined" ? "default" : "outline"}
-                size="default"
+                size="sm"
                 onClick={() => setJoinFilter("not_joined")}
+                className="text-xs h-7 px-2.5"
               >
                 Not Joined
               </Button>
