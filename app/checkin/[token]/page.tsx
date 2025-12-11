@@ -4,12 +4,12 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useAdmin } from "@/lib/hooks/use-admin";
-import { Html5Qrcode } from "html5-qrcode";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, XCircle, Loader2, Camera, ArrowLeft, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
+type Html5QrcodeType = any;
 type CheckInStatus = "idle" | "scanning" | "checking" | "success" | "error";
 
 export default function CheckInPage() {
@@ -21,7 +21,7 @@ export default function CheckInPage() {
   const [status, setStatus] = useState<CheckInStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [workshopTitle, setWorkshopTitle] = useState<string | null>(null);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerRef = useRef<Html5QrcodeType | null>(null);
   const qrReaderRef = useRef<HTMLDivElement | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scannerStarted, setScannerStarted] = useState(false);
@@ -142,6 +142,16 @@ export default function CheckInPage() {
     if (!user) return;
 
     try {
+      // Clean up any existing scanner instance before restarting
+      if (scannerRef.current) {
+        try {
+          await scannerRef.current.stop();
+        } catch {
+          // ignore
+        }
+        scannerRef.current = null;
+      }
+
       setRequestingPermission(true);
       setError(null);
       setCameraError(null);
@@ -233,19 +243,25 @@ export default function CheckInPage() {
         }
 
         try {
-          const scanner = new Html5Qrcode("qr-reader");
+          const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
+          const scanner: Html5QrcodeType = new Html5Qrcode("qr-reader");
           scannerRef.current = scanner;
 
+          // Prefer a real deviceId to avoid facingMode issues on some Windows browsers
+          const cameras = await Html5Qrcode.getCameras();
+          const cameraId = cameras && cameras.length > 0 ? cameras[0].id : undefined;
+
           await scanner.start(
-            { facingMode: "environment" },
+            cameraId ? { deviceId: { exact: cameraId } } : { facingMode: "environment" },
             {
               fps: 10,
               qrbox: { width: 250, height: 250 },
+              formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
             },
-            (decodedText) => {
+            (decodedText: string) => {
               handleQRScan(decodedText);
             },
-            (errorMessage) => {
+            () => {
               // Ignore scanning errors (they're frequent and normal)
             }
           );
@@ -328,11 +344,11 @@ export default function CheckInPage() {
 
             {status === "scanning" && (
               <div className="space-y-4">
-                <div className="relative min-h-[300px]">
+            <div className="relative min-h-[320px]">
                   <div 
                     id="qr-reader" 
                     ref={qrReaderRef}
-                    className="w-full rounded-lg overflow-hidden min-h-[300px]" 
+                className="w-full rounded-lg overflow-hidden min-h-[320px]" 
                   />
                   {!scannerRef.current && (
                     <div className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-lg">
