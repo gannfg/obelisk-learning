@@ -286,7 +286,7 @@ export default function Home() {
               ) : classes.length > 0 ? (
                 <>
                   <div className="space-y-3 mb-4">
-                    {classes.slice(0, 3).map((classItem) => (
+                    {classes.map((classItem) => (
                       <HorizontalClassCard key={classItem.id} classItem={classItem} />
                     ))}
                   </div>
@@ -320,7 +320,7 @@ export default function Home() {
               ) : projects.length > 0 ? (
                 <>
                   <div className="space-y-3 mb-4">
-                    {projects.slice(0, 3).map((project) => (
+                    {projects.map((project) => (
                       <HorizontalProjectCard key={project.id} project={project} />
                     ))}
                   </div>
@@ -476,7 +476,7 @@ export default function Home() {
               ) : missions.length > 0 ? (
                 <>
                   <div className="space-y-3 mb-4">
-                    {missions.slice(0, 3).map((mission) => (
+                    {missions.map((mission) => (
                       <HorizontalMissionCard key={mission.id} mission={mission} />
                     ))}
                   </div>

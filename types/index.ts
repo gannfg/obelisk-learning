@@ -74,6 +74,14 @@ export type CourseProgress = {
 };
 
 // Learning Platform Types
+export type MissionSubmissionField = {
+  type: string;
+  label: string;
+  required: boolean;
+  placeholder: string;
+  helper?: string;
+};
+
 export type Mission = {
   id: string;
   lessonId?: string;
@@ -90,6 +98,7 @@ export type Mission = {
   category?: string;
   orderIndex: number;
   badgeId?: string;
+  submissionFields?: MissionSubmissionField[];
 };
 
 export type MissionContent = {

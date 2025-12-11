@@ -34,6 +34,7 @@ export default function MissionPage() {
   const [submissionGitUrl, setSubmissionGitUrl] = useState("");
   const [submissionWebsiteUrl, setSubmissionWebsiteUrl] = useState("");
   const [submissionPitchDeckUrl, setSubmissionPitchDeckUrl] = useState("");
+  const [submissionFieldValues, setSubmissionFieldValues] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "checklist" | "submission">("overview");
@@ -83,6 +84,7 @@ export default function MissionPage() {
         category: missionData.category ?? undefined,
         orderIndex: missionData.order_index,
         badgeId: missionData.badge_id ?? undefined,
+        submissionFields: missionData.submission_fields ?? undefined,
       };
 
       setMission(normalizedMission);
@@ -166,6 +168,16 @@ export default function MissionPage() {
           setSubmissionGitUrl(mapped.gitUrl);
           setSubmissionWebsiteUrl(mapped.websiteUrl || "");
           setSubmissionPitchDeckUrl(mapped.pitchDeckUrl || "");
+          
+          // Populate submission field values
+          const fieldValues: Record<string, string> = {};
+          if (mapped.gitUrl) fieldValues.git = mapped.gitUrl;
+          if (mapped.websiteUrl) fieldValues.website = mapped.websiteUrl;
+          if (s.video_url) fieldValues.video = s.video_url;
+          if (s.custom_fields && typeof s.custom_fields === 'object') {
+            Object.assign(fieldValues, s.custom_fields);
+          }
+          setSubmissionFieldValues(fieldValues);
         }
       }
 
@@ -206,8 +218,25 @@ export default function MissionPage() {
   const handleSubmitMission = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!submissionGitUrl.trim()) return;
-    if (!submissionWebsiteUrl.trim()) return;
+
+    // Validate required fields based on mission submission_fields
+    const submissionFields = mission?.submissionFields || [
+      { type: "git", label: "Git Repository URL", required: true, placeholder: "", helper: "" },
+      { type: "website", label: "Website URL", required: true, placeholder: "", helper: "" }
+    ];
+
+    // Check required fields
+    for (const field of submissionFields) {
+      if (field.required) {
+        const fieldKey = field.type === "git" ? "git" : field.type === "website" ? "website" : field.type;
+        const value = submissionFieldValues[fieldKey] || 
+          (field.type === "git" ? submissionGitUrl : field.type === "website" ? submissionWebsiteUrl : "");
+        if (!value.trim()) {
+          alert(`Please fill in ${field.label}`);
+          return;
+        }
+      }
+    }
 
     setIsSubmitting(true);
     try {
@@ -220,10 +249,37 @@ export default function MissionPage() {
       const payload: any = {
         user_id: user.id,
         mission_id: missionId,
-        git_url: submissionGitUrl.trim(),
-        website_url: submissionWebsiteUrl.trim(),
         status: "submitted", // Set to "submitted" first (50% progress)
       };
+
+      // Map submission fields to payload
+      for (const field of submissionFields) {
+        const fieldKey = field.type === "git" ? "git" : field.type === "website" ? "website" : field.type;
+        const value = submissionFieldValues[fieldKey] || 
+          (field.type === "git" ? submissionGitUrl : field.type === "website" ? submissionWebsiteUrl : "");
+        
+        if (value.trim()) {
+          if (field.type === "git") {
+            payload.git_url = value.trim();
+          } else if (field.type === "website") {
+            payload.website_url = value.trim();
+          } else if (field.type === "video") {
+            payload.video_url = value.trim();
+          } else {
+            // For custom fields, store in a JSONB field or use a generic field
+            if (!payload.custom_fields) payload.custom_fields = {};
+            payload.custom_fields[field.type] = value.trim();
+          }
+        }
+      }
+
+      // Legacy support: keep old fields for backward compatibility
+      if (submissionGitUrl.trim() && !payload.git_url) {
+        payload.git_url = submissionGitUrl.trim();
+      }
+      if (submissionWebsiteUrl.trim() && !payload.website_url) {
+        payload.website_url = submissionWebsiteUrl.trim();
+      }
 
       // Add Developer-specific fields if mission category is Developer
       if (mission?.category === "Developer") {
@@ -824,38 +880,51 @@ export default function MissionPage() {
                     </CardHeader>
                     <CardContent>
                       <form onSubmit={handleSubmitMission} className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium" htmlFor="git-url">
-                            Git Repository URL
-                          </label>
-                          <input
-                            id="git-url"
-                            type="url"
-                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                            placeholder="https://github.com/username/repo"
-                            value={submissionGitUrl}
-                            onChange={(e) => setSubmissionGitUrl(e.target.value)}
-                            required
-                          />
-                        </div>
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium" htmlFor="website-url">
-                            Website URL
+                        {(mission?.submissionFields && mission.submissionFields.length > 0
+                          ? mission.submissionFields
+                          : [
+                              { type: "git", label: "Git Repository URL", required: true, placeholder: "https://github.com/username/repo", helper: "" },
+                              { type: "website", label: "Website URL", required: true, placeholder: "https://your-project.com", helper: "URL of your deployed website or web application" }
+                            ]
+                        ).map((field, index) => {
+                          const fieldKey = field.type === "git" ? "git" : field.type === "website" ? "website" : field.type;
+                          const fieldValue = submissionFieldValues[fieldKey] || 
+                            (field.type === "git" ? submissionGitUrl : field.type === "website" ? submissionWebsiteUrl : "");
+                          
+                          return (
+                            <div key={index} className="space-y-2">
+                              <label className="text-sm font-medium" htmlFor={`field-${index}`}>
+                                {field.label}
+                                {field.required && <span className="text-destructive ml-1">*</span>}
                               </label>
                               <input
-                                id="website-url"
+                                id={`field-${index}`}
                                 type="url"
                                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                                placeholder="https://your-project.com"
-                                value={submissionWebsiteUrl}
-                                onChange={(e) => setSubmissionWebsiteUrl(e.target.value)}
-                            required
+                                placeholder={field.placeholder}
+                                value={fieldValue}
+                                onChange={(e) => {
+                                  const newValues = { ...submissionFieldValues };
+                                  newValues[fieldKey] = e.target.value;
+                                  setSubmissionFieldValues(newValues);
+                                  // Also update legacy state for backward compatibility
+                                  if (field.type === "git") {
+                                    setSubmissionGitUrl(e.target.value);
+                                  } else if (field.type === "website") {
+                                    setSubmissionWebsiteUrl(e.target.value);
+                                  }
+                                }}
+                                required={field.required}
                               />
-                              <p className="text-xs text-muted-foreground">
-                                URL of your deployed website or web application
-                              </p>
+                              {field.helper && (
+                                <p className="text-xs text-muted-foreground">
+                                  {field.helper}
+                                </p>
+                              )}
                             </div>
-                        {mission.category === "Developer" && (
+                          );
+                        })}
+                        {mission?.category === "Developer" && (
                           <>
                             <div className="space-y-2">
                               <label className="text-sm font-medium" htmlFor="pitch-deck-url">
