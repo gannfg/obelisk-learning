@@ -4,12 +4,12 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useAdmin } from "@/lib/hooks/use-admin";
-import { Html5Qrcode } from "html5-qrcode";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, XCircle, Loader2, Camera, ArrowLeft, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
+type Html5QrcodeType = any;
 type CheckInStatus = "idle" | "scanning" | "checking" | "success" | "error";
 
 export default function CheckInPage() {
@@ -21,7 +21,7 @@ export default function CheckInPage() {
   const [status, setStatus] = useState<CheckInStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [workshopTitle, setWorkshopTitle] = useState<string | null>(null);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerRef = useRef<Html5QrcodeType | null>(null);
   const qrReaderRef = useRef<HTMLDivElement | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scannerStarted, setScannerStarted] = useState(false);
@@ -233,7 +233,8 @@ export default function CheckInPage() {
         }
 
         try {
-          const scanner = new Html5Qrcode("qr-reader");
+          const { Html5Qrcode } = await import("html5-qrcode");
+          const scanner: Html5QrcodeType = new Html5Qrcode("qr-reader");
           scannerRef.current = scanner;
 
           await scanner.start(
