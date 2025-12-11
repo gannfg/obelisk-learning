@@ -123,7 +123,7 @@ export default function MyClassesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {enrolledClasses.map((cls) => (
-            <Link key={cls.id} href={`/academy/classes/${cls.id}`}>
+            <Link key={cls.id} href={`/class/${cls.id}`}>
               <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
                 {cls.thumbnail && (
                   <div className="relative h-48 w-full overflow-hidden rounded-t-lg">

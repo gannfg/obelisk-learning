@@ -44,6 +44,10 @@ export interface ClassModule {
   locked: boolean;
   createdAt: Date;
   updatedAt: Date;
+  // Classroom system fields
+  content?: string | object; // JSON or markdown content
+  isReleased?: boolean;
+  releaseDate?: Date;
 }
 
 // Class with modules (used by search and detail pages)

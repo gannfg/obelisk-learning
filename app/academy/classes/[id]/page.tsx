@@ -444,9 +444,9 @@ export default async function ClassPage({ params }: ClassPageProps) {
                   )}
                 </>
               ) : (
-                <Button size="lg" variant="outline" className="w-full" asChild>
-                  <Link href={`/academy/classes/${classItem.id}`}>
-                    View Class Content
+                <Button size="lg" className="w-full" asChild>
+                  <Link href={`/class/${classItem.id}`}>
+                    Enter Class
                   </Link>
                 </Button>
               )}
