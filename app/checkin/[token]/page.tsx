@@ -22,8 +22,10 @@ export default function CheckInPage() {
   const [error, setError] = useState<string | null>(null);
   const [workshopTitle, setWorkshopTitle] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const qrReaderRef = useRef<HTMLDivElement | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scannerStarted, setScannerStarted] = useState(false);
+  const [requestingPermission, setRequestingPermission] = useState(false);
 
   const loadWorkshopInfo = async () => {
     try {
@@ -116,38 +118,53 @@ export default function CheckInPage() {
     }
   }, [status, token, stopScanner]);
 
+  const requestCameraPermission = useCallback(async (): Promise<boolean> => {
+    try {
+      // Request camera permission
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      // Stop the stream immediately - we just needed permission
+      stream.getTracks().forEach(track => track.stop());
+      return true;
+    } catch (err: any) {
+      console.error("Camera permission error:", err);
+      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+        setCameraError("Camera permission denied. Please allow camera access in your browser settings.");
+      } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+        setCameraError("No camera found. Please connect a camera device.");
+      } else {
+        setCameraError("Failed to access camera: " + err.message);
+      }
+      return false;
+    }
+  }, []);
+
   const startScanner = useCallback(async () => {
     if (!user) return;
 
     try {
-      setStatus("scanning");
+      setRequestingPermission(true);
       setError(null);
       setCameraError(null);
 
-      const scanner = new Html5Qrcode("qr-reader");
-      scannerRef.current = scanner;
+      // Request camera permission first
+      const hasPermission = await requestCameraPermission();
+      if (!hasPermission) {
+        setStatus("idle");
+        setRequestingPermission(false);
+        return;
+      }
 
-      // Start scanning
-      await scanner.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-        },
-        (decodedText) => {
-          handleQRScan(decodedText);
-        },
-        (errorMessage) => {
-          // Ignore scanning errors (they're frequent and normal)
-        }
-      );
+      // Set status to scanning to render the qr-reader element
+      // The useEffect will handle actual scanner initialization
+      setStatus("scanning");
+      setRequestingPermission(false);
     } catch (err: any) {
-      console.error("Camera error:", err);
-      setCameraError(err.message || "Failed to access camera");
+      console.error("Permission request error:", err);
+      setCameraError(err.message || "Failed to request camera permission");
       setStatus("idle");
-      scannerRef.current = null;
+      setRequestingPermission(false);
     }
-  }, [user, handleQRScan]);
+  }, [user, requestCameraPermission]);
 
   useEffect(() => {
     if (authLoading || adminLoading) return;
@@ -184,11 +201,65 @@ export default function CheckInPage() {
 
   // Auto-start scanner after workshop info is loaded
   useEffect(() => {
-    if (workshopTitle && !isAdmin && !scannerStarted && status === "idle" && user) {
+    if (workshopTitle && !isAdmin && !scannerStarted && status === "idle" && user && !requestingPermission) {
       setScannerStarted(true);
-      startScanner();
+      // Small delay to ensure UI is ready
+      setTimeout(() => {
+        startScanner();
+      }, 100);
     }
-  }, [workshopTitle, isAdmin, scannerStarted, status, user, startScanner]);
+  }, [workshopTitle, isAdmin, scannerStarted, status, user, startScanner, requestingPermission]);
+
+  // Start scanner when status changes to scanning and element is ready
+  useEffect(() => {
+    if (status === "scanning" && !scannerRef.current && !requestingPermission) {
+      const initScanner = async () => {
+        // Use requestAnimationFrame for better timing
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        
+        // Poll for element with timeout (max 1 second)
+        let element: HTMLElement | null = null;
+        for (let i = 0; i < 20; i++) {
+          element = document.getElementById("qr-reader");
+          if (element) break;
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        if (!element) {
+          console.error("QR reader element not found after waiting");
+          setCameraError("Failed to initialize scanner. Please try again.");
+          setStatus("idle");
+          return;
+        }
+
+        try {
+          const scanner = new Html5Qrcode("qr-reader");
+          scannerRef.current = scanner;
+
+          await scanner.start(
+            { facingMode: "environment" },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+            },
+            (decodedText) => {
+              handleQRScan(decodedText);
+            },
+            (errorMessage) => {
+              // Ignore scanning errors (they're frequent and normal)
+            }
+          );
+        } catch (err: any) {
+          console.error("Scanner initialization error:", err);
+          setCameraError(err.message || "Failed to start scanner");
+          setStatus("idle");
+          scannerRef.current = null;
+        }
+      };
+
+      initScanner();
+    }
+  }, [status, handleQRScan, requestingPermission]);
 
 
   if (authLoading || adminLoading) {
@@ -222,20 +293,29 @@ export default function CheckInPage() {
               )}
             </div>
 
-            {status === "idle" && (
+            {(status === "idle" || requestingPermission) && (
               <div className="space-y-4">
                 <div className="text-center">
                   <p className="text-muted-foreground mb-4">
-                    Camera will start automatically. Please allow camera access when prompted.
+                    {requestingPermission 
+                      ? "Requesting camera permission..." 
+                      : "Camera will start automatically. Please allow camera access when prompted."}
                   </p>
-                  <Button
-                    onClick={startScanner}
-                    size="lg"
-                    className="w-full sm:w-auto"
-                  >
-                    <Camera className="h-5 w-5 mr-2" />
-                    Start QR Scanner
-                  </Button>
+                  {requestingPermission ? (
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={startScanner}
+                      size="lg"
+                      className="w-full sm:w-auto"
+                      disabled={requestingPermission}
+                    >
+                      <Camera className="h-5 w-5 mr-2" />
+                      Start QR Scanner
+                    </Button>
+                  )}
                 </div>
                 {error && (
                   <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-2">
@@ -248,8 +328,20 @@ export default function CheckInPage() {
 
             {status === "scanning" && (
               <div className="space-y-4">
-                <div className="relative">
-                  <div id="qr-reader" className="w-full rounded-lg overflow-hidden" />
+                <div className="relative min-h-[300px]">
+                  <div 
+                    id="qr-reader" 
+                    ref={qrReaderRef}
+                    className="w-full rounded-lg overflow-hidden min-h-[300px]" 
+                  />
+                  {!scannerRef.current && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted/50 rounded-lg">
+                      <div className="text-center">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">Initializing camera...</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <Button
                   onClick={stopScanner}

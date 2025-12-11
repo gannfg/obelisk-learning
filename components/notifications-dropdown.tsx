@@ -71,14 +71,14 @@ export function NotificationsDropdown({
         notifs.map(async (notif) => {
           if (notif.type === "team" && notif.metadata?.type === "team_invitation" && notif.metadata?.invitation_id) {
             try {
-              const { data: invitation } = await supabase
+              const { data: invitation, error: invitationError } = await supabase
                 .from("team_invitations")
                 .select("status")
                 .eq("id", notif.metadata.invitation_id)
-                .single();
+                .maybeSingle();
 
-              // If invitation is already processed, delete the notification
-              if (invitation && (invitation.status === "accepted" || invitation.status === "rejected")) {
+              // If invitation doesn't exist or is already processed, delete the notification
+              if (invitationError || !invitation || (invitation.status === "accepted" || invitation.status === "rejected")) {
                 await deleteNotification(notif.id, userId, supabase);
                 return null; // Filter out this notification
               }
@@ -145,14 +145,14 @@ export function NotificationsDropdown({
     // If it's a team invitation notification, check if invitation is already processed
     if (notification.type === "team" && notification.metadata?.type === "team_invitation" && notification.metadata?.invitation_id) {
       try {
-        const { data: invitation } = await supabase
+        const { data: invitation, error: invitationError } = await supabase
           .from("team_invitations")
           .select("status")
           .eq("id", notification.metadata.invitation_id)
-          .single();
+          .maybeSingle();
 
-        // If invitation is already accepted or rejected, remove the notification
-        if (invitation && (invitation.status === "accepted" || invitation.status === "rejected")) {
+        // If invitation doesn't exist or is already accepted or rejected, remove the notification
+        if (invitationError || !invitation || (invitation.status === "accepted" || invitation.status === "rejected")) {
           await deleteNotification(notification.id, userId, supabase);
           fetchNotifications();
         }
