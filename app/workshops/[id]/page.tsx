@@ -26,7 +26,6 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import { useAdmin } from "@/lib/hooks/use-admin";
 import type { Workshop } from "@/types/workshops";
 import { format } from "date-fns";
-import { QRCodeSVG } from "qrcode.react";
 import Image from "next/image";
 
 interface Attendee {
@@ -50,9 +49,6 @@ export default function WorkshopDetailPage() {
   const [hasAttended, setHasAttended] = useState(false);
   const [registering, setRegistering] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [qrToken, setQrToken] = useState<string | null>(null);
-  const [showQR, setShowQR] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [registrationCount, setRegistrationCount] = useState(0);
 
@@ -127,51 +123,19 @@ export default function WorkshopDetailPage() {
     }
   };
 
-  const handleCheckIn = async () => {
+  const handleCheckIn = () => {
     if (!user) {
       router.push("/auth/sign-in");
       return;
     }
 
-    const token = prompt("Enter QR code token:");
-    if (!token) return;
-
-    setCheckingIn(true);
-    try {
-      const response = await fetch(`/api/workshops/${workshopId}/checkin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qrToken: token }),
-      });
-
-      if (response.ok) {
-        setHasAttended(true);
-        alert("Successfully checked in! +100 XP awarded.");
-      } else {
-        const data = await response.json();
-        alert(data.error || "Failed to check in");
-      }
-    } catch (error) {
-      console.error("Error checking in:", error);
-      alert("Failed to check in");
-    } finally {
-      setCheckingIn(false);
+    if (!workshop?.qrToken) {
+      alert("QR code not available for this workshop");
+      return;
     }
-  };
 
-  const loadQRCode = async () => {
-    if (!isAdmin) return;
-
-    try {
-      const response = await fetch(`/api/workshops/${workshopId}/qr`);
-      const data = await response.json();
-      setQrToken(data.qrToken);
-      setQrCode(data.qrData);
-      setShowQR(true);
-    } catch (error) {
-      console.error("Error loading QR code:", error);
-      alert("Failed to load QR code");
-    }
+    // Redirect to check-in page for scanning
+    router.push(`/checkin/${workshop.qrToken}`);
   };
 
   const formatDate = (date: Date) => {
@@ -479,12 +443,12 @@ export default function WorkshopDetailPage() {
                   <Button
                     variant="outline"
                     onClick={handleCheckIn}
-                    disabled={checkingIn || !user}
+                    disabled={!user || !workshop?.qrToken}
                     className="w-full"
                     size="lg"
                   >
                     <QrCode className="h-4 w-4 mr-2" />
-                    {checkingIn ? "Checking in..." : "Check In with QR Code"}
+                    Check In with QR Code
                   </Button>
                 )}
 
@@ -497,32 +461,6 @@ export default function WorkshopDetailPage() {
               </div>
             )}
 
-            {/* Admin QR Code Display */}
-            {isAdmin && isUpcoming && (
-              <div className="border-t border-border pt-6">
-                <Button variant="outline" onClick={loadQRCode} className="w-full mb-4">
-                  <QrCode className="h-4 w-4 mr-2" />
-                  {showQR ? "Hide QR Code" : "Show QR Code for Check-in"}
-                </Button>
-
-                {showQR && qrCode && qrToken && (
-                  <div className="bg-card rounded-lg p-6 border border-border text-center">
-                    <p className="text-sm font-medium mb-4">
-                      Scan this QR code to check in
-                    </p>
-                    <div className="flex justify-center mb-4">
-                      <QRCodeSVG value={qrCode} size={200} />
-                    </div>
-                    <p className="text-xs text-muted-foreground font-mono break-all">
-                      Token: {qrToken}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Expires: {workshop.qrExpiresAt ? formatDate(workshop.qrExpiresAt) : "After event"}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
 
             {isPast && hasAttended && (
               <div className="border-t border-border pt-6">
