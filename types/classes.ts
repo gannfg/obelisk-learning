@@ -26,6 +26,7 @@ export interface Class {
   published: boolean;
   enrollmentLocked: boolean;
   mentorId: string;
+  meetingLink?: string; // Added in classroom system migration
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { ClassModule } from "@/lib/classes";
+import type { ClassModule } from "@/types/classes";
 import { updateModule, getClassById } from "@/lib/classes";
 import { createLearningClient } from "@/lib/supabase/learning-client";
 import { createClient } from "@/lib/supabase/client";

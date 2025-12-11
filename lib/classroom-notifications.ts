@@ -62,9 +62,9 @@ export async function notifyNewAnnouncement(
   classTitle: string,
   announcementTitle: string,
   announcementContent: string,
-  moduleId?: string,
   learningSupabase: SupabaseClient,
-  authSupabase: SupabaseClient
+  authSupabase: SupabaseClient,
+  moduleId?: string
 ): Promise<number> {
   return notifyClassStudents(
     classId,
@@ -89,9 +89,9 @@ export async function notifyNewAssignment(
   classTitle: string,
   assignmentTitle: string,
   dueDate: Date,
-  moduleTitle?: string,
   learningSupabase: SupabaseClient,
-  authSupabase: SupabaseClient
+  authSupabase: SupabaseClient,
+  moduleTitle?: string
 ): Promise<number> {
   const dueDateStr = dueDate.toLocaleDateString("en-US", {
     month: "short",
@@ -123,9 +123,9 @@ export async function notifyAssignmentGraded(
   userId: string,
   classId: string,
   assignmentTitle: string,
+  authSupabase: SupabaseClient,
   grade?: number,
-  status: "approved" | "changes_requested" | "reviewed" = "reviewed",
-  authSupabase: SupabaseClient
+  status: "approved" | "changes_requested" | "reviewed" = "reviewed"
 ): Promise<boolean> {
   let title = "Assignment Graded";
   let message = "";

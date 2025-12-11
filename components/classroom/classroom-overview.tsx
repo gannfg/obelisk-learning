@@ -55,8 +55,8 @@ export function ClassroomOverview({
         // Load upcoming assignment
         const assignments = await getClassAssignments(classId, supabase);
         const upcoming = assignments
-          .filter((a) => new Date(a.dueDate) > new Date())
-          .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+          .filter((a: any) => new Date(a.dueDate) > new Date())
+          .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
         setUpcomingAssignment(upcoming);
       } catch (error) {
         console.error("Error loading overview data:", error);

@@ -304,9 +304,9 @@ export function ClassroomAssignments({
               updated.userId,
               updated.classId,
               assignment.title,
+              authSupabase,
               grade,
-              status,
-              authSupabase
+              status
             );
           }
         }

@@ -82,9 +82,9 @@ export function ClassroomAnnouncements({
             classItem.title,
             title,
             content,
-            announcement.moduleId,
             supabase,
-            authSupabase
+            authSupabase,
+            announcement.moduleId
           );
         }
         

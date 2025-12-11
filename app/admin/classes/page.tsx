@@ -2111,15 +2111,17 @@ export default function AdminClassesPage() {
                   if (newAssignment) {
                     try {
                       const { notifyNewAssignment } = await import("@/lib/classroom-notifications");
-                      const module = selectedClass.modules?.find(m => m.id === selectedModuleId);
+                      // Fetch module to get title
+                      const modules = await getClassModules(selectedClass.id, learningSupabase);
+                      const module = modules.find(m => m.id === selectedModuleId);
                       await notifyNewAssignment(
                         selectedClass.id,
                         selectedClass.title,
                         assignmentForm.title,
                         dueDateTime,
-                        module?.title,
                         learningSupabase,
-                        authSupabase
+                        authSupabase,
+                        module?.title
                       );
                     } catch (notifError) {
                       console.error("Error sending assignment notifications:", notifError);
@@ -2260,9 +2262,9 @@ export default function AdminClassesPage() {
                           selectedClass.title,
                           announcementForm.title,
                           announcementForm.content,
-                          announcementForm.moduleId || undefined,
                           learningSupabase,
-                          authSupabase
+                          authSupabase,
+                          announcementForm.moduleId || undefined
                         );
                       } catch (notifError) {
                         console.error("Error sending announcement notifications:", notifError);

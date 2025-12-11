@@ -26,6 +26,19 @@ export interface ModuleContent {
   data: string;
 }
 
+function ensureSupabaseClient(
+  supabaseClient?: SupabaseClient<any>
+): SupabaseClient<any> {
+  if (supabaseClient) {
+    return supabaseClient;
+  }
+  const client = createLearningClient();
+  if (!client) {
+    throw new Error("Supabase client not configured.");
+  }
+  return client;
+}
+
 /**
  * Get week-based attendance for a user in a class
  */
@@ -35,7 +48,7 @@ export async function getWeekAttendance(
   supabaseClient?: SupabaseClient<any>
 ): Promise<WeekAttendance[]> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("class_attendance")
       .select("*")
@@ -72,7 +85,7 @@ export async function getClassWeekAttendance(
   supabaseClient?: SupabaseClient<any>
 ): Promise<WeekAttendance[]> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     let query = supabase
       .from("class_attendance")
       .select("*")
@@ -118,7 +131,7 @@ export async function markWeekAttendance(
   supabaseClient?: SupabaseClient<any>
 ): Promise<WeekAttendance | null> {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("class_attendance")
       .upsert(
@@ -174,7 +187,7 @@ export async function getClassAssignments(
   supabaseClient?: SupabaseClient<any>
 ) {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("class_assignments")
       .select("*")
@@ -218,7 +231,7 @@ export async function getUserSubmission(
   supabaseClient?: SupabaseClient<any>
 ) {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("assignment_submissions")
       .select("*")
@@ -277,7 +290,7 @@ export async function submitAssignment(
   supabaseClient?: SupabaseClient<any>
 ) {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("assignment_submissions")
       .upsert(
@@ -342,7 +355,7 @@ export async function gradeSubmission(
   supabaseClient?: SupabaseClient<any>
 ) {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     const { data, error } = await supabase
       .from("assignment_submissions")
       .update({
@@ -394,7 +407,7 @@ export async function getNextSession(
   supabaseClient?: SupabaseClient<any>
 ) {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     
     // Get upcoming modules
     const { data: modules, error: modulesError } = await supabase
@@ -459,7 +472,7 @@ export async function getStudentProgress(
   supabaseClient?: SupabaseClient<any>
 ) {
   try {
-    const supabase = supabaseClient || createLearningClient();
+    const supabase = ensureSupabaseClient(supabaseClient);
     
     // Get total modules
     const { count: totalModules } = await supabase
