@@ -97,7 +97,7 @@ export default async function ClassPage({ params }: ClassPageProps) {
           <div className="space-y-6">
             {/* Class Image */}
             {classItem.thumbnail ? (
-              <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden">
+              <div className="relative w-full aspect-square rounded-2xl overflow-hidden">
                 <Image
                   src={classItem.thumbnail}
                   alt={classItem.title}
@@ -108,7 +108,7 @@ export default async function ClassPage({ params }: ClassPageProps) {
                 />
               </div>
             ) : (
-              <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 flex items-center justify-center">
+              <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 flex items-center justify-center">
                 <span className="text-6xl">📚</span>
               </div>
             )}
@@ -221,6 +221,37 @@ export default async function ClassPage({ params }: ClassPageProps) {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Enrollment Actions */}
+            <div className="space-y-4 pt-4">
+              {!userEnrollment ? (
+                <>
+                  {classItem.published && !classItem.enrollmentLocked && (
+                    <Button size="lg" className="w-full" asChild>
+                      <Link href={`/academy/classes/${classItem.id}/enroll`}>
+                        Enroll Now
+                      </Link>
+                    </Button>
+                  )}
+                  {classItem.enrollmentLocked && (
+                    <Button size="lg" variant="outline" className="w-full" disabled>
+                      Enrollment Locked
+                    </Button>
+                  )}
+                  {!classItem.published && (
+                    <Button size="lg" variant="outline" className="w-full" disabled>
+                      Not Published
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <Button size="lg" className="w-full" asChild>
+                  <Link href={`/class/${classItem.id}`}>
+                    Enter Class
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
 
@@ -419,37 +450,6 @@ export default async function ClassPage({ params }: ClassPageProps) {
                   </Card>
                 </TabsContent>
               </Tabs>
-            </div>
-
-            {/* Enrollment Actions */}
-            <div className="space-y-4 pt-6 border-t border-border">
-              {!userEnrollment ? (
-                <>
-                  {classItem.published && !classItem.enrollmentLocked && (
-                    <Button size="lg" className="w-full" asChild>
-                      <Link href={`/academy/classes/${classItem.id}/enroll`}>
-                        Enroll Now
-                      </Link>
-                    </Button>
-                  )}
-                  {classItem.enrollmentLocked && (
-                    <Button size="lg" variant="outline" className="w-full" disabled>
-                      Enrollment Locked
-                    </Button>
-                  )}
-                  {!classItem.published && (
-                    <Button size="lg" variant="outline" className="w-full" disabled>
-                      Not Published
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <Button size="lg" className="w-full" asChild>
-                  <Link href={`/class/${classItem.id}`}>
-                    Enter Class
-                  </Link>
-                </Button>
-              )}
             </div>
           </div>
         </div>

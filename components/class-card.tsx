@@ -7,15 +7,16 @@ import { format } from "date-fns";
 interface ClassCardProps {
   classItem: Class;
   priority?: boolean;
+  compact?: boolean;
 }
 
-export function ClassCard({ classItem, priority }: ClassCardProps) {
+export function ClassCard({ classItem, priority, compact }: ClassCardProps) {
   return (
     <Link 
       href={`/academy/classes/${classItem.id}`}
       className="block w-full group"
     >
-      <Card className="overflow-hidden w-full transition-all duration-300 ease-out hover:scale-110 hover:-translate-y-2 hover:shadow-2xl active:scale-105">
+      <Card className="overflow-hidden w-full h-full flex flex-col transition-all duration-300 ease-out hover:scale-110 hover:-translate-y-2 hover:shadow-2xl active:scale-105">
         {classItem.thumbnail ? (
           <div className="relative h-48 w-full overflow-hidden">
             <Image
@@ -32,7 +33,7 @@ export function ClassCard({ classItem, priority }: ClassCardProps) {
             <span className="text-4xl">📚</span>
           </div>
         )}
-        <CardContent className="p-6">
+        <CardContent className="p-6 flex-1 flex flex-col">
           <div className="mb-2 flex items-center justify-between gap-2">
             {classItem.category && (
               <span className="rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
@@ -52,28 +53,34 @@ export function ClassCard({ classItem, priority }: ClassCardProps) {
             </span>
           </div>
           <h3 className="mb-2 text-xl font-semibold">{classItem.title}</h3>
-          <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">
-            {classItem.description || "No description available."}
-          </p>
-          <div className="space-y-1 text-xs text-muted-foreground">
-            <p>
-              <span className="font-medium">Semester:</span> {classItem.semester}
-            </p>
-            <p>
-              <span className="font-medium">Starts:</span> {format(classItem.startDate, "MMM d, yyyy")}
-            </p>
-            {classItem.maxCapacity && (
-              <p>
-                <span className="font-medium">Capacity:</span> {classItem.maxCapacity} students
+          {!compact && (
+            <>
+              <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">
+                {classItem.description || "No description available."}
               </p>
-            )}
-          </div>
+              <div className="space-y-1 text-xs text-muted-foreground mt-auto">
+                <p>
+                  <span className="font-medium">Semester:</span> {classItem.semester}
+                </p>
+                <p>
+                  <span className="font-medium">Starts:</span> {format(classItem.startDate, "MMM d, yyyy")}
+                </p>
+                {classItem.maxCapacity && (
+                  <p>
+                    <span className="font-medium">Capacity:</span> {classItem.maxCapacity} students
+                  </p>
+                )}
+              </div>
+            </>
+          )}
         </CardContent>
-        <CardFooter className="p-6 pt-0">
-          <span className="text-sm font-medium text-foreground">
-            {classItem.published ? "Published" : "Draft"}
-          </span>
-        </CardFooter>
+        {!compact && (
+          <CardFooter className="p-6 pt-0">
+            <span className="text-sm font-medium text-foreground">
+              {classItem.published ? "Published" : "Draft"}
+            </span>
+          </CardFooter>
+        )}
       </Card>
     </Link>
   );
