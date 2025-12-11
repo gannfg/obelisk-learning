@@ -300,6 +300,43 @@ html * {
   flex-shrink: 0;
 }
 
+/* Horizontal scrolling animation for icons ticker - seamless infinite loop */
+/* Content is duplicated 2x: [A, B, C, A, B, C] */
+/* Animation: 0% = start, 100% = -50% (start of duplicate set) */
+/* When animation resets to 0%, content matches perfectly = seamless infinite loop */
+@keyframes scroll-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll-left {
+  animation: scroll-left 60s linear infinite;
+  will-change: transform;
+  display: flex;
+  width: max-content;
+  /* Improve rendering quality */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.animate-scroll-left:hover {
+  animation-play-state: paused;
+}
+
+/* Ensure smooth continuous scrolling - prevent items from shrinking */
+.animate-scroll-left > * {
+  flex-shrink: 0;
+  flex-grow: 0;
+  /* Improve rendering quality */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
 /* Date Picker Calendar Improvements */
 .rdp {
   --rdp-cell-size: 36px;
