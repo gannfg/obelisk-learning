@@ -490,10 +490,10 @@ export function AcademyPageClient() {
               </Link>
             </Button>
           )}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
-            <div>
-              <h2 className="text-xl font-semibold mb-1">Teams</h2>
-              <p className="text-muted-foreground">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-2">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg sm:text-xl font-semibold mb-1">Teams</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Join or create teams to collaborate on projects
               </p>
             </div>
@@ -512,8 +512,8 @@ export function AcademyPageClient() {
           </div>
 
           {loadingTeams ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-8 sm:py-12">
+              <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground" />
             </div>
           ) : teams.length > 0 ? (
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
@@ -600,10 +600,10 @@ export function AcademyPageClient() {
             </div>
           ) : (
             <div className="py-8 sm:py-12 text-center">
-              <p className="text-base sm:text-lg text-muted-foreground mb-4">
+              <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-4 px-2">
                 No teams yet. Create your first team to start collaborating!
               </p>
-              <Button asChild>
+              <Button asChild size="sm" className="text-xs sm:text-sm h-9 sm:h-10">
                 <Link href="/academy/teams/new">Create Team</Link>
               </Button>
             </div>
