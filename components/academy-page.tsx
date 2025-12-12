@@ -516,7 +516,7 @@ export function AcademyPageClient() {
               <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground" />
             </div>
           ) : teams.length > 0 ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
               {teams.map((team) => {
                 const memberProfiles = teamMemberProfiles[team.id] || {};
                 const memberCount = team.memberCount || team.members?.length || 0;
@@ -528,37 +528,43 @@ export function AcademyPageClient() {
                     href={`/academy/teams/${team.id}`}
                     className="block w-full"
                   >
-                    <Card className="w-full aspect-square flex flex-col items-center text-center overflow-hidden p-4">
+                    <Card className="w-full aspect-square flex flex-col items-center text-center overflow-hidden p-3 sm:p-4 transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-1 hover:shadow-lg cursor-pointer">
                       {/* Centered logo and name */}
-                      <div className="flex-1 flex flex-col items-center justify-center gap-2">
+                      <div className="flex-1 flex flex-col items-center justify-center gap-2 sm:gap-3 min-w-0 w-full">
                         {team.avatar ? (
-                          <div className="relative w-16 h-16 rounded-full overflow-hidden">
+                          <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full overflow-hidden flex-shrink-0 border-2 border-border/50 bg-muted/30">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={team.avatar}
                               alt={team.name}
-                              className="w-16 h-16 object-cover rounded-full"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Fallback: if image fails to load, try object-contain for logos
+                                const target = e.target as HTMLImageElement;
+                                target.style.objectFit = 'contain';
+                                target.style.padding = '4px';
+                              }}
                             />
                           </div>
                         ) : (
-                          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Users className="h-7 w-7 text-primary" />
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <Users className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary" />
                           </div>
                         )}
-                        <p className="text-base font-semibold">{team.name}</p>
+                        <p className="text-xs sm:text-sm md:text-base font-semibold line-clamp-2 break-words px-1">{team.name}</p>
                       </div>
                       
                       {/* Member avatars and count */}
                       {memberCount > 0 && (
-                        <div className="flex items-center gap-2 mt-auto">
-                          <div className="flex -space-x-2">
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 mt-auto pt-2 border-t border-border/50 w-full">
+                          <div className="flex -space-x-1.5 sm:-space-x-2">
                             {displayMembers.map((member, idx) => {
                               const profile = memberProfiles[member.userId];
                               const avatar = profile?.avatar;
                               return (
                                 <div
                                   key={member.userId}
-                                  className="relative inline-flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground overflow-hidden"
+                                  className="relative inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] sm:text-xs font-medium text-muted-foreground overflow-hidden flex-shrink-0"
                                   style={{ zIndex: displayMembers.length - idx }}
                                 >
                                   {avatar ? (
@@ -569,24 +575,24 @@ export function AcademyPageClient() {
                                         className="w-full h-full object-cover"
                                       />
                                     ) : (
-                                      <span>{avatar}</span>
+                                      <span className="text-[10px] sm:text-xs">{avatar}</span>
                                     )
                                   ) : (
-                                    <Users className="h-3 w-3" />
+                                    <Users className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                                   )}
                                 </div>
                               );
                             })}
                             {memberCount > 5 && (
                               <div
-                                className="relative inline-flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground"
+                                className="relative inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] sm:text-xs font-medium text-muted-foreground flex-shrink-0"
                                 style={{ zIndex: 0 }}
                               >
                                 +{memberCount - 5}
                               </div>
                             )}
                           </div>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
                             {memberCount > 1000 
                               ? `${(memberCount / 1000).toFixed(1)}K` 
                               : memberCount.toLocaleString()}
