@@ -383,32 +383,32 @@ export function AcademyPageClient() {
               </Link>
             </Button>
           )}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
-            <div>
-              <h2 className="text-xl font-semibold mb-1">Teams</h2>
-              <p className="text-muted-foreground">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-2">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg sm:text-xl font-semibold mb-1">Teams</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Join or create teams to collaborate on projects
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <Link href="/academy?tab=teams" className="text-xs text-primary hover:underline">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <Link href="/academy?tab=teams" className="text-xs text-primary hover:underline text-center sm:text-left order-3 sm:order-1">
                 View all
               </Link>
-              <Button variant="outline" asChild>
+              <Button variant="outline" asChild size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-9 sm:h-10 order-1 sm:order-2">
                 <Link href="/academy/teams">Browse Teams</Link>
               </Button>
-              <Button asChild>
+              <Button asChild size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-9 sm:h-10 order-2 sm:order-3">
                 <Link href="/academy/teams/new">Create Team</Link>
               </Button>
             </div>
           </div>
 
           {loadingTeams ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-8 sm:py-12">
+              <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground" />
             </div>
           ) : teams.length > 0 ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
               {teams.map((team) => (
                 <Card
                   key={team.id}
@@ -416,32 +416,32 @@ export function AcademyPageClient() {
                     setSelectedTeam(team);
                     setTeamModalOpen(true);
                   }}
-                  className="w-full aspect-square flex flex-col items-center justify-center text-center gap-2 overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl cursor-pointer"
+                  className="w-full aspect-square flex flex-col items-center justify-center text-center gap-2 sm:gap-3 p-3 sm:p-4 overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl cursor-pointer"
                 >
                   {team.avatar ? (
-                    <div className="relative w-16 h-16 rounded-full overflow-hidden">
+                    <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden flex-shrink-0">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={team.avatar}
                         alt={team.name}
-                        className="w-16 h-16 object-cover rounded-full"
+                        className="w-full h-full object-cover rounded-full"
                       />
                     </div>
                   ) : (
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="h-7 w-7 text-primary" />
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Users className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
                     </div>
                   )}
-                  <p className="text-base font-semibold">{team.name}</p>
+                  <p className="text-xs sm:text-sm md:text-base font-semibold line-clamp-2 break-words">{team.name}</p>
                 </Card>
               ))}
             </div>
           ) : (
             <div className="py-8 sm:py-12 text-center">
-              <p className="text-base sm:text-lg text-muted-foreground mb-4">
+              <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-4 px-2">
                 No teams yet. Create your first team to start collaborating!
               </p>
-              <Button asChild>
+              <Button asChild size="sm" className="text-xs sm:text-sm h-9 sm:h-10">
                 <Link href="/academy/teams/new">Create Team</Link>
               </Button>
             </div>
