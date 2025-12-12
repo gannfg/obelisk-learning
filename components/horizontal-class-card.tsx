@@ -51,15 +51,7 @@ export function HorizontalClassCard({ classItem }: HorizontalClassCardProps) {
                   )}
                 </div>
                 <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                    classItem.status === "ongoing"
-                      ? "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300"
-                      : classItem.status === "upcoming"
-                      ? "bg-blue-500/10 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
-                      : classItem.status === "completed"
-                      ? "bg-gray-500/10 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300"
-                      : "bg-muted text-muted-foreground"
-                  }`}>
+                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-muted text-muted-foreground">
                     {classItem.status}
                   </span>
                 </div>
@@ -88,6 +80,8 @@ export function HorizontalClassCard({ classItem }: HorizontalClassCardProps) {
     </Link>
   );
 }
+
+
 
 
 

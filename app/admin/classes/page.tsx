@@ -240,6 +240,19 @@ export default function AdminClassesPage() {
     }
   };
 
+  // Helper function to calculate semester from date
+  const calculateSemester = (dateString: string): string => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1; // 1-12
+    
+    // Spring: January (1) - June (6)
+    // Fall: July (7) - December (12)
+    const season = month >= 1 && month <= 6 ? "Spring" : "Fall";
+    return `${season} ${year}`;
+  };
+
   // Class form
   const [classForm, setClassForm] = useState({
     title: "",
@@ -398,7 +411,10 @@ export default function AdminClassesPage() {
   };
 
   const handleCreateClass = async () => {
-    if (!classForm.title || !classForm.semester || !classForm.startDate || !classForm.endDate) {
+    // Auto-calculate semester from start date if not set
+    const semester = classForm.semester || (classForm.startDate ? calculateSemester(classForm.startDate) : "");
+    
+    if (!classForm.title || !semester || !classForm.startDate || !classForm.endDate) {
       setClassDialogError("Please fill in all required fields.");
       return;
     }
@@ -442,7 +458,7 @@ export default function AdminClassesPage() {
           description: classForm.description || undefined,
           thumbnail: thumbnailUrl || undefined,
           category: classForm.category || undefined,
-          semester: classForm.semester,
+          semester: semester,
           startDate: startDateTime.toISOString(),
           endDate: endDateTime.toISOString(),
           maxCapacity: classForm.maxCapacity ? parseInt(classForm.maxCapacity) : undefined,
@@ -475,7 +491,10 @@ export default function AdminClassesPage() {
   const handleUpdateClass = async () => {
     if (!editingClass) return;
 
-    if (!classForm.title || !classForm.semester || !classForm.startDate || !classForm.endDate) {
+    // Auto-calculate semester from start date if not set
+    const semester = classForm.semester || (classForm.startDate ? calculateSemester(classForm.startDate) : "");
+
+    if (!classForm.title || !semester || !classForm.startDate || !classForm.endDate) {
       setClassDialogError("Please fill in all required fields.");
       return;
     }
@@ -505,7 +524,7 @@ export default function AdminClassesPage() {
           description: classForm.description || undefined,
           thumbnail: thumbnailUrl || undefined,
           category: classForm.category || undefined,
-          semester: classForm.semester,
+          semester: semester,
           startDate: startDateTime.toISOString(),
           endDate: endDateTime.toISOString(),
           maxCapacity: classForm.maxCapacity ? parseInt(classForm.maxCapacity) : undefined,
@@ -1741,40 +1760,6 @@ export default function AdminClassesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium flex items-center gap-1">
-                  Semester <span className="text-destructive">*</span>
-                  {!classForm.semester && (
-                    <span className="text-xs text-destructive ml-1">(Required)</span>
-                  )}
-                </label>
-                <Input
-                  value={classForm.semester}
-                  onChange={(e) => setClassForm({ ...classForm, semester: e.target.value })}
-                  placeholder="e.g., Fall 2024"
-                  className={!classForm.semester ? "border-destructive focus-visible:ring-destructive" : ""}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Category</label>
-                <Select
-                  value={classForm.category}
-                  onValueChange={(value) => setClassForm({ ...classForm, category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COURSE_CATEGORIES.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium flex items-center gap-1">
                   Start Date <span className="text-destructive">*</span>
                   {!classForm.startDate && (
                     <span className="text-xs text-destructive ml-1">(Required)</span>
@@ -1785,7 +1770,15 @@ export default function AdminClassesPage() {
                     type="date"
                     id="start-date-input"
                     value={classForm.startDate}
-                    onChange={(e) => setClassForm({ ...classForm, startDate: e.target.value })}
+                    onChange={(e) => {
+                      const newStartDate = e.target.value;
+                      const calculatedSemester = calculateSemester(newStartDate);
+                      setClassForm({ 
+                        ...classForm, 
+                        startDate: newStartDate,
+                        semester: calculatedSemester
+                      });
+                    }}
                     className={!classForm.startDate ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
                   <Calendar 
@@ -1820,6 +1813,45 @@ export default function AdminClassesPage() {
                     }}
                   />
                 </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium flex items-center gap-1">
+                  Semester <span className="text-destructive">*</span>
+                  {!classForm.semester && (
+                    <span className="text-xs text-destructive ml-1">(Required)</span>
+                  )}
+                </label>
+                <Input
+                  value={classForm.startDate ? calculateSemester(classForm.startDate) : ""}
+                  readOnly
+                  placeholder="Select start date to auto-calculate"
+                  className={!classForm.startDate ? "border-destructive focus-visible:ring-destructive" : "bg-muted cursor-not-allowed"}
+                />
+                {classForm.startDate && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Auto-calculated from start date
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="text-sm font-medium">Category</label>
+                <Select
+                  value={classForm.category}
+                  onValueChange={(value) => setClassForm({ ...classForm, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COURSE_CATEGORIES.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div>

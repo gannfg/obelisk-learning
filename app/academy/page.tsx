@@ -1,7 +1,14 @@
 import { Suspense } from "react";
 import { AcademyPageClient } from "@/components/academy-page";
 
-export default function AcademyPage() {
+interface AcademyPageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function AcademyPage({ searchParams }: AcademyPageProps) {
+  // Await searchParams to prevent Next.js error about accessing Promise directly
+  await searchParams;
+  
   return (
     <Suspense
       fallback={

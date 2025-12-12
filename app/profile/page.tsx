@@ -155,6 +155,59 @@ export default function ProfilePage() {
     loadUserStats();
   }, [user, authLoading]);
 
+  // Load workshop attendance
+  useEffect(() => {
+    const loadAttendance = async () => {
+      if (authLoading || !user) {
+        setLoadingAttendance(false);
+        return;
+      }
+
+      try {
+        setLoadingAttendance(true);
+        const learningSupabase = createLearningClient();
+        if (!learningSupabase) {
+          setLoadingAttendance(false);
+          return;
+        }
+
+        // Get workshop attendance with workshop details
+        const { data: attendanceData, error } = await learningSupabase
+          .from("workshop_attendance")
+          .select(`
+            id,
+            workshop_id,
+            user_id,
+            checkin_time,
+            method,
+            workshops (
+              id,
+              title,
+              datetime,
+              location_type,
+              venue_name
+            )
+          `)
+          .eq("user_id", user.id)
+          .order("checkin_time", { ascending: false });
+
+        if (error) {
+          console.error("Error loading attendance:", error);
+          setAttendedWorkshops([]);
+        } else {
+          setAttendedWorkshops(attendanceData || []);
+        }
+      } catch (error) {
+        console.error("Error loading attendance:", error);
+        setAttendedWorkshops([]);
+      } finally {
+        setLoadingAttendance(false);
+      }
+    };
+
+    loadAttendance();
+  }, [user, authLoading]);
+
   const handleSave = async () => {
     if (!user) return;
 
@@ -200,9 +253,9 @@ export default function ProfilePage() {
 
   if (authLoading) {
     return (
-      <div className="container mx-auto px-6 py-12">
+      <div className="container mx-auto px-3 sm:px-4 md:px-6 py-8 sm:py-12">
         <div className="flex items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-muted-foreground" />
         </div>
       </div>
     );
@@ -242,72 +295,73 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-4xl">
-      <div className="mb-8">
-        <Button asChild variant="ghost" size="sm" className="mb-4">
+    <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 max-w-4xl pb-20 sm:pb-8">
+      <div className="mb-6 sm:mb-8">
+        <Button asChild variant="ghost" size="sm" className="mb-3 sm:mb-4 text-xs sm:text-sm h-8 sm:h-9">
           <Link href="/dashboard">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
+            <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+            <span className="hidden sm:inline">Back to Dashboard</span>
+            <span className="sm:hidden">Back</span>
           </Link>
         </Button>
-        <h1 className="text-3xl sm:text-4xl font-bold mb-3">Profile</h1>
-        <p className="text-base sm:text-lg text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3">Profile</h1>
+        <p className="text-sm sm:text-base md:text-lg text-muted-foreground">
           Manage your profile information and preferences.
         </p>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <div className="flex items-center justify-center py-8 sm:py-12">
+          <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
         <>
           {/* Profile Card View */}
           {!isEditing && (
-            <div className="mb-6">
+            <div className="mb-4 sm:mb-6">
               <ProfileCard profile={displayProfile} showEditButton={false} />
             </div>
           )}
 
           {/* User Stats */}
           {!isEditing && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Activity Overview</CardTitle>
-                <CardDescription>Your learning and participation statistics</CardDescription>
+            <Card className="mb-4 sm:mb-6">
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl">Activity Overview</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Your learning and participation statistics</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                 {loadingStats ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  <div className="flex items-center justify-center py-6 sm:py-8">
+                    <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="p-3 bg-primary/10 rounded-lg">
-                        <BookOpen className="h-6 w-6 text-primary" />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg">
+                      <div className="p-2 sm:p-3 bg-primary/10 rounded-lg flex-shrink-0">
+                        <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                       </div>
-                      <div>
-                        <p className="text-2xl font-bold">{userStats.classesCount}</p>
-                        <p className="text-sm text-muted-foreground">Classes</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="p-3 bg-primary/10 rounded-lg">
-                        <Calendar className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{userStats.workshopsCount}</p>
-                        <p className="text-sm text-muted-foreground">Workshops Attended</p>
+                      <div className="min-w-0">
+                        <p className="text-xl sm:text-2xl font-bold">{userStats.classesCount}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Classes</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="p-3 bg-primary/10 rounded-lg">
-                        <FolderKanban className="h-6 w-6 text-primary" />
+                    <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg">
+                      <div className="p-2 sm:p-3 bg-primary/10 rounded-lg flex-shrink-0">
+                        <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                       </div>
-                      <div>
-                        <p className="text-2xl font-bold">{userStats.projectsCount}</p>
-                        <p className="text-sm text-muted-foreground">Projects</p>
+                      <div className="min-w-0">
+                        <p className="text-xl sm:text-2xl font-bold">{userStats.workshopsCount}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground break-words">Workshops Attended</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg">
+                      <div className="p-2 sm:p-3 bg-primary/10 rounded-lg flex-shrink-0">
+                        <FolderKanban className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xl sm:text-2xl font-bold">{userStats.projectsCount}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Projects</p>
                       </div>
                     </div>
                   </div>
@@ -318,49 +372,49 @@ export default function ProfilePage() {
 
           {/* Edit Form */}
           <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="text-2xl">{isEditing ? "Edit Profile" : "Profile Information"}</CardTitle>
-                  <CardDescription>
+            <CardHeader className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="text-lg sm:text-xl md:text-2xl">{isEditing ? "Edit Profile" : "Profile Information"}</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
                     {isEditing
                       ? "Update your profile information below."
                       : "View and edit your profile information."}
                   </CardDescription>
                 </div>
                 {!isEditing && (
-                  <Button onClick={() => setIsEditing(true)} variant="outline">
+                  <Button onClick={() => setIsEditing(true)} variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-9 sm:h-10">
                     Edit
                   </Button>
                 )}
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
               {/* Error Message */}
               {error && (
-                <div className="mb-4 p-3 rounded-md bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
-                  <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+                <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 rounded-md bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+                  <p className="text-xs sm:text-sm text-red-800 dark:text-red-200 break-words">{error}</p>
                 </div>
               )}
               
               {/* Success Message */}
               {success && (
-                <div className="mb-4 p-3 rounded-md bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
-                  <p className="text-sm text-green-800 dark:text-green-200">
+                <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 rounded-md bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+                  <p className="text-xs sm:text-sm text-green-800 dark:text-green-200">
                     ✅ Profile updated successfully!
                   </p>
                 </div>
               )}
 
               {isEditing ? (
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   {/* Profile Picture Upload */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Profile Picture</label>
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
+                    <label className="text-xs sm:text-sm font-medium">Profile Picture</label>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                      <div className="relative flex-shrink-0">
                         {(imagePreview || displayProfile.image_url) ? (
-                          <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-border">
+                          <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-border">
                             <Image
                               src={imagePreview || displayProfile.image_url || ''}
                               alt="Profile"
@@ -370,107 +424,112 @@ export default function ProfilePage() {
                             />
                           </div>
                         ) : (
-                          <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center border-2 border-border">
-                            <span className="text-2xl font-medium text-muted-foreground">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted flex items-center justify-center border-2 border-border">
+                            <span className="text-xl sm:text-2xl font-medium text-muted-foreground">
                               {user.email?.charAt(0).toUpperCase() || 'U'}
                             </span>
                           </div>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <input
-                          type="file"
-                          id="profile-picture"
-                          accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file || !user) return;
+                      <div className="flex-1 w-full sm:w-auto">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <input
+                            type="file"
+                            id="profile-picture"
+                            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file || !user) return;
 
-                            // Validate file size (5MB max)
-                            if (file.size > 5 * 1024 * 1024) {
-                              setError('Image size must be less than 5MB');
-                              return;
-                            }
+                              // Validate file size (5MB max)
+                              if (file.size > 5 * 1024 * 1024) {
+                                setError('Image size must be less than 5MB');
+                                return;
+                              }
 
-                            // Create preview
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              setImagePreview(reader.result as string);
-                            };
-                            reader.readAsDataURL(file);
+                              // Create preview
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setImagePreview(reader.result as string);
+                              };
+                              reader.readAsDataURL(file);
 
-                            // Upload to Supabase Storage
-                            setUploadingImage(true);
-                            setError(null);
-                            try {
-                              const imageUrl = await uploadProfilePicture(file, user.id, supabase);
-                              if (imageUrl) {
-                                // Update profile with new image URL
-                                await updateUserProfile(
-                                  user.id,
-                                  { image_url: imageUrl },
-                                  user.email || '',
-                                  supabase
-                                );
-                                // Reload profile
-                                const updatedProfile = await getUserProfile(user.id, user.email || undefined, supabase);
-                                if (updatedProfile) {
-                                  setProfile(updatedProfile);
+                              // Upload to Supabase Storage
+                              setUploadingImage(true);
+                              setError(null);
+                              try {
+                                const imageUrl = await uploadProfilePicture(file, user.id, supabase);
+                                if (imageUrl) {
+                                  // Update profile with new image URL
+                                  await updateUserProfile(
+                                    user.id,
+                                    { image_url: imageUrl },
+                                    user.email || '',
+                                    supabase
+                                  );
+                                  // Reload profile
+                                  const updatedProfile = await getUserProfile(user.id, user.email || undefined, supabase);
+                                  if (updatedProfile) {
+                                    setProfile(updatedProfile);
+                                    setImagePreview(null);
+                                  }
+                                } else {
+                                  setError('Failed to upload image. Please try again.');
                                   setImagePreview(null);
                                 }
-                              } else {
+                              } catch (err) {
+                                console.error('Error uploading image:', err);
                                 setError('Failed to upload image. Please try again.');
                                 setImagePreview(null);
+                              } finally {
+                                setUploadingImage(false);
                               }
-                            } catch (err) {
-                              console.error('Error uploading image:', err);
-                              setError('Failed to upload image. Please try again.');
-                              setImagePreview(null);
-                            } finally {
-                              setUploadingImage(false);
-                            }
-                          }}
-                          disabled={uploadingImage}
-                        />
-                        <label
-                          htmlFor="profile-picture"
-                          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-border rounded-md cursor-pointer hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {uploadingImage ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Uploading...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-4 w-4" />
-                              {displayProfile.image_url ? 'Change Picture' : 'Upload Picture'}
-                            </>
-                          )}
-                        </label>
-                        {imagePreview && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="ml-2"
-                            onClick={() => setImagePreview(null)}
+                            }}
                             disabled={uploadingImage}
+                          />
+                          <label
+                            htmlFor="profile-picture"
+                            className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium border border-border rounded-md cursor-pointer hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
                           >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
+                            {uploadingImage ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                                <span className="hidden sm:inline">Uploading...</span>
+                                <span className="sm:hidden">Uploading</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                <span className="hidden sm:inline">{displayProfile.image_url ? 'Change Picture' : 'Upload Picture'}</span>
+                                <span className="sm:hidden">{displayProfile.image_url ? 'Change' : 'Upload'}</span>
+                              </>
+                            )}
+                          </label>
+                          {imagePreview && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="sm:ml-2 w-full sm:w-auto"
+                              onClick={() => setImagePreview(null)}
+                              disabled={uploadingImage}
+                            >
+                              <X className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-0" />
+                              <span className="sm:hidden">Cancel</span>
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
                       JPG, PNG, GIF or WEBP. Max 5MB.
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label htmlFor="first_name" className="text-sm font-medium">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <label htmlFor="first_name" className="text-xs sm:text-sm font-medium">
                         First Name
                       </label>
                       <Input
@@ -480,10 +539,11 @@ export default function ProfilePage() {
                           setFormData({ ...formData, first_name: e.target.value })
                         }
                         placeholder="Enter your first name"
+                        className="text-xs sm:text-sm h-9 sm:h-10"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label htmlFor="last_name" className="text-sm font-medium">
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <label htmlFor="last_name" className="text-xs sm:text-sm font-medium">
                         Last Name
                       </label>
                       <Input
@@ -493,12 +553,13 @@ export default function ProfilePage() {
                           setFormData({ ...formData, last_name: e.target.value })
                         }
                         placeholder="Enter your last name"
+                        className="text-xs sm:text-sm h-9 sm:h-10"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label htmlFor="username" className="text-sm font-medium">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <label htmlFor="username" className="text-xs sm:text-sm font-medium">
                       Username
                     </label>
                     <Input
@@ -508,11 +569,12 @@ export default function ProfilePage() {
                         setFormData({ ...formData, username: e.target.value })
                       }
                       placeholder="Enter your username"
+                      className="text-xs sm:text-sm h-9 sm:h-10"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label htmlFor="bio" className="text-sm font-medium">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <label htmlFor="bio" className="text-xs sm:text-sm font-medium">
                       Bio
                     </label>
                     <textarea
@@ -523,25 +585,27 @@ export default function ProfilePage() {
                       }
                       placeholder="Tell us about yourself..."
                       rows={4}
-                      className="flex w-full border-b border-border bg-transparent px-0 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-foreground disabled:cursor-not-allowed disabled:opacity-40 resize-none"
+                      className="flex w-full border-b border-border bg-transparent px-0 py-2 text-xs sm:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-foreground disabled:cursor-not-allowed disabled:opacity-40 resize-none"
                     />
                   </div>
 
-                  <div className="flex items-center gap-3 pt-4">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-4">
                     <Button
                       onClick={handleSave}
                       disabled={saving}
-                      className="min-w-[100px]"
+                      className="w-full sm:w-auto min-w-[100px] text-xs sm:text-sm h-9 sm:h-10"
                     >
                       {saving ? (
                         <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Saving...
+                          <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 animate-spin" />
+                          <span className="hidden sm:inline">Saving...</span>
+                          <span className="sm:hidden">Saving</span>
                         </>
                       ) : (
                         <>
-                          <Save className="h-4 w-4 mr-2" />
-                          Save Changes
+                          <Save className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
+                          <span className="hidden sm:inline">Save Changes</span>
+                          <span className="sm:hidden">Save</span>
                         </>
                       )}
                     </Button>
@@ -561,44 +625,45 @@ export default function ProfilePage() {
                         }
                       }}
                       disabled={saving}
+                      className="w-full sm:w-auto text-xs sm:text-sm h-9 sm:h-10"
                     >
                       Cancel
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1">
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">
                         First Name
                       </p>
-                      <p className="text-sm">
+                      <p className="text-xs sm:text-sm break-words">
                         {displayProfile.first_name || "Not set"}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1">
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">
                         Last Name
                       </p>
-                      <p className="text-sm">
+                      <p className="text-xs sm:text-sm break-words">
                         {displayProfile.last_name || "Not set"}
                       </p>
                     </div>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">
                       Username
                     </p>
-                    <p className="text-sm">
+                    <p className="text-xs sm:text-sm break-words">
                       {displayProfile.username ? `@${displayProfile.username}` : "Not set"}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">
                       Bio
                     </p>
-                    <p className="text-sm">
+                    <p className="text-xs sm:text-sm break-words whitespace-pre-wrap">
                       {displayProfile.bio || "No bio added yet."}
                     </p>
                   </div>
@@ -609,25 +674,25 @@ export default function ProfilePage() {
 
           {/* Proof of Attendance Section */}
           <Card>
-            <CardHeader>
-              <CardTitle>Proof of Attendance</CardTitle>
-              <CardDescription>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-lg sm:text-xl">Proof of Attendance</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 Workshops you&apos;ve attended and verified
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
               {loadingAttendance ? (
-                <div className="text-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                <div className="text-center py-6 sm:py-8">
+                  <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin mx-auto text-muted-foreground" />
                 </div>
               ) : attendedWorkshops.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-sm text-muted-foreground">
+                <div className="text-center py-6 sm:py-8">
+                  <p className="text-xs sm:text-sm text-muted-foreground px-2">
                     No workshop attendance records yet. Attend a workshop and check in to see your proof of attendance here.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {attendedWorkshops.map((attendance: any) => {
                     const workshop = attendance.workshops;
                     if (!workshop) return null;
@@ -635,47 +700,47 @@ export default function ProfilePage() {
                     return (
                       <div
                         key={attendance.id}
-                        className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                        className="border rounded-lg p-3 sm:p-4 hover:bg-muted/50 transition-colors"
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2">
-                              <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-                              <h4 className="font-semibold text-base line-clamp-1">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3 sm:gap-4">
+                          <div className="flex-1 min-w-0 w-full">
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2">
+                              <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
+                              <h4 className="font-semibold text-sm sm:text-base line-clamp-2 break-words">
                                 {workshop.title || "Workshop"}
                               </h4>
-                              <span className="px-2 py-0.5 bg-green-500/10 text-green-600 text-xs font-medium rounded">
+                              <span className="px-1.5 sm:px-2 py-0.5 bg-green-500/10 text-green-600 text-[10px] sm:text-xs font-medium rounded whitespace-nowrap">
                                 Verified
                               </span>
                             </div>
-                            <div className="space-y-1 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4 flex-shrink-0" />
-                                <span>
+                            <div className="space-y-1 text-xs sm:text-sm text-muted-foreground">
+                              <div className="flex items-start sm:items-center gap-1.5 sm:gap-2">
+                                <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5 sm:mt-0" />
+                                <span className="break-words">
                                   {format(new Date(workshop.datetime), "MMM d, yyyy 'at' h:mm a")}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-start sm:items-center gap-1.5 sm:gap-2">
                                 {workshop.location_type === "online" ? (
                                   <>
-                                    <Video className="h-4 w-4 flex-shrink-0" />
+                                    <Video className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5 sm:mt-0" />
                                     <span>Online</span>
                                   </>
                                 ) : (
                                   <>
-                                    <MapPin className="h-4 w-4 flex-shrink-0" />
-                                    <span className="truncate">
+                                    <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5 sm:mt-0" />
+                                    <span className="break-words">
                                       {workshop.venue_name || "Offline"}
                                     </span>
                                   </>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2">
-                                <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-                                <span>
+                              <div className="flex flex-wrap items-start sm:items-center gap-1 sm:gap-2">
+                                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5 sm:mt-0" />
+                                <span className="break-words">
                                   Checked in: {format(new Date(attendance.checkin_time), "MMM d, yyyy 'at' h:mm a")}
                                 </span>
-                                <span className="text-xs">
+                                <span className="text-[10px] sm:text-xs whitespace-nowrap">
                                   ({attendance.method === "qr" ? "QR Code" : "Manual"})
                                 </span>
                               </div>
@@ -685,9 +750,11 @@ export default function ProfilePage() {
                             variant="outline"
                             size="sm"
                             asChild
+                            className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9"
                           >
                             <Link href={`/workshops/${workshop.id}`}>
-                              View Workshop
+                              <span className="hidden sm:inline">View Workshop</span>
+                              <span className="sm:hidden">View</span>
                             </Link>
                           </Button>
                         </div>

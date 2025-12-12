@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { CourseCard } from "@/components/course-card";
 import { CategoryFilter } from "@/components/category-filter";
 import { CourseCategory, Course } from "@/types";
-import { BookOpen, FolderKanban, Users, ArrowLeft } from "lucide-react";
+import { BookOpen, FolderKanban, Users, ArrowLeft, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -18,14 +18,13 @@ import {
 } from "@/components/ui/card";
 import { getAllProjects, ProjectWithMembers } from "@/lib/projects";
 import { getAllTeams, TeamWithDetails } from "@/lib/teams";
-import { getAllClasses } from "@/lib/classes";
+import { getAllClasses, getClassModules, getClassEnrollments } from "@/lib/classes";
 import { createClient } from "@/lib/supabase/client";
 import { createLearningClient } from "@/lib/supabase/learning-client";
 import { useAdmin } from "@/lib/hooks/use-admin";
 import { Loader2 } from "lucide-react";
 import { Class } from "@/types";
 import { ClassCard } from "@/components/class-card";
-import { TeamModal } from "@/components/team-modal";
 import { getUserProfile } from "@/lib/profile";
 
 export function AcademyPageClient() {
@@ -38,12 +37,13 @@ export function AcademyPageClient() {
   const [currentTab, setCurrentTab] = useState<"classes" | "projects" | "teams" | null>(initialTab);
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
   const [teams, setTeams] = useState<TeamWithDetails[]>([]);
+  const [teamMemberProfiles, setTeamMemberProfiles] = useState<Record<string, Record<string, { name: string; avatar?: string }>>>({});
+  const [teamProjects, setTeamProjects] = useState<Record<string, ProjectWithMembers[]>>({});
   const [classes, setClasses] = useState<Class[]>([]);
+  const [classStats, setClassStats] = useState<Record<string, { moduleCount: number; studentCount: number }>>({});
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingTeams, setLoadingTeams] = useState(false);
   const [loadingCourses, setLoadingCourses] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState<TeamWithDetails | null>(null);
-  const [teamModalOpen, setTeamModalOpen] = useState(false);
   
   // Create clients safely - they may be placeholders if env vars are missing
   const supabase = createClient();
@@ -105,7 +105,29 @@ export function AcademyPageClient() {
       } else {
         setLoadingCourses(true);
         getAllClasses({ publishedOnly: !isAdmin }, learningSupabase)
-          .then(setClasses)
+          .then(async (classesData) => {
+            setClasses(classesData);
+            // Fetch module and enrollment counts for each class
+            const stats: Record<string, { moduleCount: number; studentCount: number }> = {};
+            await Promise.all(
+              classesData.map(async (classItem) => {
+                try {
+                  const [modules, enrollments] = await Promise.all([
+                    getClassModules(classItem.id, learningSupabase),
+                    getClassEnrollments(classItem.id, learningSupabase),
+                  ]);
+                  stats[classItem.id] = {
+                    moduleCount: modules.length,
+                    studentCount: enrollments.filter(e => e.status === "active").length,
+                  };
+                } catch (error) {
+                  console.error(`Error loading stats for class ${classItem.id}:`, error);
+                  stats[classItem.id] = { moduleCount: 0, studentCount: 0 };
+                }
+              })
+            );
+            setClassStats(stats);
+          })
           .catch((error) => {
             console.error("Error loading classes:", error);
             setClasses([]);
@@ -178,7 +200,63 @@ export function AcademyPageClient() {
       } else {
         setLoadingTeams(true);
         getAllTeams(supabase)
-          .then(setTeams)
+          .then(async (teamsData) => {
+            // Fetch member avatars & names for teams
+            try {
+              const authSupabase = createClient();
+              const profilesMap: Record<string, Record<string, { name: string; avatar?: string }>> = {};
+              
+              await Promise.all(
+                teamsData.map(async (team) => {
+                  if (!team.members || team.members.length === 0) {
+                    return;
+                  }
+
+                  const profiles: Record<string, { name: string; avatar?: string }> = {};
+                  await Promise.all(
+                    team.members.map(async (member) => {
+                      try {
+                        const profile = await getUserProfile(member.userId, undefined, authSupabase);
+                        const fullName = [profile?.first_name, profile?.last_name]
+                          .filter(Boolean)
+                          .join(" ")
+                          .trim();
+                        const username =
+                          profile?.username ||
+                          (fullName.length > 0 ? fullName : undefined) ||
+                          profile?.email?.split("@")[0];
+
+                        profiles[member.userId] = {
+                          name: username || `User ${member.userId.slice(0, 8)}`,
+                          avatar: profile?.image_url || profile?.email?.charAt(0).toUpperCase(),
+                        };
+                      } catch (error) {
+                        console.error(`Error loading avatar for ${member.userId}:`, error);
+                      }
+                    })
+                  );
+                  profilesMap[team.id] = profiles;
+                })
+              );
+              setTeamMemberProfiles(profilesMap);
+              setTeams(teamsData);
+              
+              // Fetch projects for each team
+              try {
+                const allProjects = await getAllProjects(supabase);
+                const projectsMap: Record<string, ProjectWithMembers[]> = {};
+                teamsData.forEach(team => {
+                  projectsMap[team.id] = allProjects.filter(p => p.teamId === team.id);
+                });
+                setTeamProjects(projectsMap);
+              } catch (error) {
+                console.error("Error loading team projects:", error);
+              }
+            } catch (error) {
+              console.error("Error loading member avatars:", error);
+              setTeams(teamsData);
+            }
+          })
           .catch((error) => {
             console.error("Error loading teams:", error);
             setTeams([]);
@@ -253,9 +331,11 @@ export function AcademyPageClient() {
           )}
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Classes</h2>
-            <Link href="/academy?tab=classes" className="text-xs text-primary hover:underline">
-              View all
-            </Link>
+            {currentTab === null && (
+              <Link href="/academy?tab=classes" className="flex items-center hover:opacity-80 transition-opacity">
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            )}
           </div>
           <CategoryFilter />
           {loadingCourses ? (
@@ -264,9 +344,18 @@ export function AcademyPageClient() {
             </div>
           ) : filteredClasses.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredClasses.map((classItem) => (
-                <ClassCard key={classItem.id} classItem={classItem} compact />
-              ))}
+              {filteredClasses.map((classItem) => {
+                const stats = classStats[classItem.id];
+                return (
+                  <ClassCard
+                    key={classItem.id}
+                    classItem={classItem}
+                    compact={false}
+                    moduleCount={stats?.moduleCount}
+                    studentCount={stats?.studentCount}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="py-8 sm:py-12 text-center">
@@ -302,12 +391,16 @@ export function AcademyPageClient() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <Link href="/academy?tab=projects" className="text-xs text-primary hover:underline">
-                View all
-              </Link>
-              <Button asChild>
-                <Link href="/academy/projects/new">Create Project</Link>
-              </Button>
+              {currentTab === null && (
+                <Link href="/academy?tab=projects" className="flex items-center hover:opacity-80 transition-opacity">
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+              )}
+              {currentTab === "projects" && (
+                <Button asChild>
+                  <Link href="/academy/projects/new">Create Project</Link>
+                </Button>
+              )}
             </div>
           </div>
 
@@ -324,34 +417,48 @@ export function AcademyPageClient() {
                   className="block w-full group"
                 >
                   <Card className="overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl cursor-pointer h-full">
-                    {project.thumbnail && (
-                      <div className="relative w-full h-28 overflow-hidden">
-                        <Image
-                          src={project.thumbnail}
-                          alt={project.title}
-                          fill
-                          className="object-cover transition-transform group-hover:scale-105"
-                        />
+                    <CardContent className="p-6 flex-1 flex flex-col">
+                      {/* Top Section: Logo/Thumbnail on left, Title on right */}
+                      <div className="flex items-start gap-4 mb-4">
+                        {/* Circular Logo/Thumbnail */}
+                        <div className="flex-shrink-0">
+                          {project.thumbnail ? (
+                            <div className="relative w-16 h-16 rounded-full overflow-hidden">
+                              <Image
+                                src={project.thumbnail}
+                                alt={project.title}
+                                fill
+                                sizes="64px"
+                                className="object-cover transition-transform group-hover:scale-105"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                              <FolderKanban className="h-8 w-8 text-primary" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Title */}
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-lg font-semibold mb-1 truncate">
+                            {project.title}
+                          </CardTitle>
+                        </div>
                       </div>
-                    )}
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <CardTitle className="text-xl">
-                          {project.title}
-                        </CardTitle>
-                        <span
-                          className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            project.status === "in-progress"
-                              ? "bg-blue-500/10 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-500/20 dark:border-blue-500/30"
-                              : project.status === "completed"
-                              ? "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300 border border-green-500/20 dark:border-green-500/30"
-                              : "bg-yellow-500/10 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300 border border-yellow-500/20 dark:border-yellow-500/30"
-                          }`}
-                        >
-                          {project.status}
-                        </span>
+
+                      {/* Bottom Section: Two columns with structured info */}
+                      <div className="grid grid-cols-2 gap-4 mt-auto pt-4 border-t border-border">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Status</p>
+                          <p className="text-sm font-medium capitalize">{project.status}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Difficulty</p>
+                          <p className="text-sm font-medium capitalize">{project.difficulty || "N/A"}</p>
+                        </div>
                       </div>
-                    </CardHeader>
+                    </CardContent>
                   </Card>
                 </Link>
               ))}
@@ -383,77 +490,132 @@ export function AcademyPageClient() {
               </Link>
             </Button>
           )}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
-            <div>
-              <h2 className="text-xl font-semibold mb-1">Teams</h2>
-              <p className="text-muted-foreground">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-2">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg sm:text-xl font-semibold mb-1">Teams</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Join or create teams to collaborate on projects
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <Link href="/academy?tab=teams" className="text-xs text-primary hover:underline">
-                View all
-              </Link>
-              <Button variant="outline" asChild>
-                <Link href="/academy/teams">Browse Teams</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/academy/teams/new">Create Team</Link>
-              </Button>
+              {currentTab === null && (
+                <Link href="/academy?tab=teams" className="flex items-center hover:opacity-80 transition-opacity">
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
+              )}
+              {currentTab === "teams" && (
+                <Button asChild>
+                  <Link href="/academy/teams/new">Create Team</Link>
+                </Button>
+              )}
             </div>
           </div>
 
           {loadingTeams ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-8 sm:py-12">
+              <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground" />
             </div>
           ) : teams.length > 0 ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
-              {teams.map((team) => (
-                <Card
-                  key={team.id}
-                  onClick={() => {
-                    setSelectedTeam(team);
-                    setTeamModalOpen(true);
-                  }}
-                  className="w-full aspect-square flex flex-col items-center justify-center text-center gap-2 overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl cursor-pointer"
-                >
-                  {team.avatar ? (
-                    <div className="relative w-16 h-16 rounded-full overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={team.avatar}
-                        alt={team.name}
-                        className="w-16 h-16 object-cover rounded-full"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="h-7 w-7 text-primary" />
-                    </div>
-                  )}
-                  <p className="text-base font-semibold">{team.name}</p>
-                </Card>
-              ))}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+              {teams.map((team) => {
+                const memberProfiles = teamMemberProfiles[team.id] || {};
+                const memberCount = team.memberCount || team.members?.length || 0;
+                const displayMembers = team.members?.slice(0, 5) || [];
+                
+                return (
+                  <Link
+                    key={team.id}
+                    href={`/academy/teams/${team.id}`}
+                    className="block w-full"
+                  >
+                    <Card className="w-full aspect-square flex flex-col items-center text-center overflow-hidden p-3 sm:p-4 transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-1 hover:shadow-lg cursor-pointer">
+                      {/* Centered logo and name */}
+                      <div className="flex-1 flex flex-col items-center justify-center gap-2 sm:gap-3 min-w-0 w-full">
+                        {team.avatar ? (
+                          <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full overflow-hidden flex-shrink-0 border-2 border-border/50 bg-muted/30">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={team.avatar}
+                              alt={team.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Fallback: if image fails to load, try object-contain for logos
+                                const target = e.target as HTMLImageElement;
+                                target.style.objectFit = 'contain';
+                                target.style.padding = '4px';
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <Users className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary" />
+                          </div>
+                        )}
+                        <p className="text-xs sm:text-sm md:text-base font-semibold line-clamp-2 break-words px-1">{team.name}</p>
+                      </div>
+                      
+                      {/* Member avatars and count */}
+                      {memberCount > 0 && (
+                        <div className="flex items-center justify-center gap-1.5 sm:gap-2 mt-auto pt-2 border-t border-border/50 w-full">
+                          <div className="flex -space-x-1.5 sm:-space-x-2">
+                            {displayMembers.map((member, idx) => {
+                              const profile = memberProfiles[member.userId];
+                              const avatar = profile?.avatar;
+                              return (
+                                <div
+                                  key={member.userId}
+                                  className="relative inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] sm:text-xs font-medium text-muted-foreground overflow-hidden flex-shrink-0"
+                                  style={{ zIndex: displayMembers.length - idx }}
+                                >
+                                  {avatar ? (
+                                    typeof avatar === "string" && avatar.startsWith("http") ? (
+                                      <img
+                                        src={avatar}
+                                        alt={profile?.name || "Member"}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <span className="text-[10px] sm:text-xs">{avatar}</span>
+                                    )
+                                  ) : (
+                                    <Users className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                  )}
+                                </div>
+                              );
+                            })}
+                            {memberCount > 5 && (
+                              <div
+                                className="relative inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] sm:text-xs font-medium text-muted-foreground flex-shrink-0"
+                                style={{ zIndex: 0 }}
+                              >
+                                +{memberCount - 5}
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
+                            {memberCount > 1000 
+                              ? `${(memberCount / 1000).toFixed(1)}K` 
+                              : memberCount.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                    </Card>
+                  </Link>
+                );
+              })}
             </div>
           ) : (
             <div className="py-8 sm:py-12 text-center">
-              <p className="text-base sm:text-lg text-muted-foreground mb-4">
+              <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-4 px-2">
                 No teams yet. Create your first team to start collaborating!
               </p>
-              <Button asChild>
+              <Button asChild size="sm" className="text-xs sm:text-sm h-9 sm:h-10">
                 <Link href="/academy/teams/new">Create Team</Link>
               </Button>
             </div>
           )}
         </div>
       )}
-      
-      <TeamModal
-        team={selectedTeam}
-        open={teamModalOpen}
-        onOpenChange={setTeamModalOpen}
-      />
     </div>
   );
 }
