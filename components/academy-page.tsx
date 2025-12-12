@@ -528,7 +528,7 @@ export function AcademyPageClient() {
                     href={`/academy/teams/${team.id}`}
                     className="block w-full"
                   >
-                    <Card className="w-full aspect-square flex flex-col items-center text-center overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl cursor-pointer p-4">
+                    <Card className="w-full aspect-square flex flex-col items-center text-center overflow-hidden p-4">
                       {/* Centered logo and name */}
                       <div className="flex-1 flex flex-col items-center justify-center gap-2">
                         {team.avatar ? (
