@@ -105,6 +105,14 @@ export default function EnrollPage() {
       return;
     }
 
+    const now = new Date();
+    const isEnded = classItem.endDate < now;
+
+    if (isEnded) {
+      setError("This class has ended. Enrollment is no longer available.");
+      return;
+    }
+
     if (classItem.enrollmentLocked) {
       setError("Enrollment is locked for this class");
       return;
@@ -324,19 +332,41 @@ export default function EnrollPage() {
                   </div>
                 )}
 
-                {classItem.enrollmentLocked ? (
-                  <div className="p-3 rounded-md bg-muted border">
-                    <p className="text-sm text-muted-foreground">
-                      Enrollment is currently locked for this class.
-                    </p>
-                  </div>
-                ) : !classItem.published ? (
-                  <div className="p-3 rounded-md bg-muted border">
-                    <p className="text-sm text-muted-foreground">
-                      This class is not yet published.
-                    </p>
-                  </div>
-                ) : (
+                {(() => {
+                  const now = new Date();
+                  const isEnded = classItem.endDate < now;
+                  
+                  if (isEnded) {
+                    return (
+                      <div className="p-3 rounded-md bg-muted border">
+                        <p className="text-sm text-muted-foreground">
+                          This class has ended. Enrollment is no longer available.
+                        </p>
+                      </div>
+                    );
+                  }
+                  
+                  if (classItem.enrollmentLocked) {
+                    return (
+                      <div className="p-3 rounded-md bg-muted border">
+                        <p className="text-sm text-muted-foreground">
+                          Enrollment is currently locked for this class.
+                        </p>
+                      </div>
+                    );
+                  }
+                  
+                  if (!classItem.published) {
+                    return (
+                      <div className="p-3 rounded-md bg-muted border">
+                        <p className="text-sm text-muted-foreground">
+                          This class is not yet published.
+                        </p>
+                      </div>
+                    );
+                  }
+                  
+                  return (
                   <>
                     <div className="space-y-2">
                       <p className="text-sm text-muted-foreground">
@@ -351,7 +381,7 @@ export default function EnrollPage() {
                     </div>
                     <Button
                       onClick={handleEnroll}
-                      disabled={enrolling || classItem.enrollmentLocked || !classItem.published}
+                      disabled={enrolling || classItem.enrollmentLocked || !classItem.published || (new Date() > classItem.endDate)}
                       className="w-full"
                       size="lg"
                     >
@@ -365,7 +395,8 @@ export default function EnrollPage() {
                       )}
                     </Button>
                   </>
-                )}
+                  );
+                })()}
               </div>
             )}
           </CardContent>
