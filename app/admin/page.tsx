@@ -40,8 +40,8 @@ export default function AdminPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader>
+        <Card className="flex flex-col">
+          <CardHeader className="flex-1">
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
               Classes
@@ -50,15 +50,15 @@ export default function AdminPage() {
               Manage semester-based classes with modules, sessions, enrollments, assignments, and announcements.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="mt-auto">
             <Button asChild className="w-full">
               <Link href="/admin/classes">Open Classes Admin</Link>
             </Button>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
+        <Card className="flex flex-col">
+          <CardHeader className="flex-1">
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
               Missions
@@ -67,15 +67,15 @@ export default function AdminPage() {
               Create and manage practice missions for learners.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="mt-auto">
             <Button asChild className="w-full">
               <Link href="/admin/missions">Open Missions Admin</Link>
             </Button>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
+        <Card className="flex flex-col">
+          <CardHeader className="flex-1">
             <CardTitle className="flex items-center gap-2">
               <FolderKanban className="h-5 w-5" />
               Projects
@@ -84,20 +84,20 @@ export default function AdminPage() {
               Create and manage academy projects (backed by Supabase).
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="mt-auto">
             <div className="flex flex-col gap-2">
-              <Button asChild>
+              <Button asChild className="w-full">
                 <Link href="/academy/projects/new">New Project</Link>
               </Button>
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" className="w-full">
                 <Link href="/academy/projects">View All Projects</Link>
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
+        <Card className="flex flex-col">
+          <CardHeader className="flex-1">
             <CardTitle className="flex items-center gap-2">
               <UsersIcon className="h-5 w-5" />
               Teams
@@ -106,20 +106,20 @@ export default function AdminPage() {
               Create and manage teams for collaborative work.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="mt-auto">
             <div className="flex flex-col gap-2">
-              <Button asChild>
+              <Button asChild className="w-full">
                 <Link href="/academy/teams/new">New Team</Link>
               </Button>
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" className="w-full">
                 <Link href="/academy/teams">View All Teams</Link>
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
+        <Card className="flex flex-col">
+          <CardHeader className="flex-1">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
               Workshops
@@ -128,15 +128,15 @@ export default function AdminPage() {
               Create and manage workshops with QR code check-in and attendance tracking.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="mt-auto">
             <Button asChild className="w-full">
               <Link href="/admin/workshops">Manage Workshops</Link>
             </Button>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
+        <Card className="flex flex-col">
+          <CardHeader className="flex-1">
             <CardTitle className="flex items-center gap-2">
               <ImageIcon className="h-5 w-5" />
               Advertisements
@@ -145,7 +145,7 @@ export default function AdminPage() {
               Manage homepage advertisements with images and links.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="mt-auto">
             <Button asChild className="w-full">
               <Link href="/admin/advertisements">Manage Advertisements</Link>
             </Button>

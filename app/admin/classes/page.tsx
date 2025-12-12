@@ -107,6 +107,8 @@ import { format } from "date-fns";
 import { uploadCourseImage } from "@/lib/storage";
 import { COURSE_CATEGORIES } from "@/lib/categories";
 import Image from "next/image";
+import Cropper from "react-easy-crop";
+import type { Area, Point } from "react-easy-crop";
 
 export default function AdminClassesPage() {
   const router = useRouter();
@@ -149,6 +151,94 @@ export default function AdminClassesPage() {
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [originalImageSrc, setOriginalImageSrc] = useState<string>("");
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [cropImage, setCropImage] = useState<string>("");
+  const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+
+  // Function to create cropped square image
+  const createCroppedImage = async (imageSrc: string, pixelCrop: Area): Promise<File> => {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: false });
+
+    if (!ctx) {
+      throw new Error('No 2d context');
+    }
+
+    // For square crop, use the smaller dimension to ensure it's a perfect square
+    const size = Math.min(pixelCrop.width, pixelCrop.height);
+    canvas.width = size;
+    canvas.height = size;
+
+    // Calculate center crop area
+    const sourceX = pixelCrop.x + (pixelCrop.width - size) / 2;
+    const sourceY = pixelCrop.y + (pixelCrop.height - size) / 2;
+
+    // Draw the image to canvas
+    ctx.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      size,
+      size,
+      0,
+      0,
+      size,
+      size
+    );
+
+    // Convert canvas to blob - handle CORS issues
+    return new Promise((resolve, reject) => {
+      try {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Canvas is empty'));
+              return;
+            }
+            const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
+            resolve(file);
+          },
+          'image/jpeg',
+          0.95
+        );
+      } catch (error) {
+        // Fallback: try using a different approach if toBlob fails
+        reject(new Error('Failed to create blob from canvas. Please try a different image.'));
+      }
+    });
+  };
+
+  const createImage = (url: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const image = new window.Image();
+      // For data URLs, we don't need crossOrigin
+      // For blob URLs or external URLs, set crossOrigin to prevent CORS issues
+      if (!url.startsWith('data:')) {
+        image.crossOrigin = 'anonymous';
+      }
+      image.addEventListener('load', () => resolve(image));
+      image.addEventListener('error', (error) => reject(error));
+      image.src = url;
+    });
+  };
+
+  const onCropComplete = async () => {
+    if (!croppedAreaPixels || !cropImage) return;
+    
+    try {
+      const croppedFile = await createCroppedImage(cropImage, croppedAreaPixels);
+      setImageFile(croppedFile);
+      setImagePreview(URL.createObjectURL(croppedFile));
+      setCropDialogOpen(false);
+      setCropImage("");
+    } catch (error) {
+      console.error('Error cropping image:', error);
+    }
+  };
 
   // Class form
   const [classForm, setClassForm] = useState({
@@ -753,6 +843,11 @@ export default function AdminClassesPage() {
     });
     setImageFile(null);
     setImagePreview(null);
+    setOriginalImageSrc("");
+    setCropImage("");
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
   };
 
   const openClassDialog = (classToEdit?: Class) => {
@@ -773,6 +868,7 @@ export default function AdminClassesPage() {
       });
       if (classToEdit.thumbnail) {
         setImagePreview(classToEdit.thumbnail);
+        setOriginalImageSrc(classToEdit.thumbnail);
       }
     } else {
       resetClassForm();
@@ -1687,11 +1783,18 @@ export default function AdminClassesPage() {
                 <div className="relative">
                   <Input
                     type="date"
+                    id="start-date-input"
                     value={classForm.startDate}
                     onChange={(e) => setClassForm({ ...classForm, startDate: e.target.value })}
                     className={!classForm.startDate ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
-                  <Calendar className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <Calendar 
+                    className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" 
+                    onClick={() => {
+                      const input = document.getElementById('start-date-input') as HTMLInputElement;
+                      input?.showPicker?.();
+                    }}
+                  />
                 </div>
               </div>
               <div>
@@ -1704,11 +1807,18 @@ export default function AdminClassesPage() {
                 <div className="relative">
                   <Input
                     type="date"
+                    id="end-date-input"
                     value={classForm.endDate}
                     onChange={(e) => setClassForm({ ...classForm, endDate: e.target.value })}
                     className={!classForm.endDate ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
-                  <Calendar className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <Calendar 
+                    className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" 
+                    onClick={() => {
+                      const input = document.getElementById('end-date-input') as HTMLInputElement;
+                      input?.showPicker?.();
+                    }}
+                  />
                 </div>
               </div>
             </div>
@@ -1724,14 +1834,26 @@ export default function AdminClassesPage() {
             <div>
               <label className="text-sm font-medium">Thumbnail Image</label>
               {imagePreview && (
-                <div className="relative w-full h-32 rounded-lg overflow-hidden mb-2 border">
+                <div
+                  className="relative w-32 h-32 rounded-lg overflow-hidden mb-2 border aspect-square cursor-pointer group"
+                  onClick={() => {
+                    if (originalImageSrc) {
+                      setCropImage(originalImageSrc);
+                      setCropDialogOpen(true);
+                    }
+                  }}
+                  title="Click to adjust thumbnail"
+                >
                   <Image
                     src={imagePreview}
                     alt="Preview"
                     fill
                     className="object-cover"
-                    sizes="100vw"
+                    sizes="128px"
                   />
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-medium">
+                    Adjust
+                  </div>
                 </div>
               )}
               <Input
@@ -1740,8 +1862,19 @@ export default function AdminClassesPage() {
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    setImageFile(file);
-                    setImagePreview(URL.createObjectURL(file));
+                    // Use FileReader to create a data URL to avoid CORS/tainted canvas issues
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      const imageUrl = event.target?.result as string;
+                      setOriginalImageSrc(imageUrl);
+                      setCropImage(imageUrl);
+                      setCropDialogOpen(true);
+                    };
+                    reader.onerror = () => {
+                      console.error('Error reading file');
+                      setError('Failed to load image. Please try again.');
+                    };
+                    reader.readAsDataURL(file);
                   }
                 }}
               />
@@ -1778,6 +1911,58 @@ export default function AdminClassesPage() {
             </Button>
             <Button onClick={editingClass ? handleUpdateClass : handleCreateClass} disabled={saving}>
               {saving ? "Saving..." : editingClass ? "Update" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Crop Dialog */}
+      <Dialog open={cropDialogOpen} onOpenChange={setCropDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Crop Thumbnail Image</DialogTitle>
+            <DialogDescription>
+              Adjust the image to create a square thumbnail. The image will be cropped to a square format.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative w-full h-96 bg-black rounded-lg overflow-hidden">
+            {cropImage && (
+              <Cropper
+                image={cropImage}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={(croppedArea, croppedAreaPixels) => {
+                  setCroppedAreaPixels(croppedAreaPixels);
+                }}
+                cropShape="rect"
+                showGrid={true}
+              />
+            )}
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Zoom</label>
+            <input
+              type="range"
+              value={zoom}
+              min={1}
+              max={3}
+              step={0.1}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="w-full"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setCropDialogOpen(false);
+              setCropImage("");
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={onCropComplete}>
+              Apply Crop
             </Button>
           </DialogFooter>
         </DialogContent>
