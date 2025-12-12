@@ -67,6 +67,8 @@ export default async function ClassPage({ params }: ClassPageProps) {
   };
 
   const totalModules = classItem.modules?.length || 0;
+  const now = new Date();
+  const isEnded = classItem.endDate < now;
 
   const getDateShort = (date: Date) => {
     const month = format(date, "MMM").toUpperCase();
@@ -227,23 +229,25 @@ export default async function ClassPage({ params }: ClassPageProps) {
             <div className="space-y-4 pt-4">
               {!userEnrollment ? (
                 <>
-                  {classItem.published && !classItem.enrollmentLocked && (
+                  {isEnded ? (
+                    <Button size="lg" variant="outline" className="w-full" disabled>
+                      Class Ended
+                    </Button>
+                  ) : classItem.published && !classItem.enrollmentLocked ? (
                     <Button size="lg" className="w-full" asChild>
                       <Link href={`/academy/classes/${classItem.id}/enroll`}>
                         Enroll Now
                       </Link>
                     </Button>
-                  )}
-                  {classItem.enrollmentLocked && (
+                  ) : classItem.enrollmentLocked ? (
                     <Button size="lg" variant="outline" className="w-full" disabled>
                       Enrollment Locked
                     </Button>
-                  )}
-                  {!classItem.published && (
+                  ) : !classItem.published ? (
                     <Button size="lg" variant="outline" className="w-full" disabled>
                       Not Published
                     </Button>
-                  )}
+                  ) : null}
                 </>
               ) : (
                 <Button size="lg" className="w-full" asChild>

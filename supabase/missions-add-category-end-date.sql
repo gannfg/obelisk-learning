@@ -13,3 +13,5 @@ ADD COLUMN IF NOT EXISTS end_date TIMESTAMP WITH TIME ZONE;
 COMMENT ON COLUMN missions.category IS 'Category for the mission (e.g., Developer, Design, Marketing, etc.)';
 COMMENT ON COLUMN missions.end_date IS 'End date for the mission';
 
+
+
