@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
-import { CheckCircle2, Circle, Target, Clock, Trophy, ChevronLeft, Code2, X, Calendar, BookOpen, ArrowLeft, UserPlus, Loader2 } from "lucide-react";
+import { CheckCircle2, Circle, Target, Clock, Trophy, ChevronLeft, Code2, X, Calendar, BookOpen, ArrowLeft, UserPlus, Loader2, Lock } from "lucide-react";
 import { MarkdownContent } from "@/components/markdown-content";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useAdmin } from "@/lib/hooks/use-admin";
@@ -15,6 +15,7 @@ import { createLearningClient } from "@/lib/supabase/learning-client";
 import { createClient } from "@/lib/supabase/client";
 import { notifyProjectSubmitted } from "@/lib/notifications-helpers";
 import type { Mission, MissionContent, MissionProgress, MissionSubmission } from "@/types";
+import { canAccessMission, getMissionPrerequisitesWithDetails } from "@/lib/mission-prerequisites";
 import Image from "next/image";
 
 export default function MissionPage() {
@@ -38,6 +39,8 @@ export default function MissionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "checklist" | "submission">("overview");
+  const [canAccess, setCanAccess] = useState<{ canAccess: boolean; missingClasses: string[] } | null>(null);
+  const [prerequisiteDetails, setPrerequisiteDetails] = useState<Array<{ id: string; title: string; thumbnail?: string }>>([]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -89,6 +92,22 @@ export default function MissionPage() {
 
       setMission(normalizedMission);
       setFiles(normalizedMission.initialFiles || {});
+
+      // Check prerequisites and access
+      if (user) {
+        const access = await canAccessMission(missionId, user.id, supabase);
+        setCanAccess(access);
+        const prerequisites = await getMissionPrerequisitesWithDetails(missionId, supabase);
+        setPrerequisiteDetails(prerequisites);
+      } else {
+        // For non-authenticated users, check prerequisites
+        const prerequisites = await getMissionPrerequisitesWithDetails(missionId, supabase);
+        setPrerequisiteDetails(prerequisites);
+        setCanAccess({
+          canAccess: prerequisites.length === 0,
+          missingClasses: prerequisites.map(p => p.id),
+        });
+      }
 
       // Fetch mission content (optional per mission)
       const { data: contentData } = await supabase
@@ -459,17 +478,33 @@ export default function MissionPage() {
 
     // Update progress
     const completedCount = checklist.filter((item) => item.completed).length;
+    const isCompleted = completedCount === checklist.length;
+    
     await supabase
       .from("mission_progress")
       .upsert({
         user_id: user.id,
         mission_id: missionId,
         checklist_progress: checklist,
-        completed: completedCount === checklist.length,
-        completed_at: completedCount === checklist.length ? new Date().toISOString() : null,
+        completed: isCompleted,
+        completed_at: isCompleted ? new Date().toISOString() : null,
       }, {
         onConflict: "user_id,mission_id",
       });
+
+    // Send completion notification if mission is completed
+    if (isCompleted && mission) {
+      try {
+        const authSupabase = createClient();
+        if (authSupabase) {
+          const { notifyMissionCompletion } = await import("@/lib/notifications-helpers");
+          await notifyMissionCompletion(user.id, missionId, mission.title, authSupabase);
+        }
+      } catch (notifError) {
+        console.error("Error sending mission completion notification:", notifError);
+        // Don't fail checklist update if notification fails
+      }
+    }
   };
 
   if (loading || authLoading) {
@@ -494,6 +529,9 @@ export default function MissionPage() {
       </div>
     );
   }
+
+  // Check if user can access this mission (prerequisites check)
+  const isLocked = canAccess !== null && !canAccess.canAccess && !isAdmin;
 
   const checklist = missionContent?.checklist || [];
   const completedCount = checklist.filter((item) => item.completed).length;
@@ -521,6 +559,13 @@ export default function MissionPage() {
             Back to Mission Board
           </Link>
         </Button>
+
+        {/* Locked Message */}
+        {isLocked && prerequisiteDetails.length > 0 && (
+          <p className="mb-6 text-red-600 dark:text-red-400 font-medium">
+            Mission Locked
+          </p>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8 lg:gap-12">
           {/* Left Panel - Mission Image & Core Information */}
@@ -627,6 +672,48 @@ export default function MissionPage() {
               )}
             </div>
 
+            {/* Requirements Section */}
+            {prerequisiteDetails.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold">Requirements</h3>
+                <div className="space-y-2">
+                  {prerequisiteDetails.map((prereq) => {
+                    // Check if this specific class is completed (not in missingClasses)
+                    const isCompleted = canAccess ? !canAccess.missingClasses.includes(prereq.id) : false;
+                    return (
+                      <Link
+                        key={prereq.id}
+                        href={`/academy/classes/${prereq.id}`}
+                        className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        {prereq.thumbnail ? (
+                          <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+                            <Image
+                              src={prereq.thumbnail}
+                              alt={prereq.title}
+                              fill
+                              sizes="40px"
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
+                            <BookOpen className="h-5 w-5 text-primary" />
+                          </div>
+                        )}
+                        <span className="text-sm font-medium flex-1 line-clamp-2">{prereq.title}</span>
+                        {isCompleted ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        ) : (
+                          <Circle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Join Mission Button - Always show, but disable after joining */}
             {user && (
               <div>
@@ -634,7 +721,7 @@ export default function MissionPage() {
                   size="lg"
                   className="w-full"
                   onClick={handleJoinMission}
-                  disabled={isJoining || !!progress}
+                  disabled={isJoining || !!progress || isLocked}
                 >
                   {isJoining ? (
                     <>
@@ -708,16 +795,23 @@ export default function MissionPage() {
 
             {/* Overview with Tabs */}
             <div className="space-y-4">
-              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "overview" | "checklist" | "submission")} className="w-full">
-                <TabsList>
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  {checklist.length > 0 && (
-                    <TabsTrigger value="checklist">Checklist</TabsTrigger>
-                  )}
-                  {(progress || submission) && (
-                    <TabsTrigger value="submission">Submission</TabsTrigger>
-                  )}
-                </TabsList>
+              {isLocked ? (
+                <div className="p-6 border border-border rounded-lg bg-muted/50">
+                  <p className="text-muted-foreground text-center">
+                    Complete the prerequisite classes to unlock this mission content.
+                  </p>
+                </div>
+              ) : (
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "overview" | "checklist" | "submission")} className="w-full">
+                  <TabsList>
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    {checklist.length > 0 && (
+                      <TabsTrigger value="checklist">Checklist</TabsTrigger>
+                    )}
+                    {(progress || submission) && (
+                      <TabsTrigger value="submission">Submission</TabsTrigger>
+                    )}
+                  </TabsList>
                 
                 <TabsContent value="overview" className="space-y-4 pt-4">
                   <h2 className="text-2xl font-bold">About This Mission</h2>
@@ -1044,6 +1138,7 @@ export default function MissionPage() {
                   </TabsContent>
                 )}
               </Tabs>
+              )}
             </div>
           </div>
         </div>

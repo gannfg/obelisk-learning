@@ -1,5 +1,21 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createNotification } from "@/lib/notifications";
+import { notifyLevelUp, notifyXPMilestone } from "@/lib/notifications-helpers";
+
+/**
+ * Calculate level from XP (500 XP per level)
+ */
+function getLevel(xp: number): number {
+  return Math.floor(xp / 500) + 1;
+}
+
+/**
+ * Check if XP is a milestone (1000, 5000, 10000, 25000, 50000, 100000)
+ */
+function isXPMilestone(xp: number): boolean {
+  const milestones = [1000, 5000, 10000, 25000, 50000, 100000];
+  return milestones.includes(xp);
+}
 
 /**
  * Award XP (Experience Points) to a user
@@ -40,6 +56,10 @@ export async function awardXP(
     const currentXP = (currentUser?.xp as number) || 0;
     const newXP = currentXP + amount;
     
+    // Calculate levels before and after
+    const oldLevel = getLevel(currentXP);
+    const newLevel = getLevel(newXP);
+    
     const { error: updateError } = await supabaseClient
       .from("users")
       .update({ xp: newXP })
@@ -49,6 +69,22 @@ export async function awardXP(
       // If update fails (e.g., column doesn't exist or RLS issue), log but don't fail
       console.log(`Could not update XP (non-critical): ${updateError.message}`);
       return true;
+    }
+    
+    // Send notifications for level up and milestones (don't fail if notifications fail)
+    try {
+      // Check for level up
+      if (newLevel > oldLevel) {
+        await notifyLevelUp(userId, newLevel, newXP, supabaseClient);
+      }
+      
+      // Check for XP milestones
+      if (isXPMilestone(newXP)) {
+        await notifyXPMilestone(userId, newXP, newXP, supabaseClient);
+      }
+    } catch (notifError) {
+      console.error("Error sending XP notifications:", notifError);
+      // Don't fail XP award if notification fails
     }
     
     return true;

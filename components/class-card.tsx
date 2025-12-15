@@ -28,30 +28,30 @@ export function ClassCard({ classItem, priority, compact, moduleCount, studentCo
           <div className="flex items-start gap-4 mb-4">
             {/* Circular Logo/Thumbnail */}
             <div className="flex-shrink-0">
-              {classItem.thumbnail ? (
+        {classItem.thumbnail ? (
                 <div className="relative w-16 h-16 rounded-full overflow-hidden">
-                  <Image
-                    src={classItem.thumbnail}
-                    alt={classItem.title}
-                    fill
+            <Image
+              src={classItem.thumbnail}
+              alt={classItem.title}
+              fill
                     sizes="64px"
-                    priority={priority}
-                    className="object-cover transition-transform group-hover:scale-105"
-                  />
-                </div>
-              ) : (
+              priority={priority}
+              className="object-cover transition-transform group-hover:scale-105"
+            />
+          </div>
+        ) : (
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
                   <span className="text-2xl">📚</span>
-                </div>
-              )}
+          </div>
+        )}
             </div>
             
             {/* Title and Key Info */}
             <div className="flex-1 min-w-0">
               <h3 className="text-lg font-semibold mb-1 truncate">{classItem.title}</h3>
-              {classItem.category && (
+            {classItem.category && (
                 <p className="text-sm text-muted-foreground truncate">{classItem.category}</p>
-              )}
+            )}
             </div>
           </div>
 
@@ -66,21 +66,21 @@ export function ClassCard({ classItem, priority, compact, moduleCount, studentCo
                     : "text-green-700 dark:text-green-600"
                 }`}>
                   {status}
-                </p>
+          </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Modules</p>
                 <p className="text-sm font-medium">
                   {moduleCount !== undefined ? `${moduleCount}` : "—"}
-                </p>
+            </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Students</p>
                 <p className="text-sm font-medium">
                   {studentCount !== undefined ? `${studentCount}` : "—"}
-                </p>
+              </p>
               </div>
-            </div>
+          </div>
           )}
         </CardContent>
       </Card>

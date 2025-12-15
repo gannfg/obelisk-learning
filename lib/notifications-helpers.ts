@@ -307,6 +307,156 @@ export async function notifyProjectReviewed(
 }
 
 /**
+ * Create a level up notification
+ */
+export async function notifyLevelUp(
+  userId: string,
+  newLevel: number,
+  totalXP: number,
+  authSupabase: SupabaseClient
+): Promise<void> {
+  await createNotification(
+    {
+      userId,
+      type: "achievement",
+      title: `Level Up! 🎉 Level ${newLevel}`,
+      message: `Congratulations! You've reached Level ${newLevel} with ${totalXP.toLocaleString()} XP! Keep up the great work!`,
+      link: "/achievements",
+      metadata: {
+        level: newLevel,
+        total_xp: totalXP,
+      },
+    },
+    authSupabase
+  );
+}
+
+/**
+ * Create an XP milestone notification
+ */
+export async function notifyXPMilestone(
+  userId: string,
+  milestoneXP: number,
+  totalXP: number,
+  authSupabase: SupabaseClient
+): Promise<void> {
+  await createNotification(
+    {
+      userId,
+      type: "achievement",
+      title: `XP Milestone Reached! 🏆`,
+      message: `Amazing! You've reached ${milestoneXP.toLocaleString()} XP! You now have ${totalXP.toLocaleString()} total XP.`,
+      link: "/achievements",
+      metadata: {
+        milestone_xp: milestoneXP,
+        total_xp: totalXP,
+      },
+    },
+    authSupabase
+  );
+}
+
+/**
+ * Create a course enrollment notification
+ */
+export async function notifyCourseEnrollment(
+  userId: string,
+  courseId: string,
+  courseTitle: string,
+  authSupabase: SupabaseClient
+): Promise<void> {
+  await createNotification(
+    {
+      userId,
+      type: "course",
+      title: "Course Enrolled! 📚",
+      message: `You've successfully enrolled in "${courseTitle}". Start learning now!`,
+      link: `/academy/courses/${courseId}`,
+      metadata: {
+        course_id: courseId,
+        course_title: courseTitle,
+      },
+    },
+    authSupabase
+  );
+}
+
+/**
+ * Create a class enrollment notification
+ */
+export async function notifyClassEnrollment(
+  userId: string,
+  classId: string,
+  className: string,
+  authSupabase: SupabaseClient
+): Promise<void> {
+  await createNotification(
+    {
+      userId,
+      type: "class",
+      title: "Class Enrolled! 🎓",
+      message: `You've successfully enrolled in "${className}". Welcome to the class!`,
+      link: `/class/${classId}`,
+      metadata: {
+        class_id: classId,
+        class_name: className,
+      },
+    },
+    authSupabase
+  );
+}
+
+/**
+ * Create a mission completion notification
+ */
+export async function notifyMissionCompletion(
+  userId: string,
+  missionId: string,
+  missionTitle: string,
+  authSupabase: SupabaseClient
+): Promise<void> {
+  await createNotification(
+    {
+      userId,
+      type: "achievement",
+      title: "Mission Completed! ✅",
+      message: `Congratulations! You've completed the mission "${missionTitle}". Great work!`,
+      link: `/missions/${missionId}`,
+      metadata: {
+        mission_id: missionId,
+        mission_title: missionTitle,
+      },
+    },
+    authSupabase
+  );
+}
+
+/**
+ * Create a mission approved notification (when submission is approved)
+ */
+export async function notifyMissionApproved(
+  userId: string,
+  missionId: string,
+  missionTitle: string,
+  authSupabase: SupabaseClient
+): Promise<void> {
+  await createNotification(
+    {
+      userId,
+      type: "achievement",
+      title: "Mission Approved! 🎉",
+      message: `Your submission for "${missionTitle}" has been approved! Mission completed successfully!`,
+      link: `/missions/${missionId}`,
+      metadata: {
+        mission_id: missionId,
+        mission_title: missionTitle,
+      },
+    },
+    authSupabase
+  );
+}
+
+/**
  * Create a generic notification
  */
 export async function notifyGeneric(
