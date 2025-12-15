@@ -281,27 +281,27 @@ export function AcademyPageClient() {
     : [];
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+    <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6">
       {/* Scrolling Icons Ticker - Only show when no tab is selected */}
       {!currentTab && allIcons.length > 0 && (
-        <div className="mb-8 relative overflow-hidden">
+        <div className="mb-6 sm:mb-8 relative overflow-hidden">
           {/* Left fade gradient */}
-          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-background via-background/80 to-transparent z-10 pointer-events-none" />
+          <div className="absolute left-0 top-0 bottom-0 w-16 sm:w-20 md:w-24 bg-gradient-to-r from-background via-background/80 to-transparent z-10 pointer-events-none" />
           {/* Right fade gradient */}
-          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-16 sm:w-20 md:w-24 bg-gradient-to-l from-background via-background/80 to-transparent z-10 pointer-events-none" />
           
-          <div className="relative overflow-hidden w-full h-20">
-            <div className="absolute top-0 left-0 flex animate-scroll-left gap-6 whitespace-nowrap items-center">
+          <div className="relative overflow-hidden w-full h-12 sm:h-14">
+            <div className="absolute top-0 left-0 flex animate-scroll-left gap-3 sm:gap-4 whitespace-nowrap items-center">
               {duplicatedIcons.map((icon, i) => (
                 <div 
                   key={`${icon.type}-${i}`} 
-                  className="w-16 h-16 shrink-0 flex-shrink-0 rounded-xl overflow-hidden border-2 border-border/60 shadow-md hover:shadow-lg transition-shadow duration-300 bg-background/50 backdrop-blur-sm"
+                  className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 flex-shrink-0 rounded-lg overflow-hidden border-2 border-border/60 shadow-md hover:shadow-lg transition-shadow duration-300 bg-background/50 backdrop-blur-sm"
                 >
                   <Image
                     src={icon.src}
                     alt={icon.alt}
-                    width={64}
-                    height={64}
+                    width={48}
+                    height={48}
                     quality={90}
                     className="w-full h-full object-cover"
                     loading="lazy"
@@ -316,12 +316,12 @@ export function AcademyPageClient() {
 
       {/* Content Section - Show all when no tab is selected, otherwise single tab */}
       {(currentTab === "classes" || currentTab === null) && (
-        <div className={`space-y-4 ${currentTab ? "" : "mb-8 sm:mb-10"}`}>
+        <div className={`space-y-3 sm:space-y-4 ${currentTab ? "" : "mb-6 sm:mb-8 md:mb-10"}`}>
           {currentTab === "classes" && (
             <Button
               variant="ghost"
               asChild
-              className="mb-4"
+              className="mb-3 sm:mb-4"
             >
               <Link href="/academy">
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -330,7 +330,7 @@ export function AcademyPageClient() {
             </Button>
           )}
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Classes</h2>
+            <h2 className="text-lg sm:text-xl md:text-2xl font-semibold">Classes</h2>
             {currentTab === null && (
               <Link href="/academy?tab=classes" className="flex items-center hover:opacity-80 transition-opacity">
                 <ArrowRight className="h-5 w-5" />
@@ -343,7 +343,7 @@ export function AcademyPageClient() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : filteredClasses.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredClasses.map((classItem) => {
                 const stats = classStats[classItem.id];
                 return (
@@ -370,12 +370,12 @@ export function AcademyPageClient() {
       )}
 
       {(currentTab === "projects" || currentTab === null) && (
-        <div className={`space-y-4 ${currentTab ? "" : "mb-8 sm:mb-10"}`}>
+        <div className={`space-y-3 sm:space-y-4 ${currentTab ? "" : "mb-6 sm:mb-8 md:mb-10"}`}>
           {currentTab === "projects" && (
             <Button
               variant="ghost"
               asChild
-              className="mb-4"
+              className="mb-3 sm:mb-4"
             >
               <Link href="/academy">
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -385,8 +385,8 @@ export function AcademyPageClient() {
           )}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
             <div>
-              <h2 className="text-xl font-semibold mb-1">Projects</h2>
-              <p className="text-muted-foreground">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold mb-1">Projects</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Collaborate on real-world Web3 projects
               </p>
             </div>
@@ -409,7 +409,7 @@ export function AcademyPageClient() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : projects.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (
                 <Link
                   key={project.id}
@@ -417,13 +417,13 @@ export function AcademyPageClient() {
                   className="block w-full group"
                 >
                   <Card className="overflow-hidden transition-all duration-300 ease-out hover:scale-105 hover:-translate-y-2 hover:shadow-2xl cursor-pointer h-full">
-                    <CardContent className="p-6 flex-1 flex flex-col">
+                    <CardContent className="p-4 sm:p-5 md:p-6 flex-1 flex flex-col">
                       {/* Top Section: Logo/Thumbnail on left, Title on right */}
-                      <div className="flex items-start gap-4 mb-4">
+                      <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
                         {/* Circular Logo/Thumbnail */}
                         <div className="flex-shrink-0">
                           {project.thumbnail ? (
-                            <div className="relative w-16 h-16 rounded-full overflow-hidden">
+                            <div className="relative w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full overflow-hidden">
                               <Image
                                 src={project.thumbnail}
                                 alt={project.title}
@@ -433,22 +433,22 @@ export function AcademyPageClient() {
                               />
                             </div>
                           ) : (
-                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                              <FolderKanban className="h-8 w-8 text-primary" />
+                            <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                              <FolderKanban className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-primary" />
                             </div>
                           )}
                         </div>
                         
                         {/* Title */}
                         <div className="flex-1 min-w-0">
-                          <CardTitle className="text-lg font-semibold mb-1 truncate">
+                          <CardTitle className="text-base sm:text-lg font-semibold mb-1 truncate">
                             {project.title}
                           </CardTitle>
                         </div>
                       </div>
 
                       {/* Bottom Section: Two columns with structured info */}
-                      <div className="grid grid-cols-2 gap-4 mt-auto pt-4 border-t border-border">
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-auto pt-3 sm:pt-4 border-t border-border">
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Status</p>
                           <p className="text-sm font-medium capitalize">{project.status}</p>
@@ -477,12 +477,12 @@ export function AcademyPageClient() {
       )}
 
       {(currentTab === "teams" || currentTab === null) && (
-        <div className={`space-y-4 pb-6 ${currentTab ? "" : "mt-2"}`}>
+        <div className={`space-y-3 sm:space-y-4 pb-4 sm:pb-6 ${currentTab ? "" : "mt-2"}`}>
           {currentTab === "teams" && (
             <Button
               variant="ghost"
               asChild
-              className="mb-4"
+              className="mb-3 sm:mb-4"
             >
               <Link href="/academy">
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -492,8 +492,8 @@ export function AcademyPageClient() {
           )}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-2">
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg sm:text-xl font-semibold mb-1">Teams</h2>
-              <p className="text-xs sm:text-sm text-muted-foreground">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold mb-1">Teams</h2>
+              <p className="text-xs sm:text-sm md:text-base text-muted-foreground">
                 Join or create teams to collaborate on projects
               </p>
             </div>

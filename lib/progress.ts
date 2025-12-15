@@ -5,7 +5,7 @@ import { notifyLevelUp, notifyXPMilestone } from "@/lib/notifications-helpers";
 /**
  * Calculate level from XP (500 XP per level)
  */
-function getLevel(xp: number): number {
+export function getLevel(xp: number): number {
   return Math.floor(xp / 500) + 1;
 }
 
