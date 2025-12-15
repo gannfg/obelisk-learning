@@ -273,8 +273,6 @@ export default function AdminClassesPage() {
     weekNumber: 1,
     title: "",
     description: "",
-    startDate: "",
-    endDate: "",
     liveSessionLink: "",
   });
 
@@ -1158,8 +1156,6 @@ export default function AdminClassesPage() {
                             weekNumber: modules.length + 1,
                             title: "",
                             description: "",
-                            startDate: "",
-                            endDate: "",
                             liveSessionLink: "",
                           });
                           setModuleDialogOpen(true);
@@ -1260,10 +1256,6 @@ export default function AdminClassesPage() {
                                         weekNumber: module.weekNumber,
                                         title: module.title,
                                         description: module.description || "",
-                                        startDate: module.startDate
-                                          ? format(module.startDate, "yyyy-MM-dd")
-                                          : "",
-                                        endDate: module.endDate ? format(module.endDate, "yyyy-MM-dd") : "",
                                         liveSessionLink: module.liveSessionLink || "",
                                       });
                                       setSelectedModuleId(module.id);
@@ -2039,26 +2031,8 @@ export default function AdminClassesPage() {
                 rows={3}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Start Date</label>
-                <Input
-                  type="date"
-                  value={moduleForm.startDate}
-                  onChange={(e) => setModuleForm({ ...moduleForm, startDate: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">End Date</label>
-                <Input
-                  type="date"
-                  value={moduleForm.endDate}
-                  onChange={(e) => setModuleForm({ ...moduleForm, endDate: e.target.value })}
-                />
-              </div>
-            </div>
             <div>
-              <label className="text-sm font-medium">Live Session Link</label>
+              <label className="text-sm font-medium">Live Session Link (optional)</label>
               <Input
                 value={moduleForm.liveSessionLink}
                 onChange={(e) =>
@@ -2089,8 +2063,6 @@ export default function AdminClassesPage() {
                         weekNumber: moduleForm.weekNumber,
                         title: moduleForm.title,
                         description: moduleForm.description || undefined,
-                        startDate: moduleForm.startDate || undefined,
-                        endDate: moduleForm.endDate || undefined,
                         liveSessionLink: moduleForm.liveSessionLink || undefined,
                       },
                       supabase
@@ -2102,8 +2074,6 @@ export default function AdminClassesPage() {
                         weekNumber: moduleForm.weekNumber,
                         title: moduleForm.title,
                         description: moduleForm.description || undefined,
-                        startDate: moduleForm.startDate || undefined,
-                        endDate: moduleForm.endDate || undefined,
                         liveSessionLink: moduleForm.liveSessionLink || undefined,
                       },
                       supabase

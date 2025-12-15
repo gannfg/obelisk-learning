@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Lock, Unlock, Calendar, ExternalLink, FileText, Video, Link as LinkIcon } from "lucide-react";
 import { format } from "date-fns";
-import type { ClassModule } from "@/types/classes";
+import type { ClassModule, AssignmentSubmission } from "@/types/classes";
 import type { ClassWithModules } from "@/lib/classes";
 import { getModuleAssignments } from "@/lib/classes";
 import { createLearningClient } from "@/lib/supabase/learning-client";
@@ -28,6 +28,7 @@ export function ClassroomModules({
   const [modules, setModules] = useState<ClassModule[]>(classItem.modules || []);
   const [editingModule, setEditingModule] = useState<string | null>(null);
   const [assignmentsByModule, setAssignmentsByModule] = useState<Record<string, any[]>>({});
+  const [submissionsByAssignment, setSubmissionsByAssignment] = useState<Record<string, AssignmentSubmission[]>>({});
 
   useEffect(() => {
     const loadAssignments = async () => {
@@ -45,11 +46,84 @@ export function ClassroomModules({
     loadAssignments();
   }, [modules]);
 
+  // Load current user's submissions for the assignments in these modules
+  useEffect(() => {
+    const loadSubmissions = async () => {
+      if (!userId) return;
+      const supabase = createLearningClient();
+      if (!supabase) return;
+
+      const assignmentIds = Object.values(assignmentsByModule)
+        .flat()
+        .map((a) => a.id)
+        .filter(Boolean);
+
+      if (assignmentIds.length === 0) {
+        setSubmissionsByAssignment({});
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("assignment_submissions")
+        .select("*")
+        .in("assignment_id", assignmentIds)
+        .eq("user_id", userId);
+
+      if (error) {
+        console.error("Error loading assignment submissions:", error.message || error);
+        return;
+      }
+
+      const map: Record<string, AssignmentSubmission[]> = {};
+      (data || []).forEach((submission: any) => {
+        const assignmentId = submission.assignment_id;
+        if (!map[assignmentId]) map[assignmentId] = [];
+        map[assignmentId].push({
+          id: submission.id,
+          assignmentId: submission.assignment_id,
+          classId: submission.class_id,
+          userId: submission.user_id,
+          status: submission.status,
+          isLate: Boolean(submission.is_late),
+          submittedAt: submission.submitted_at
+            ? new Date(submission.submitted_at)
+            : new Date(),
+          updatedAt: submission.updated_at ? new Date(submission.updated_at) : new Date(),
+          feedback: submission.feedback ?? undefined,
+          submissionContent: submission.content ?? undefined,
+          submissionUrl: submission.submission_url ?? undefined,
+          submissionFileUrl: submission.submission_file_url ?? undefined,
+          gitUrl: submission.git_url ?? undefined,
+          repoDirectory: submission.repo_directory ?? undefined,
+          reviewedBy: submission.reviewed_by ?? undefined,
+          reviewedAt: submission.reviewed_at ? new Date(submission.reviewed_at) : undefined,
+        } as AssignmentSubmission);
+      });
+
+      setSubmissionsByAssignment(map);
+    };
+
+    loadSubmissions();
+  }, [assignmentsByModule, userId]);
+
   const canAccessModule = (module: ClassModule) => {
     if (isInstructor) return true;
     if (!module.locked) return true;
     if (module.releaseDate && new Date(module.releaseDate) <= new Date()) return true;
     return false;
+  };
+
+  // Determine if a module is completed: all assignments approved/reviewed, or no assignments
+  const isModuleCompleted = (moduleId: string) => {
+    const assignments = assignmentsByModule[moduleId] || [];
+    if (assignments.length === 0) return true;
+
+    return assignments.every((assignment) => {
+      const submissions = submissionsByAssignment[assignment.id] || [];
+      return submissions.some(
+        (sub) => sub.status === "approved" || sub.status === "reviewed"
+      );
+    });
   };
 
   const handleModuleUpdate = (updatedModule: ClassModule) => {
@@ -81,8 +155,12 @@ export function ClassroomModules({
           </CardContent>
         </Card>
       ) : (
-        modules.map((module) => {
-          const canAccess = canAccessModule(module);
+        modules.map((module, idx) => {
+          // Sequential gating: only allow access if all prior modules are completed
+          const previousModulesCompleted = modules
+            .slice(0, idx)
+            .every((m) => isModuleCompleted(m.id));
+          const canAccess = canAccessModule(module) && previousModulesCompleted;
           const assignments = assignmentsByModule[module.id] || [];
 
           return (
@@ -213,14 +291,20 @@ export function ClassroomModules({
 
               {!canAccess && (
                 <CardContent>
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    This module will be unlocked on{" "}
-                    {module.releaseDate
-                      ? format(new Date(module.releaseDate), "MMM d, yyyy")
-                      : module.startDate
-                      ? format(new Date(module.startDate), "MMM d, yyyy")
-                      : "the scheduled date"}
-                  </p>
+                  {previousModulesCompleted ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      This module will be unlocked on{" "}
+                      {module.releaseDate
+                        ? format(new Date(module.releaseDate), "MMM d, yyyy")
+                        : module.startDate
+                        ? format(new Date(module.startDate), "MMM d, yyyy")
+                        : "the scheduled date"}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Complete the previous module to unlock this one.
+                    </p>
+                  )}
                 </CardContent>
               )}
 
