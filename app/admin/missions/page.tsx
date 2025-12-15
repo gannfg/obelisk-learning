@@ -551,6 +551,22 @@ export default function AdminMissionsPage() {
               updates.feedback || null,
               supabase
             );
+            
+            // Also send mission approved notification if status is approved
+            if (updates.status === "approved") {
+              try {
+                const { notifyMissionApproved } = await import("@/lib/notifications-helpers");
+                await notifyMissionApproved(
+                  submission.userId,
+                  submission.missionId,
+                  missionTitle,
+                  supabase
+                );
+              } catch (notifError) {
+                console.error("Error sending mission approved notification:", notifError);
+                // Don't fail the update if notification fails
+              }
+            }
           } else {
             // For other status updates, use the generic submission feedback notification
             await notifySubmissionFeedback(

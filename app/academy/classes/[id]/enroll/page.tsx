@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth } from "@/lib/hooks/use-auth";
 import { getClassById, enrollUser, getClassEnrollments } from "@/lib/classes";
 import { createLearningClient } from "@/lib/supabase/learning-client";
+import { createClient } from "@/lib/supabase/client";
+import { notifyClassEnrollment } from "@/lib/notifications-helpers";
 import { Loader2, CheckCircle2, XCircle, ArrowLeft, BookOpen } from "lucide-react";
 import { format } from "date-fns";
 
@@ -139,6 +141,23 @@ export default function EnrollPage() {
       if (enrollment) {
         setSuccess(true);
         setIsEnrolled(true);
+        
+        // Send enrollment notification
+        try {
+          const authSupabase = createClient();
+          if (authSupabase && classItem) {
+            await notifyClassEnrollment(
+              user.id,
+              classId,
+              classItem.title || classItem.name || "Class",
+              authSupabase
+            );
+          }
+        } catch (notifError) {
+          console.error("Error sending enrollment notification:", notifError);
+          // Don't fail enrollment if notification fails
+        }
+        
         // Redirect to classroom system after 2 seconds
         setTimeout(() => {
           router.push(`/class/${classId}`);
