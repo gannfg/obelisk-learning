@@ -388,7 +388,7 @@ export async function enrollInCourse(
       await notifyCourseEnrollment(
         userId,
         courseId,
-        courseTitle,
+        courseTitle || "Course",
         options.authSupabase
       );
     } catch (notifError) {
