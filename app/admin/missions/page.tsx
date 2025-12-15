@@ -34,9 +34,11 @@ import { createLearningClient } from "@/lib/supabase/learning-client";
 import type { MissionSubmission } from "@/types";
 import { uploadMissionImage } from "@/lib/storage";
 import { COURSE_CATEGORIES } from "@/lib/categories";
-import { Loader2, Target, Plus, Calendar, Pencil } from "lucide-react";
+import { Loader2, Target, Plus, Calendar, Pencil, BookOpen, X } from "lucide-react";
 import { ImageCropper } from "@/components/image-cropper";
 import { notifySubmissionFeedback, notifyProjectReviewed } from "@/lib/notifications-helpers";
+import { getAllClasses } from "@/lib/classes";
+import { getMissionPrerequisitesWithDetails } from "@/lib/mission-prerequisites";
 
 export default function AdminMissionsPage() {
   const router = useRouter();
@@ -53,6 +55,9 @@ export default function AdminMissionsPage() {
   const [editingMissionId, setEditingMissionId] = useState<string | null>(null);
   const [showImageCropper, setShowImageCropper] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [availableClasses, setAvailableClasses] = useState<Array<{ id: string; title: string }>>([]);
+  const [selectedPrerequisiteClasses, setSelectedPrerequisiteClasses] = useState<string[]>([]);
+  const [loadingClasses, setLoadingClasses] = useState(false);
   
   // Mission form state
   const [missionForm, setMissionForm] = useState({
@@ -87,9 +92,92 @@ export default function AdminMissionsPage() {
     if (!loading && isAdmin) {
       loadMissions();
       loadSubmissions();
+      loadAvailableClasses();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, isAdmin]);
+
+  const loadAvailableClasses = async () => {
+    if (!learningSupabase) return;
+    setLoadingClasses(true);
+    try {
+      const classes = await getAllClasses({ publishedOnly: false }, learningSupabase);
+      setAvailableClasses(classes.map(c => ({ id: c.id, title: c.title })));
+    } catch (error) {
+      console.error("Error loading classes:", error);
+    } finally {
+      setLoadingClasses(false);
+    }
+  };
+
+  const saveMissionPrerequisites = async (missionId: string, classIds: string[]) => {
+    if (!learningSupabase) return;
+    
+    try {
+      // First, delete existing prerequisites
+      const { error: deleteError } = await learningSupabase
+        .from("mission_prerequisites")
+        .delete()
+        .eq("mission_id", missionId);
+
+      // If table doesn't exist, silently skip (graceful degradation)
+      if (deleteError) {
+        if (
+          deleteError.code === "42P01" || 
+          deleteError.message?.includes("does not exist") ||
+          deleteError.message?.includes("Could not find the table") ||
+          deleteError.message?.includes("schema cache")
+        ) {
+          // Table doesn't exist yet - this is fine, just return
+          return;
+        }
+        console.error("Error deleting mission prerequisites:", deleteError.message || deleteError);
+      }
+
+      // Then, insert new prerequisites
+      if (classIds.length > 0) {
+        const prerequisites = classIds.map(classId => ({
+          mission_id: missionId,
+          class_id: classId,
+        }));
+
+        const { error: insertError } = await learningSupabase
+          .from("mission_prerequisites")
+          .insert(prerequisites);
+
+        if (insertError) {
+          // If table doesn't exist, silently skip (graceful degradation)
+          if (
+            insertError.code === "42P01" || 
+            insertError.message?.includes("does not exist") ||
+            insertError.message?.includes("Could not find the table") ||
+            insertError.message?.includes("schema cache")
+          ) {
+            // Table doesn't exist yet - this is fine, just return
+            return;
+          }
+          console.error("Error saving mission prerequisites:", insertError.message || insertError);
+        }
+      }
+    } catch (error: any) {
+      // If table doesn't exist, silently skip (graceful degradation)
+      if (
+        error?.code === "42P01" || 
+        error?.message?.includes("does not exist") ||
+        error?.message?.includes("Could not find the table") ||
+        error?.message?.includes("schema cache")
+      ) {
+        // Table doesn't exist yet - this is fine, just return
+        return;
+      }
+      console.error("Error in saveMissionPrerequisites:", error);
+    }
+  };
+
+  const updateMissionPrerequisites = async (missionId: string, classIds: string[]) => {
+    // Same as saveMissionPrerequisites
+    await saveMissionPrerequisites(missionId, classIds);
+  };
 
   const loadMissions = async () => {
     if (!supabase) {
@@ -221,9 +309,10 @@ export default function AdminMissionsPage() {
     setImageFile(null);
     setImagePreview(null);
     setImageToCrop(null);
+    setSelectedPrerequisiteClasses([]);
   };
 
-  const openEditDialog = (mission: any) => {
+  const openEditDialog = async (mission: any) => {
     setEditingMissionId(mission.id);
     setMissionForm({
       title: mission.title || "",
@@ -250,6 +339,31 @@ export default function AdminMissionsPage() {
     setImageToCrop(mission.image_url || null);
     setShowImageCropper(false);
     setMissionDialogError(null);
+    
+    // Load prerequisite classes for this mission
+    if (learningSupabase) {
+      try {
+        const prerequisites = await getMissionPrerequisitesWithDetails(mission.id, learningSupabase);
+        setSelectedPrerequisiteClasses(prerequisites.map(p => p.id));
+      } catch (error: any) {
+        // Silently handle errors (table might not exist yet)
+        if (
+          error?.code === "42P01" || 
+          error?.message?.includes("does not exist") ||
+          error?.message?.includes("Could not find the table") ||
+          error?.message?.includes("schema cache")
+        ) {
+          // Table doesn't exist yet - this is fine
+          setSelectedPrerequisiteClasses([]);
+        } else {
+          console.error("Error loading prerequisite classes:", error);
+          setSelectedPrerequisiteClasses([]);
+        }
+      }
+    } else {
+      setSelectedPrerequisiteClasses([]);
+    }
+    
     setMissionDialogOpen(true);
   };
 
@@ -349,11 +463,16 @@ export default function AdminMissionsPage() {
         }
 
         if (data?.id) {
+          // Update prerequisite classes
+          await updateMissionPrerequisites(editingMissionId, selectedPrerequisiteClasses);
+          
+          setSaving(false);
           setMissionDialogOpen(false);
           resetMissionForm();
           await loadMissions();
         } else {
           setMissionDialogError("Mission updated but no ID returned from Supabase.");
+          setSaving(false);
         }
       } else {
         // Create new mission
@@ -385,12 +504,17 @@ export default function AdminMissionsPage() {
         }
 
         if (data?.id) {
+          // Save prerequisite classes
+          await saveMissionPrerequisites(data.id, selectedPrerequisiteClasses);
+          
+          setSaving(false);
           setMissionDialogOpen(false);
           resetMissionForm();
           await loadMissions();
           router.push(`/missions/${data.id}`);
         } else {
           setMissionDialogError("Mission created but no ID returned from Supabase.");
+          setSaving(false);
         }
       }
     } catch (err: any) {
@@ -869,6 +993,79 @@ export default function AdminMissionsPage() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Prerequisite Classes */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Prerequisite Classes</label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Select classes that users must complete before they can access this mission. Users will need to complete all selected classes.
+              </p>
+              {loadingClasses ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading classes...
+                </div>
+              ) : (
+                <>
+                  <Select
+                    value=""
+                    onValueChange={(value) => {
+                      if (value && !selectedPrerequisiteClasses.includes(value)) {
+                        setSelectedPrerequisiteClasses([...selectedPrerequisiteClasses, value]);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a class to add as prerequisite" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableClasses
+                        .filter(c => !selectedPrerequisiteClasses.includes(c.id))
+                        .map((classItem) => (
+                          <SelectItem key={classItem.id} value={classItem.id}>
+                            {classItem.title}
+                          </SelectItem>
+                        ))}
+                      {availableClasses.filter(c => !selectedPrerequisiteClasses.includes(c.id)).length === 0 && (
+                        <SelectItem value="" disabled>No more classes available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  
+                  {selectedPrerequisiteClasses.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {selectedPrerequisiteClasses.map((classId) => {
+                        const classItem = availableClasses.find(c => c.id === classId);
+                        return (
+                          <div
+                            key={classId}
+                            className="flex items-center justify-between p-2 border rounded-lg bg-muted/50"
+                          >
+                            <div className="flex items-center gap-2">
+                              <BookOpen className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">{classItem?.title || "Unknown Class"}</span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedPrerequisiteClasses(
+                                  selectedPrerequisiteClasses.filter(id => id !== classId)
+                                );
+                              }}
+                              className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             {/* Submission Fields Configuration */}
