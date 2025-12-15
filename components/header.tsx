@@ -22,6 +22,8 @@ import {
   Users as UsersIcon,
   HelpCircle,
   Search,
+  Trophy,
+  FolderKanban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -276,6 +278,12 @@ import {
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
+                        <Link href="/achievements" className="flex items-center w-full">
+                          <Trophy className="mr-2 h-4 w-4" />
+                          Achievement
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
                         <Link href="/my-classes" className="flex items-center w-full">
                           <BookOpen className="mr-2 h-4 w-4" />
                           My Classes
@@ -285,6 +293,12 @@ import {
                         <Link href="/academy/teams" className="flex items-center w-full">
                           <UsersIcon className="mr-2 h-4 w-4" />
                           Teams
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/academy/projects" className="flex items-center w-full">
+                          <FolderKanban className="mr-2 h-4 w-4" />
+                          Project
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />

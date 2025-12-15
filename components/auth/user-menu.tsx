@@ -16,6 +16,8 @@ import {
   Users as UsersIcon,
   HelpCircle,
   BookOpen,
+  Trophy,
+  FolderKanban,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { getUserProfile } from "@/lib/profile";
@@ -121,6 +123,12 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
+          <Link href="/achievements" className="flex items-center w-full">
+            <Trophy className="mr-2 h-4 w-4" />
+            Achievement
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <Link href="/my-classes" className="flex items-center w-full">
             <BookOpen className="mr-2 h-4 w-4" />
             My Classes
@@ -130,6 +138,12 @@ export function UserMenu() {
           <Link href="/academy/teams" className="flex items-center w-full">
             <UsersIcon className="mr-2 h-4 w-4" />
             Teams
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/academy/projects" className="flex items-center w-full">
+            <FolderKanban className="mr-2 h-4 w-4" />
+            Project
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

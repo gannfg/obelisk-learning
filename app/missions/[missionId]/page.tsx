@@ -478,17 +478,33 @@ export default function MissionPage() {
 
     // Update progress
     const completedCount = checklist.filter((item) => item.completed).length;
+    const isCompleted = completedCount === checklist.length;
+    
     await supabase
       .from("mission_progress")
       .upsert({
         user_id: user.id,
         mission_id: missionId,
         checklist_progress: checklist,
-        completed: completedCount === checklist.length,
-        completed_at: completedCount === checklist.length ? new Date().toISOString() : null,
+        completed: isCompleted,
+        completed_at: isCompleted ? new Date().toISOString() : null,
       }, {
         onConflict: "user_id,mission_id",
       });
+
+    // Send completion notification if mission is completed
+    if (isCompleted && mission) {
+      try {
+        const authSupabase = createClient();
+        if (authSupabase) {
+          const { notifyMissionCompletion } = await import("@/lib/notifications-helpers");
+          await notifyMissionCompletion(user.id, missionId, mission.title, authSupabase);
+        }
+      } catch (notifError) {
+        console.error("Error sending mission completion notification:", notifError);
+        // Don't fail checklist update if notification fails
+      }
+    }
   };
 
   if (loading || authLoading) {

@@ -347,7 +347,15 @@ export async function isEnrolled(userId: string, courseId: string): Promise<bool
   return !error && !!data;
 }
 
-export async function enrollInCourse(userId: string, courseId: string): Promise<void> {
+export async function enrollInCourse(
+  userId: string, 
+  courseId: string, 
+  options?: { 
+    courseTitle?: string;
+    sendNotification?: boolean;
+    authSupabase?: any;
+  }
+): Promise<void> {
   const supabase = await createLearningServerClient();
   const { error } = await supabase
     .from("enrollments")
@@ -359,6 +367,34 @@ export async function enrollInCourse(userId: string, courseId: string): Promise<
   if (error) {
     console.error("Error enrolling in course:", error);
     throw error;
+  }
+
+  // Send enrollment notification if requested
+  if (options?.sendNotification && options?.authSupabase) {
+    try {
+      let courseTitle = options.courseTitle;
+      
+      // Fetch course title if not provided
+      if (!courseTitle) {
+        const { data: course } = await supabase
+          .from("courses")
+          .select("title")
+          .eq("id", courseId)
+          .single();
+        courseTitle = course?.title || "Course";
+      }
+
+      const { notifyCourseEnrollment } = await import("@/lib/notifications-helpers");
+      await notifyCourseEnrollment(
+        userId,
+        courseId,
+        courseTitle || "Course",
+        options.authSupabase
+      );
+    } catch (notifError) {
+      console.error("Error sending course enrollment notification:", notifError);
+      // Don't fail enrollment if notification fails
+    }
   }
 }
 
