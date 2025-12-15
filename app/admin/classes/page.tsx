@@ -293,6 +293,8 @@ export default function AdminClassesPage() {
     title: "",
     description: "",
     instructions: "",
+    deadlineMode: "timer" as "timer" | "date",
+    timerHours: "24",
     dueDate: "",
     dueTime: "",
     submissionType: "text" as "text" | "file" | "url" | "git",
@@ -1019,7 +1021,6 @@ export default function AdminClassesPage() {
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="modules">Modules</TabsTrigger>
                 <TabsTrigger value="enrollments">Enrollments</TabsTrigger>
-                <TabsTrigger value="assignments">Assignments</TabsTrigger>
                 <TabsTrigger value="attendance">Attendance</TabsTrigger>
                 <TabsTrigger value="announcements">Announcements</TabsTrigger>
                 <TabsTrigger value="xp">XP & Rewards</TabsTrigger>
@@ -1170,6 +1171,7 @@ export default function AdminClassesPage() {
                     <div className="space-y-3">
                       {modules.map((module) => {
                         const moduleSessions = sessions.filter((s) => s.moduleId === module.id);
+                        const moduleAssignments = assignments.filter((a) => a.moduleId === module.id);
                         return (
                           <Card key={module.id}>
                             <CardContent className="p-4">
@@ -1211,6 +1213,78 @@ export default function AdminClassesPage() {
                                       ))}
                                     </div>
                                   )}
+
+                                {/* Assignments within this module */}
+                                <div className="mt-4 space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-xs font-medium text-muted-foreground">
+                                      Assignments ({moduleAssignments.length})
+                                    </p>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setSelectedModuleId(module.id);
+                                        setAssignmentForm({
+                                          title: "",
+                                          description: "",
+                                          instructions: "",
+                                          deadlineMode: "timer",
+                                          timerHours: "24",
+                                          dueDate: "",
+                                          dueTime: "",
+                                          submissionType: "text",
+                                          xpReward: 0,
+                                          lockAfterDeadline: false,
+                                        });
+                                        setAssignmentDialogOpen(true);
+                                      }}
+                                    >
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Add Assignment
+                                    </Button>
+                                  </div>
+                                  {moduleAssignments.length > 0 ? (
+                                    <div className="space-y-2">
+                                      {moduleAssignments.map((assignment) => (
+                                        <div
+                                          key={assignment.id}
+                                          className="flex items-center justify-between p-3 border rounded-lg"
+                                        >
+                                          <div>
+                                            <h4 className="font-medium text-sm">{assignment.title}</h4>
+                                            <p className="text-xs text-muted-foreground">
+                                              Due: {format(assignment.dueDate, "MMM d, yyyy 'at' h:mm a")}
+                                            </p>
+                                          </div>
+                                          <div className="flex gap-1">
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={async () => {
+                                                setSelectedAssignment(assignment);
+                                                const supabase = createLearningClient();
+                                                if (!supabase) return;
+                                                const subs = await getAssignmentSubmissions(assignment.id, supabase);
+                                                setSubmissions(subs);
+                                                setSubmissionsDialogOpen(true);
+                                              }}
+                                            >
+                                              <Users className="h-3 w-3" />
+                                            </Button>
+                                            <Button size="sm" variant="ghost">
+                                              <Edit className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-muted-foreground">
+                                      No assignments yet for this module.
+                                    </p>
+                                  )}
+                                </div>
                                 </div>
                                 <div className="flex flex-col gap-1">
                                   <Button
@@ -1363,94 +1437,6 @@ export default function AdminClassesPage() {
                         ))}
                       </TableBody>
                     </Table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Assignments Tab */}
-              <TabsContent value="assignments" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Assignments</CardTitle>
-                    <CardDescription>
-                      Manage assignments across all modules
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {modules.map((module) => {
-                        const moduleAssignments = assignments.filter(
-                          (a) => a.moduleId === module.id
-                        );
-                        return (
-                          <Card key={module.id}>
-                            <CardHeader>
-                              <CardTitle className="text-base">
-                                Week {module.weekNumber}: {module.title}
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="space-y-2">
-                                {moduleAssignments.map((assignment) => (
-                                  <div
-                                    key={assignment.id}
-                                    className="flex items-center justify-between p-3 border rounded-lg"
-                                  >
-                                    <div>
-                                      <h4 className="font-medium">{assignment.title}</h4>
-                                      <p className="text-xs text-muted-foreground">
-                                        Due: {format(assignment.dueDate, "MMM d, yyyy 'at' h:mm a")}
-                                      </p>
-                                    </div>
-                                    <div className="flex gap-1">
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={async () => {
-                                          setSelectedAssignment(assignment);
-                                          const supabase = createLearningClient();
-                                          if (!supabase) return;
-                                          const subs = await getAssignmentSubmissions(assignment.id, supabase);
-                                          setSubmissions(subs);
-                                          setSubmissionsDialogOpen(true);
-                                        }}
-                                      >
-                                        <Users className="h-3 w-3" />
-                                      </Button>
-                                      <Button size="sm" variant="ghost">
-                                        <Edit className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ))}
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="w-full"
-                                  onClick={() => {
-                                    setSelectedModuleId(module.id);
-                                    setAssignmentForm({
-                                      title: "",
-                                      description: "",
-                                      instructions: "",
-                                      dueDate: "",
-                                      dueTime: "",
-                                      submissionType: "text",
-                                      xpReward: 0,
-                                      lockAfterDeadline: false,
-                                    });
-                                    setAssignmentDialogOpen(true);
-                                  }}
-                                >
-                                  <Plus className="h-4 w-4 mr-1" />
-                                  Add Assignment
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -2144,8 +2130,18 @@ export default function AdminClassesPage() {
       </Dialog>
 
       {/* Create Assignment Dialog */}
-      <Dialog open={assignmentDialogOpen} onOpenChange={setAssignmentDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Dialog
+        open={assignmentDialogOpen}
+        onOpenChange={(open) => {
+          // Allow explicit close (X/button) to set false; block overlay/escape separately
+          setAssignmentDialogOpen(open);
+        }}
+      >
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Create Assignment</DialogTitle>
             <DialogDescription>
@@ -2182,27 +2178,89 @@ export default function AdminClassesPage() {
                 rows={4}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
               <div>
-                <label className="text-sm font-medium">Due Date *</label>
-                <Input
-                  type="date"
-                  value={assignmentForm.dueDate}
-                  onChange={(e) =>
-                    setAssignmentForm({ ...assignmentForm, dueDate: e.target.value })
-                  }
-                />
+                <label className="text-sm font-medium">Deadline Type</label>
+                <div className="flex gap-3 mt-1">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="deadline-mode"
+                      value="timer"
+                      checked={assignmentForm.deadlineMode === "timer"}
+                      onChange={() =>
+                        setAssignmentForm({
+                          ...assignmentForm,
+                          deadlineMode: "timer",
+                        })
+                      }
+                    />
+                    Timer (hours)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="deadline-mode"
+                      value="date"
+                      checked={assignmentForm.deadlineMode === "date"}
+                      onChange={() =>
+                        setAssignmentForm({
+                          ...assignmentForm,
+                          deadlineMode: "date",
+                        })
+                      }
+                    />
+                    Calendar Date
+                  </label>
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium">Due Time</label>
-                <Input
-                  type="time"
-                  value={assignmentForm.dueTime}
-                  onChange={(e) =>
-                    setAssignmentForm({ ...assignmentForm, dueTime: e.target.value })
-                  }
-                />
-              </div>
+
+              {assignmentForm.deadlineMode === "timer" ? (
+                <div>
+                  <label className="text-sm font-medium">Timer (hours) *</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={assignmentForm.timerHours}
+                    onChange={(e) =>
+                      setAssignmentForm({
+                        ...assignmentForm,
+                        timerHours: e.target.value,
+                      })
+                    }
+                    placeholder="e.g., 24"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Assignment deadline will be set to now + timer.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Due Date *</label>
+                    <Input
+                      type="date"
+                      value={assignmentForm.dueDate}
+                      onChange={(e) =>
+                        setAssignmentForm({ ...assignmentForm, dueDate: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Due Time</label>
+                    <Input
+                      type="time"
+                      value={assignmentForm.dueTime}
+                      onChange={(e) =>
+                        setAssignmentForm({ ...assignmentForm, dueTime: e.target.value })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      If empty, defaults to 23:59.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium">Submission Type *</label>
@@ -2249,12 +2307,21 @@ export default function AdminClassesPage() {
             </label>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignmentDialogOpen(false)}>
-              Cancel
-            </Button>
             <Button
               onClick={async () => {
-                if (!assignmentForm.title || !assignmentForm.dueDate || !selectedModuleId || !selectedClass) return;
+                const timerHoursNumber = Number(assignmentForm.timerHours);
+                const isTimerMode = assignmentForm.deadlineMode === "timer";
+                const isDateMode = assignmentForm.deadlineMode === "date";
+
+                if (
+                  !assignmentForm.title ||
+                  !selectedModuleId ||
+                  !selectedClass ||
+                  (isTimerMode && (!assignmentForm.timerHours || isNaN(timerHoursNumber) || timerHoursNumber <= 0)) ||
+                  (isDateMode && !assignmentForm.dueDate)
+                ) {
+                  return;
+                }
                 setSaving(true);
                 try {
                   // Use Auth Supabase for authentication
@@ -2274,9 +2341,14 @@ export default function AdminClassesPage() {
                     setSaving(false);
                     return;
                   }
-                  const dueDateTime = new Date(
-                    `${assignmentForm.dueDate}T${assignmentForm.dueTime || "23:59"}`
-                  );
+                  let dueDateTime: Date;
+                  if (isTimerMode) {
+                    const timerMs = timerHoursNumber * 60 * 60 * 1000;
+                    dueDateTime = new Date(Date.now() + timerMs);
+                  } else {
+                    const timePart = assignmentForm.dueTime || "23:59";
+                    dueDateTime = new Date(`${assignmentForm.dueDate}T${timePart}`);
+                  }
 
                   const newAssignment = await createAssignment(
                     {
@@ -2330,10 +2402,18 @@ export default function AdminClassesPage() {
                   setSaving(false);
                 }
               }}
-              disabled={saving || !assignmentForm.title || !assignmentForm.dueDate}
-            >
-              {saving ? "Creating..." : "Create"}
-            </Button>
+              disabled={
+                saving ||
+                !assignmentForm.title ||
+                (assignmentForm.deadlineMode === "timer" &&
+                  (!assignmentForm.timerHours ||
+                    isNaN(Number(assignmentForm.timerHours)) ||
+                    Number(assignmentForm.timerHours) <= 0)) ||
+                (assignmentForm.deadlineMode === "date" && !assignmentForm.dueDate)
+              }
+              >
+                {saving ? "Creating..." : "Create"}
+              </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

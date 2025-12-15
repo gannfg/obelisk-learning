@@ -7,7 +7,7 @@ import { Lock, Unlock, Calendar, ExternalLink, FileText, Video, Link as LinkIcon
 import { format } from "date-fns";
 import type { ClassModule, AssignmentSubmission } from "@/types/classes";
 import type { ClassWithModules } from "@/lib/classes";
-import { getModuleAssignments } from "@/lib/classes";
+import { getModuleAssignments, getClassModules } from "@/lib/classes";
 import { createLearningClient } from "@/lib/supabase/learning-client";
 import { MarkdownContent } from "@/components/markdown-content";
 import { ModuleEditor } from "./module-editor";
@@ -29,6 +29,25 @@ export function ClassroomModules({
   const [editingModule, setEditingModule] = useState<string | null>(null);
   const [assignmentsByModule, setAssignmentsByModule] = useState<Record<string, any[]>>({});
   const [submissionsByAssignment, setSubmissionsByAssignment] = useState<Record<string, AssignmentSubmission[]>>({});
+  const [openModuleId, setOpenModuleId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Always refresh modules from backend to avoid stale/empty data
+    const loadModules = async () => {
+      const supabase = createLearningClient();
+      if (!supabase) return;
+      try {
+        const fresh = await getClassModules(classId, supabase);
+        if (fresh && fresh.length > 0) {
+          setModules(fresh);
+        }
+      } catch (error) {
+        console.error("Error loading modules:", error);
+      }
+    };
+
+    loadModules();
+  }, [classId]);
 
   useEffect(() => {
     const loadAssignments = async () => {
@@ -155,7 +174,10 @@ export function ClassroomModules({
           </CardContent>
         </Card>
       ) : (
-        modules.map((module, idx) => {
+        <Card>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {modules.map((module, idx) => {
           // Sequential gating: only allow access if all prior modules are completed
           const previousModulesCompleted = modules
             .slice(0, idx)
@@ -164,55 +186,60 @@ export function ClassroomModules({
           const assignments = assignmentsByModule[module.id] || [];
 
           return (
-            <Card key={module.id} className={!canAccess ? "opacity-60" : ""}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      {canAccess ? (
-                        <Unlock className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <Lock className="h-4 w-4 text-muted-foreground" />
+            <div key={module.id} className={!canAccess ? "opacity-60" : ""}>
+              <button
+                type="button"
+                className="w-full flex items-stretch text-left hover:bg-muted/60 transition-colors"
+                onClick={() =>
+                  setOpenModuleId((prev) => (prev === module.id ? null : module.id))
+                }
+              >
+                <div className="w-28 flex items-center justify-center border-r px-4 py-4">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Week {module.weekNumber}
+                  </span>
+                </div>
+                <div className="flex-1 px-4 py-4 flex items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-sm sm:text-base">
+                        {module.title}
+                      </span>
+                      {!canAccess && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600">
+                          Locked
+                        </span>
                       )}
-                      <CardTitle>
-                        Week {module.weekNumber}: {module.title}
-                      </CardTitle>
                     </div>
                     {module.description && (
-                      <p className="text-sm text-muted-foreground mb-3">{module.description}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
+                        {module.description}
+                      </p>
                     )}
-                    <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                    <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
                       {module.startDate && (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>Starts: {format(new Date(module.startDate), "MMM d, yyyy")}</span>
-                        </div>
+                        <span>
+                          Starts: {format(new Date(module.startDate), "MMM d")}
+                        </span>
                       )}
                       {module.endDate && (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>Ends: {format(new Date(module.endDate), "MMM d, yyyy")}</span>
-                        </div>
+                        <span>
+                          Ends: {format(new Date(module.endDate), "MMM d")}
+                        </span>
                       )}
-                      {!canAccess && (
-                        <span className="text-orange-600">🔒 Locked</span>
+                      {assignments.length > 0 && (
+                        <span>{assignments.length} assignment{assignments.length !== 1 ? "s" : ""}</span>
                       )}
                     </div>
                   </div>
-                  {isInstructor && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditingModule(editingModule === module.id ? null : module.id)}
-                    >
-                      Edit
-                    </Button>
-                  )}
+                  <div className="hidden sm:block text-xs text-muted-foreground">
+                    {isModuleCompleted(module.id) ? "Completed" : "In progress"}
+                  </div>
                 </div>
-              </CardHeader>
+              </button>
 
-              {canAccess && (
-                <CardContent className="space-y-4">
+              {canAccess && openModuleId === module.id && (
+                <div className="px-4 pb-5 bg-muted/40 space-y-4">
                   {/* Module Content */}
                   {module.content && (
                     <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -286,13 +313,13 @@ export function ClassroomModules({
                       </div>
                     </div>
                   )}
-                </CardContent>
+                </div>
               )}
 
               {!canAccess && (
-                <CardContent>
+                <div className="px-4 py-4 text-center text-sm text-muted-foreground">
                   {previousModulesCompleted ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
+                    <p>
                       This module will be unlocked on{" "}
                       {module.releaseDate
                         ? format(new Date(module.releaseDate), "MMM d, yyyy")
@@ -301,11 +328,11 @@ export function ClassroomModules({
                         : "the scheduled date"}
                     </p>
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">
+                    <p>
                       Complete the previous module to unlock this one.
                     </p>
                   )}
-                </CardContent>
+                </div>
               )}
 
               {/* Module Editor (Instructor) */}
@@ -319,9 +346,12 @@ export function ClassroomModules({
                   />
                 </CardContent>
               )}
-            </Card>
+            </div>
           );
-        })
+              })}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

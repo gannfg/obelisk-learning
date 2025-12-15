@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getClassByIdWithModules, getClassEnrollments } from "@/lib/classes";
@@ -26,7 +26,7 @@ export default async function ClassPage({ params }: ClassPageProps) {
 
   // Get current user and check enrollment status
   const user = await getCurrentUser();
-  let userEnrollment = null;
+  let userEnrollment: any = null;
   
   // Get all enrollments and user profiles
   const allEnrollments = await getClassEnrollments(id, learningSupabase);
@@ -36,6 +36,10 @@ export default async function ClassPage({ params }: ClassPageProps) {
     userEnrollment = activeEnrollments.find(
       (enrollment) => enrollment.userId === user.id
     );
+    // If already enrolled, send user directly to the class experience
+    if (userEnrollment) {
+      redirect(`/class/${id}`);
+    }
   }
 
   // Fetch user profiles with avatars for enrolled users
@@ -165,7 +169,7 @@ export default async function ClassPage({ params }: ClassPageProps) {
                       <span className="text-muted-foreground">Not Enrolled</span>
                     )}
                   </p>
-                  {userEnrollment && (
+                  {userEnrollment && userEnrollment.enrolledAt && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Enrolled on {format(userEnrollment.enrolledAt, "MMM d, yyyy")}
                     </p>
