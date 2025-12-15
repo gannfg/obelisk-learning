@@ -497,11 +497,6 @@ export default function MissionBoardPage() {
                           }`}>
                             {mission.difficulty} level
                           </span>
-                          {isJoined && (
-                            <span className="text-xs px-2 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
-                              Joined
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>
