@@ -65,37 +65,53 @@ export default function CheckInPage() {
     setStatus("checking");
 
     try {
-      // Parse the scanned data - could be URL or JSON
-      let checkInToken = token;
+      // Parse the scanned data - could be URL, JSON, or plain token
+      let checkInToken: string | null = null;
       
-      // If scanned data is a URL, extract token
-      if (scannedData.includes("/checkin/")) {
-        const urlParts = scannedData.split("/checkin/");
-        if (urlParts.length > 1) {
-          checkInToken = urlParts[1].split("?")[0].split("#")[0];
+      // Try to parse as JSON first (workshop QR codes may be JSON)
+      try {
+        const jsonData = JSON.parse(scannedData);
+        if (jsonData.qrToken) {
+          checkInToken = jsonData.qrToken;
+        } else if (jsonData.token) {
+          checkInToken = jsonData.token;
         }
-      } else if (scannedData.startsWith("http")) {
-        // Try to extract from full URL
-        try {
-          const url = new URL(scannedData);
-          const pathParts = url.pathname.split("/");
-          const tokenIndex = pathParts.indexOf("checkin");
-          if (tokenIndex >= 0 && tokenIndex < pathParts.length - 1) {
-            checkInToken = pathParts[tokenIndex + 1];
+      } catch {
+        // Not JSON, continue with other parsing methods
+      }
+
+      // If not found in JSON, try to extract from URL
+      if (!checkInToken) {
+        if (scannedData.includes("/checkin/")) {
+          const urlParts = scannedData.split("/checkin/");
+          if (urlParts.length > 1) {
+            checkInToken = urlParts[1].split("?")[0].split("#")[0];
           }
-        } catch {
-          // If URL parsing fails, use the token from URL params
+        } else if (scannedData.startsWith("http")) {
+          // Try to extract from full URL
+          try {
+            const url = new URL(scannedData);
+            const pathParts = url.pathname.split("/");
+            const tokenIndex = pathParts.indexOf("checkin");
+            if (tokenIndex >= 0 && tokenIndex < pathParts.length - 1) {
+              checkInToken = pathParts[tokenIndex + 1];
+            }
+          } catch {
+            // If URL parsing fails, continue
+          }
+        } else {
+          // Assume the scanned data is the token itself
+          checkInToken = scannedData.trim();
         }
       }
 
-      // Verify token matches
-      if (checkInToken !== token) {
-        setError("QR code does not match this check-in page");
+      if (!checkInToken) {
+        setError("Could not extract check-in token from QR code");
         setStatus("error");
         return;
       }
 
-      // Submit check-in
+      // Submit check-in - API will validate if it's a valid attendance QR
       const response = await fetch("/api/attendance/checkin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -116,7 +132,7 @@ export default function CheckInPage() {
       setError(error.message || "Failed to process check-in");
       setStatus("error");
     }
-  }, [status, token, stopScanner]);
+  }, [status, stopScanner]);
 
   const startScanner = useCallback(async () => {
     if (!user || scannerRef.current || initAttemptedRef.current) return;

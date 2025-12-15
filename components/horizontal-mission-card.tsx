@@ -49,17 +49,6 @@ export function HorizontalMissionCard({ mission }: HorizontalMissionCardProps) {
                     </p>
                   )}
                 </div>
-                <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full capitalize ${
-                    mission.difficulty === "beginner"
-                      ? "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300"
-                      : mission.difficulty === "intermediate"
-                      ? "bg-blue-500/10 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
-                      : "bg-purple-500/10 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300"
-                  }`}>
-                    {mission.difficulty}
-                  </span>
-                </div>
               </div>
               
               {/* Tags/Metadata */}

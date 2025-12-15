@@ -18,10 +18,11 @@ import { useAdmin } from "@/lib/hooks/use-admin";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { uploadWorkshopImage } from "@/lib/storage";
-import { Calendar, Plus, Trash2, Edit, Users, QrCode, Download, Image as ImageIcon, X, ExternalLink, MapPin, List, FilePlus, ClipboardCheck, BarChart3, CheckCircle2 } from "lucide-react";
+import { Calendar, Plus, Trash2, Edit, Users, QrCode, Download, Image as ImageIcon, X, ExternalLink, MapPin, List, FilePlus, ClipboardCheck, BarChart3, CheckCircle2, Filter, Search } from "lucide-react";
 import type { Workshop } from "@/types/workshops";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
+import { getCheckInUrl } from "@/lib/qr-utils";
 import { VenuePicker, type VenueData } from "@/components/venue-picker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -36,13 +37,16 @@ export default function AdminWorkshopsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedWorkshop, setSelectedWorkshop] = useState<string | null>(null);
-  const [qrData, setQrData] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("list");
   const [allAttendance, setAllAttendance] = useState<any[]>([]);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
+  
+  // Filter state
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Form state
   const [formData, setFormData] = useState({
@@ -387,28 +391,6 @@ export default function AdminWorkshopsPage() {
     setImageFile(null);
   };
 
-  const loadQRCode = async (workshopId: string) => {
-    try {
-      const workshop = workshops.find((w) => w.id === workshopId);
-      if (!workshop) {
-        alert("Workshop not found");
-        return;
-      }
-
-      if (!workshop.qrToken) {
-        alert("QR token not available for this workshop");
-        return;
-      }
-
-      // Generate check-in URL
-      const checkInUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/checkin/${workshop.qrToken}`;
-      setQrData(checkInUrl);
-      setSelectedWorkshop(workshopId);
-    } catch (error) {
-      console.error("Error loading QR code:", error);
-      alert("Failed to load QR code");
-    }
-  };
 
   const exportAttendance = async (workshopId: string) => {
     try {
@@ -498,19 +480,127 @@ export default function AdminWorkshopsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Filters */}
+              <div className="mb-6 space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search workshops by title..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                
+                {/* Filter Controls */}
+                <div className="flex flex-wrap gap-4 items-center">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Filters:</span>
+                  </div>
+                  
+                  {/* Status Filter */}
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                      <SelectItem value="upcoming">Upcoming</SelectItem>
+                      <SelectItem value="past">Past</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Location Filter */}
+                  <Select value={locationFilter} onValueChange={setLocationFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Locations</SelectItem>
+                      <SelectItem value="online">Online</SelectItem>
+                      <SelectItem value="offline">Offline</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Clear Filters */}
+                  {(statusFilter !== "all" || locationFilter !== "all" || searchQuery) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setStatusFilter("all");
+                        setLocationFilter("all");
+                        setSearchQuery("");
+                      }}
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              </div>
+
               {loading ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="h-20 bg-muted animate-pulse rounded" />
                   ))}
                 </div>
-              ) : workshops.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">
-                  No workshops created yet
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {workshops.map((workshop) => (
+              ) : (() => {
+                // Filter workshops
+                const now = new Date();
+                const filteredWorkshops = workshops.filter((workshop) => {
+                  // Search filter
+                  if (searchQuery && !workshop.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+                    return false;
+                  }
+                  
+                  // Location filter
+                  if (locationFilter !== "all" && workshop.locationType !== locationFilter) {
+                    return false;
+                  }
+                  
+                  // Status filter
+                  if (statusFilter !== "all") {
+                    const workshopDate = new Date(workshop.datetime);
+                    const qrExpired = workshop.qrExpiresAt && new Date(workshop.qrExpiresAt) < now;
+                    
+                    switch (statusFilter) {
+                      case "active":
+                        // Active: QR not expired and workshop is upcoming or recent (within last 24 hours)
+                        if (qrExpired) return false;
+                        const hoursSinceWorkshop = (now.getTime() - workshopDate.getTime()) / (1000 * 60 * 60);
+                        return workshopDate > now || (workshopDate <= now && hoursSinceWorkshop <= 24);
+                      case "expired":
+                        // Expired: QR code has expired
+                        return qrExpired || false;
+                      case "upcoming":
+                        // Upcoming: Workshop date is in the future
+                        return workshopDate > now;
+                      case "past":
+                        // Past: Workshop date is in the past
+                        return workshopDate < now;
+                      default:
+                        return true;
+                    }
+                  }
+                  
+                  return true;
+                });
+                
+                return filteredWorkshops.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">
+                    {workshops.length === 0 
+                      ? "No workshops created yet"
+                      : "No workshops match the selected filters"}
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredWorkshops.map((workshop) => (
                     <div
                       key={workshop.id}
                       className="border rounded-lg overflow-hidden"
@@ -547,9 +637,11 @@ export default function AdminWorkshopsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => loadQRCode(workshop.id)}
+                            asChild
                           >
-                            <QrCode className="h-4 w-4" />
+                            <Link href={`/admin/workshops/${workshop.id}/qr`}>
+                              <QrCode className="h-4 w-4" />
+                            </Link>
                           </Button>
                           <Button
                             variant="outline"
@@ -579,21 +671,11 @@ export default function AdminWorkshopsPage() {
                         </div>
                       </div>
 
-                      {selectedWorkshop === workshop.id && qrData && (
-                        <div className="border-t pt-4 mt-4 px-4 pb-4">
-                          <p className="text-sm font-medium mb-2">QR Code for Check-in</p>
-                          <div className="flex justify-center">
-                            <QRCodeSVG value={qrData} size={150} />
-                          </div>
-                          <p className="text-xs text-muted-foreground text-center mt-2">
-                            Share this QR code during the workshop
-                          </p>
-                        </div>
-                      )}
                     </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
@@ -982,7 +1064,7 @@ export default function AdminWorkshopsPage() {
                 <div className="space-y-6">
                   {workshops.map((workshop) => {
                     if (!workshop.qrToken) return null;
-                    const checkInUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/checkin/${workshop.qrToken}`;
+                    const checkInUrl = getCheckInUrl(workshop.qrToken);
                     const isExpired = workshop.qrExpiresAt && new Date(workshop.qrExpiresAt) < new Date();
 
                     return (
@@ -1053,14 +1135,12 @@ export default function AdminWorkshopsPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
-                                  setSelectedWorkshop(workshop.id);
-                                  setQrData(checkInUrl);
-                                  setActiveTab("list");
-                                }}
+                                asChild
                               >
-                                <QrCode className="h-4 w-4 mr-2" />
-                                Show in List View
+                                <Link href={`/admin/workshops/${workshop.id}/qr`}>
+                                  <QrCode className="h-4 w-4 mr-2" />
+                                  View QR Page
+                                </Link>
                               </Button>
                               <Button
                                 variant="outline"

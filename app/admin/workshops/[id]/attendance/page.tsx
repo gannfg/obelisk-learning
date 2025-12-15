@@ -12,6 +12,7 @@ import { ArrowLeft, CheckCircle2, QrCode, UserPlus, Download, Copy } from "lucid
 import { format } from "date-fns";
 import { createLearningClient } from "@/lib/supabase/learning-client";
 import { QRCodeSVG } from "qrcode.react";
+import { getCheckInUrl } from "@/lib/qr-utils";
 
 interface AttendanceRecord {
   id: string;
@@ -149,7 +150,7 @@ export default function WorkshopAttendancePage() {
               <div className="flex flex-col sm:flex-row gap-6 items-start">
                 <div className="flex-shrink-0 bg-white p-4 rounded-lg">
                   <QRCodeSVG
-                    value={`${typeof window !== "undefined" ? window.location.origin : ""}/checkin/${workshop.qrToken}`}
+                    value={getCheckInUrl(workshop.qrToken)}
                     size={200}
                   />
                 </div>
@@ -159,16 +160,14 @@ export default function WorkshopAttendancePage() {
                     <div className="flex gap-2">
                       <Input
                         readOnly
-                        value={`${typeof window !== "undefined" ? window.location.origin : ""}/checkin/${workshop.qrToken}`}
+                        value={getCheckInUrl(workshop.qrToken)}
                         className="flex-1 font-mono text-sm"
                       />
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          navigator.clipboard.writeText(
-                            `${typeof window !== "undefined" ? window.location.origin : ""}/checkin/${workshop.qrToken}`
-                          );
+                          navigator.clipboard.writeText(getCheckInUrl(workshop.qrToken));
                           alert("URL copied to clipboard!");
                         }}
                       >
