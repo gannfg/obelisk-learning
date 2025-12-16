@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CollaboratorCard } from "@/components/collaborator-card";
+import { CollaboratorListItem } from "@/components/collaborator-list-item";
 import {
   mergeUsersAndMentors,
   searchSocialUsers,
@@ -106,14 +107,27 @@ export default function SocialPage() {
 
   return (
     <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
-      {/* Header */}
+      {/* Header Banner - Seamless, full-width */}
       <div className="mb-6 sm:mb-8">
-        <h1 className="mb-2 text-2xl sm:text-3xl md:text-4xl font-bold">
-          Collaborate
-        </h1>
-        <p className="text-sm sm:text-base text-muted-foreground">
-          Search for collaborators, connect with mentors, and grow your network.
-        </p>
+        <Card className="relative overflow-hidden border-0 shadow-none bg-transparent p-0 min-h-[160px] sm:min-h-[200px] md:min-h-[240px]">
+          {/* Background Image - allow some cover to fill space */}
+          <div
+            className="absolute inset-0 pointer-events-none z-0 bg-no-repeat bg-cover"
+            style={{ backgroundImage: 'url(/collaborate_banner.svg)', backgroundPosition: 'calc(50% + -75px) center' }}
+          />
+
+          {/* Content overlay */}
+          <div className="relative z-10 flex flex-col justify-center gap-2 sm:gap-3 px-4 sm:px-6 md:px-8 py-6 sm:py-8 h-full">
+            <div className="max-w-2xl mt-[10px]">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 text-white">
+                Team Up
+              </h1>
+              <p className="text-sm sm:text-base md:text-lg text-white/90">
+                Connect with builders, mentors, and teams across the ecosystem.
+              </p>
+            </div>
+          </div>
+        </Card>
       </div>
 
       {/* Search and Filter Bar */}
@@ -206,21 +220,35 @@ export default function SocialPage() {
         </Card>
       )}
 
-      {/* User Grid */}
+      {/* User Grid/List */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : filteredUsers.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {filteredUsers.map((socialUser) => (
-            <CollaboratorCard
-              key={socialUser.id}
-              user={socialUser}
-              onMessageClick={handleMessageClick}
-            />
-          ))}
-        </div>
+        <>
+          {/* Mobile: List View */}
+          <div className="flex flex-col gap-2 sm:hidden">
+            {filteredUsers.map((socialUser) => (
+              <CollaboratorListItem
+                key={socialUser.id}
+                user={socialUser}
+                onMessageClick={handleMessageClick}
+              />
+            ))}
+          </div>
+          
+          {/* Desktop: Grid View */}
+          <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {filteredUsers.map((socialUser) => (
+              <CollaboratorCard
+                key={socialUser.id}
+                user={socialUser}
+                onMessageClick={handleMessageClick}
+              />
+            ))}
+          </div>
+        </>
       ) : (
         <Card className="p-8 sm:p-12 text-center">
           <p className="text-sm sm:text-base text-muted-foreground">

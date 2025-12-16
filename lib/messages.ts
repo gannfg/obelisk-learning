@@ -118,46 +118,102 @@ export async function createDirectConversation(
     }
 
     // Create new conversation
-    const { data: newConversation, error: createError } = await supabase
+    // Note: RLS on conversations only allows selecting conversations that already
+    // have the current user as a participant. To avoid relying on a SELECT right
+    // after INSERT (which would fail before participants exist), we generate the
+    // ID on the client and insert with returning=minimal.
+    const newConversationId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${currentUserId}-${otherUserId}-${Date.now()}`;
+
+    const { error: createError } = await supabase
       .from("conversations")
+      .insert(
+        {
+          id: newConversationId,
+          type: "direct",
+        },
+        { returning: "minimal" }
+      );
+
+    if (createError) {
+      console.error("Error creating conversation:", createError);
+      return null;
+    }
+
+    // Add current user as participant first (required by RLS policies)
+    // Note: We don't check if conversation exists because RLS blocks SELECT
+    // until we're a participant. If the insert above succeeded, it exists.
+    // Try to insert participant
+    const { data: selfParticipantData, error: selfParticipantError } = await supabase
+      .from("conversation_participants")
       .insert({
-        type: "direct",
+        conversation_id: newConversationId,
+        user_id: currentUserId,
       })
       .select()
       .single();
 
-    if (createError || !newConversation) {
-      // Only log if there's a real error with meaningful content
-      if (createError && createError.message && typeof createError.message === "string" && createError.message.trim().length > 0) {
-        console.error("Error creating conversation:", createError);
-      } else if (!newConversation) {
-        console.error("Failed to create conversation: No conversation returned");
+    if (selfParticipantError) {
+      // Log full error details - handle cases where error might not serialize well
+      const errorDetails: any = {
+        conversationId: newConversationId,
+        userId: currentUserId,
+      };
+      
+      // Try to extract error properties safely
+      if (selfParticipantError) {
+        errorDetails.errorCode = (selfParticipantError as any).code;
+        errorDetails.errorMessage = (selfParticipantError as any).message;
+        errorDetails.errorDetails = (selfParticipantError as any).details;
+        errorDetails.errorHint = (selfParticipantError as any).hint;
+        errorDetails.errorStatus = (selfParticipantError as any).status;
+        errorDetails.errorStatusText = (selfParticipantError as any).statusText;
+        
+        // Try to stringify the whole error
+        try {
+          errorDetails.fullError = JSON.stringify(selfParticipantError, Object.getOwnPropertyNames(selfParticipantError), 2);
+        } catch (e) {
+          errorDetails.fullError = String(selfParticipantError);
+        }
       }
-      return null;
-    }
-
-    // Add both users as participants
-    const { error: participantsError } = await supabase
-      .from("conversation_participants")
-      .insert([
-        {
-          conversation_id: newConversation.id,
-          user_id: currentUserId,
-        },
-        {
-          conversation_id: newConversation.id,
-          user_id: otherUserId,
-        },
-      ]);
-
-    if (participantsError) {
-      console.error("Error adding participants:", participantsError);
+      
+      console.error("Error adding current user as participant:", errorDetails);
+      
+      // Try to diagnose: check if we can read from the table at all
+      const { data: tableCheck, error: tableCheckError } = await supabase
+        .from("conversation_participants")
+        .select("conversation_id")
+        .limit(0);
+      
+      console.log("Table accessibility check:", {
+        canRead: tableCheck !== null,
+        readError: tableCheckError,
+      });
+      
       // Clean up conversation if participants failed
-      await supabase.from("conversations").delete().eq("id", newConversation.id);
+      await supabase.from("conversations").delete().eq("id", newConversationId);
       return null;
     }
 
-    return newConversation.id;
+    // Then add the other user as participant (RLS allows this once we're a participant)
+    const { error: otherParticipantError } = await supabase
+      .from("conversation_participants")
+      .insert({
+        conversation_id: newConversationId,
+        user_id: otherUserId,
+      });
+
+    if (otherParticipantError) {
+      console.error("Error adding other user as participant:", otherParticipantError);
+      // If we can't add the other participant, clean up the conversation so we
+      // don't leave orphaned records.
+      await supabase.from("conversations").delete().eq("id", newConversationId);
+      return null;
+    }
+
+    return newConversationId;
   } catch (error) {
     console.error("Error in createDirectConversation:", error);
     return null;
