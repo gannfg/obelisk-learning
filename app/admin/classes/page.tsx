@@ -22,6 +22,7 @@ import {
   removeEnrollment,
   getModuleAssignments,
   createAssignment,
+  updateAssignment,
   getClassAnnouncements,
   createAnnouncement,
   updateAnnouncement,
@@ -148,6 +149,7 @@ export default function AdminClassesPage() {
   // Form states
   const [editingClass, setEditingClass] = useState<Class | null>(null);
   const [editingModule, setEditingModule] = useState<ClassModule | null>(null);
+  const [editingAssignment, setEditingAssignment] = useState<ClassAssignment | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -274,7 +276,11 @@ export default function AdminClassesPage() {
     title: "",
     description: "",
     liveSessionLink: "",
+    embedVideoUrl: "",
   });
+  const [moduleSections, setModuleSections] = useState<
+    { description: string; youtubeUrl: string }[]
+  >([]);
 
   // Session form
   const [sessionForm, setSessionForm] = useState({
@@ -1158,7 +1164,9 @@ export default function AdminClassesPage() {
                             title: "",
                             description: "",
                             liveSessionLink: "",
+                            embedVideoUrl: "",
                           });
+                          setModuleSections([{ description: "", youtubeUrl: "" }]);
                           setModuleDialogOpen(true);
                         }}
                       >
@@ -1272,7 +1280,28 @@ export default function AdminClassesPage() {
                                             >
                                               <Users className="h-3 w-3" />
                                             </Button>
-                                            <Button size="sm" variant="ghost">
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => {
+                                                setEditingAssignment(assignment);
+                                                setSelectedModuleId(module.id);
+                                                // Use date mode when editing since we have the actual due date
+                                                setAssignmentForm({
+                                                  title: assignment.title,
+                                                  description: assignment.description || "",
+                                                  instructions: assignment.instructions || "",
+                                                  deadlineMode: "date",
+                                                  timerHours: "24",
+                                                  dueDate: format(assignment.dueDate, "yyyy-MM-dd"),
+                                                  dueTime: format(assignment.dueDate, "HH:mm"),
+                                                  submissionType: assignment.submissionType,
+                                                  xpReward: assignment.xpReward || 0,
+                                                  lockAfterDeadline: assignment.lockAfterDeadline,
+                                                });
+                                                setAssignmentDialogOpen(true);
+                                              }}
+                                            >
                                               <Edit className="h-3 w-3" />
                                             </Button>
                                           </div>
@@ -1326,11 +1355,29 @@ export default function AdminClassesPage() {
                                     variant="ghost"
                                     onClick={() => {
                                       setEditingModule(module);
+                                      // Load structured sections from content if available
+                                      const content: any = module.content;
+                                      if (content && typeof content === "object" && Array.isArray(content.sections)) {
+                                        setModuleSections(
+                                          content.sections.map((section: any) => ({
+                                            description: section.description || "",
+                                            youtubeUrl: section.youtubeUrl || section.youtube_url || "",
+                                          }))
+                                        );
+                                      } else {
+                                        setModuleSections([
+                                          {
+                                            description: module.description || "",
+                                            youtubeUrl: module.embedVideoUrl || "",
+                                          },
+                                        ]);
+                                      }
                                       setModuleForm({
                                         weekNumber: module.weekNumber,
                                         title: module.title,
                                         description: module.description || "",
                                         liveSessionLink: module.liveSessionLink || "",
+                            embedVideoUrl: module.embedVideoUrl || "",
                                       });
                                       setSelectedModuleId(module.id);
                                       setModuleDialogOpen(true);
@@ -1979,8 +2026,31 @@ export default function AdminClassesPage() {
       </Dialog>
 
       {/* Create/Edit Module Dialog */}
-      <Dialog open={moduleDialogOpen} onOpenChange={setModuleDialogOpen}>
-        <DialogContent>
+      <Dialog
+        open={moduleDialogOpen}
+        onOpenChange={(open) => {
+          // Allow explicit close (X/button) to set false; block overlay/escape separately
+          setModuleDialogOpen(open);
+          if (!open) {
+            // Reset editing state when closing
+            setEditingModule(null);
+            setSelectedModuleId(null);
+            setModuleForm({
+              weekNumber: 1,
+              title: "",
+              description: "",
+              liveSessionLink: "",
+              embedVideoUrl: "",
+            });
+            setModuleSections([]);
+          }
+        }}
+      >
+        <DialogContent
+          className="max-h-[90vh] overflow-y-auto"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>
               {editingModule ? "Edit Module" : "Create Weekly Module"}
@@ -2009,13 +2079,82 @@ export default function AdminClassesPage() {
                 placeholder="e.g., Introduction to Web3"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Description</label>
-              <Textarea
-                value={moduleForm.description}
-                onChange={(e) => setModuleForm({ ...moduleForm, description: e.target.value })}
-                rows={3}
-              />
+            {/* Module sections: repeating Description + YouTube URL blocks */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Content Sections</label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setModuleSections((prev) => [...prev, { description: "", youtubeUrl: "" }])
+                  }
+                >
+                  + Add Section
+                </Button>
+              </div>
+
+              {moduleSections.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No sections yet. Click &quot;Add Section&quot; to start.
+                </p>
+              )}
+
+              {moduleSections.map((section, index) => (
+                <div
+                  key={index}
+                  className="space-y-2 rounded-lg border bg-muted/30 p-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Section {index + 1}
+                    </p>
+                    {moduleSections.length > 1 && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          setModuleSections((prev) =>
+                            prev.filter((_, i) => i !== index)
+                          )
+                        }
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium">Description</label>
+                    <Textarea
+                      value={section.description}
+                      onChange={(e) =>
+                        setModuleSections((prev) =>
+                          prev.map((s, i) =>
+                            i === index ? { ...s, description: e.target.value } : s
+                          )
+                        )
+                      }
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium">YouTube Video URL (optional)</label>
+                    <Input
+                      value={section.youtubeUrl}
+                      onChange={(e) =>
+                        setModuleSections((prev) =>
+                          prev.map((s, i) =>
+                            i === index ? { ...s, youtubeUrl: e.target.value } : s
+                          )
+                        )
+                      }
+                      placeholder="https://www.youtube.com/watch?v=..."
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
             <div>
               <label className="text-sm font-medium">Live Session Link (optional)</label>
@@ -2042,14 +2181,30 @@ export default function AdminClassesPage() {
                     setSaving(false);
                     return;
                   }
+
+                  // Derive primary description and YouTube URL from first section (for legacy fields)
+                  const primarySection =
+                    moduleSections.length > 0
+                      ? moduleSections[0]
+                      : { description: moduleForm.description, youtubeUrl: moduleForm.embedVideoUrl };
+                  const primaryDescription = primarySection.description || "";
+                  const primaryYoutubeUrl = primarySection.youtubeUrl || "";
+
+                  const contentPayload =
+                    moduleSections.length > 0
+                      ? { sections: moduleSections }
+                      : undefined;
+
                   if (editingModule && selectedModuleId) {
                     await updateModule(
                       selectedModuleId,
                       {
                         weekNumber: moduleForm.weekNumber,
                         title: moduleForm.title,
-                        description: moduleForm.description || undefined,
+                        description: primaryDescription || undefined,
                         liveSessionLink: moduleForm.liveSessionLink || undefined,
+                        embedVideoUrl: primaryYoutubeUrl || undefined,
+                        content: contentPayload,
                       },
                       supabase
                     );
@@ -2059,8 +2214,10 @@ export default function AdminClassesPage() {
                         classId: selectedClass.id,
                         weekNumber: moduleForm.weekNumber,
                         title: moduleForm.title,
-                        description: moduleForm.description || undefined,
+                        description: primaryDescription || undefined,
                         liveSessionLink: moduleForm.liveSessionLink || undefined,
+                        embedVideoUrl: primaryYoutubeUrl || undefined,
+                        content: contentPayload,
                       },
                       supabase
                     );
@@ -2135,6 +2292,22 @@ export default function AdminClassesPage() {
         onOpenChange={(open) => {
           // Allow explicit close (X/button) to set false; block overlay/escape separately
           setAssignmentDialogOpen(open);
+          if (!open) {
+            // Reset form and editing state when closing
+            setEditingAssignment(null);
+            setAssignmentForm({
+              title: "",
+              description: "",
+              instructions: "",
+              deadlineMode: "timer",
+              timerHours: "24",
+              dueDate: "",
+              dueTime: "",
+              submissionType: "text",
+              xpReward: 0,
+              lockAfterDeadline: false,
+            });
+          }
         }}
       >
         <DialogContent
@@ -2143,9 +2316,9 @@ export default function AdminClassesPage() {
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle>Create Assignment</DialogTitle>
+            <DialogTitle>{editingAssignment ? "Edit Assignment" : "Create Assignment"}</DialogTitle>
             <DialogDescription>
-              Add an assignment to the selected module.
+              {editingAssignment ? "Update assignment details." : "Add an assignment to the selected module."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -2350,45 +2523,83 @@ export default function AdminClassesPage() {
                     dueDateTime = new Date(`${assignmentForm.dueDate}T${timePart}`);
                   }
 
-                  const newAssignment = await createAssignment(
-                    {
-                      moduleId: selectedModuleId,
-                      classId: selectedClass.id,
-                      title: assignmentForm.title,
-                      description: assignmentForm.description || undefined,
-                      instructions: assignmentForm.instructions || undefined,
-                      dueDate: dueDateTime.toISOString(),
-                      submissionType: assignmentForm.submissionType,
-                      xpReward: assignmentForm.xpReward,
-                      lockAfterDeadline: assignmentForm.lockAfterDeadline,
-                    },
-                    user.id,
-                    learningSupabase
-                  );
-                  
-                  // Send notifications to all enrolled students
-                  if (newAssignment) {
-                    try {
-                      const { notifyNewAssignment } = await import("@/lib/classroom-notifications");
-                      // Fetch module to get title
-                      const modules = await getClassModules(selectedClass.id, learningSupabase);
-                      const module = modules.find(m => m.id === selectedModuleId);
-                      await notifyNewAssignment(
-                        selectedClass.id,
-                        selectedClass.title,
-                        assignmentForm.title,
-                        dueDateTime,
-                        learningSupabase,
-                        authSupabase,
-                        module?.title
-                      );
-                    } catch (notifError) {
-                      console.error("Error sending assignment notifications:", notifError);
-                      // Don't fail the assignment creation if notification fails
+                  if (editingAssignment) {
+                    // Update existing assignment
+                    const updatedAssignment = await updateAssignment(
+                      editingAssignment.id,
+                      {
+                        title: assignmentForm.title,
+                        description: assignmentForm.description || undefined,
+                        instructions: assignmentForm.instructions || undefined,
+                        dueDate: dueDateTime.toISOString(),
+                        submissionType: assignmentForm.submissionType,
+                        xpReward: assignmentForm.xpReward,
+                        lockAfterDeadline: assignmentForm.lockAfterDeadline,
+                      },
+                      learningSupabase
+                    );
+                    
+                    if (updatedAssignment) {
+                      setSuccess("Assignment updated successfully!");
+                    } else {
+                      setError("Failed to update assignment.");
+                    }
+                  } else {
+                    // Create new assignment
+                    const newAssignment = await createAssignment(
+                      {
+                        moduleId: selectedModuleId,
+                        classId: selectedClass.id,
+                        title: assignmentForm.title,
+                        description: assignmentForm.description || undefined,
+                        instructions: assignmentForm.instructions || undefined,
+                        dueDate: dueDateTime.toISOString(),
+                        submissionType: assignmentForm.submissionType,
+                        xpReward: assignmentForm.xpReward,
+                        lockAfterDeadline: assignmentForm.lockAfterDeadline,
+                      },
+                      user.id,
+                      learningSupabase
+                    );
+                    
+                    // Send notifications to all enrolled students (only for new assignments)
+                    if (newAssignment) {
+                      try {
+                        const { notifyNewAssignment } = await import("@/lib/classroom-notifications");
+                        // Fetch module to get title
+                        const modules = await getClassModules(selectedClass.id, learningSupabase);
+                        const module = modules.find(m => m.id === selectedModuleId);
+                        await notifyNewAssignment(
+                          selectedClass.id,
+                          selectedClass.title,
+                          assignmentForm.title,
+                          dueDateTime,
+                          learningSupabase,
+                          authSupabase,
+                          module?.title
+                        );
+                      } catch (notifError) {
+                        console.error("Error sending assignment notifications:", notifError);
+                        // Don't fail the assignment creation if notification fails
+                      }
                     }
                   }
                   
                   setAssignmentDialogOpen(false);
+                  setEditingAssignment(null);
+                  // Reset form
+                  setAssignmentForm({
+                    title: "",
+                    description: "",
+                    instructions: "",
+                    deadlineMode: "timer",
+                    timerHours: "24",
+                    dueDate: "",
+                    dueTime: "",
+                    submissionType: "text",
+                    xpReward: 0,
+                    lockAfterDeadline: false,
+                  });
                   // Reload assignments
                   const moduleAssignments = await getModuleAssignments(selectedModuleId, learningSupabase);
                   setAssignments((prev) => [

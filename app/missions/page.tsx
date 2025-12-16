@@ -368,7 +368,7 @@ export default function MissionBoardPage() {
                     alt={featuredMission.title}
                     fill
                     className="object-cover"
-                    sizes="192px"
+                    sizes="(max-width: 768px) 100vw, 256px"
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">

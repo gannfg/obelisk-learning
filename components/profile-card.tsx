@@ -125,6 +125,7 @@ export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps
                     alt={displayName}
                     fill
                     className="object-cover"
+                    sizes="(max-width: 640px) 80px, 96px"
                   />
                 </div>
               ) : (
@@ -143,7 +144,7 @@ export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps
                     alt={teamName || "Team"}
                     fill
                     className="object-cover"
-                    unoptimized
+                    sizes="64px"
                   />
                 </div>
               ) : (
@@ -225,7 +226,7 @@ export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps
                   alt={teamName || "Team"}
                   fill
                   className="object-cover"
-                  unoptimized
+                  sizes="80px"
                 />
               </div>
             ) : (

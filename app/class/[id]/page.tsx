@@ -246,7 +246,6 @@ export default async function ClassPage({ params }: ClassPageProps) {
                             fill
                             className="object-cover"
                             sizes="32px"
-                            unoptimized
                           />
                         ) : (
                           <div className="h-full w-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
@@ -277,11 +276,15 @@ export default async function ClassPage({ params }: ClassPageProps) {
 
             {/* Tabs */}
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className={isInstructor ? "grid w-full grid-cols-5" : "grid w-full grid-cols-3"}>
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="modules">Modules</TabsTrigger>
-                <TabsTrigger value="attendance">Attendance</TabsTrigger>
-                <TabsTrigger value="assignments">Assignments</TabsTrigger>
+                {isInstructor && (
+                  <>
+                    <TabsTrigger value="attendance">Attendance</TabsTrigger>
+                    <TabsTrigger value="assignments">Assignments</TabsTrigger>
+                  </>
+                )}
                 <TabsTrigger value="announcements">Announcements</TabsTrigger>
               </TabsList>
 
@@ -303,23 +306,27 @@ export default async function ClassPage({ params }: ClassPageProps) {
                 />
               </TabsContent>
 
-              <TabsContent value="attendance" className="mt-6">
-                <ClassroomAttendance
-                  classId={id}
-                  classItem={classItem}
-                  userId={user.id}
-                  isInstructor={isInstructor}
-                />
-              </TabsContent>
+              {isInstructor && (
+                <>
+                  <TabsContent value="attendance" className="mt-6">
+                    <ClassroomAttendance
+                      classId={id}
+                      classItem={classItem}
+                      userId={user.id}
+                      isInstructor={isInstructor}
+                    />
+                  </TabsContent>
 
-              <TabsContent value="assignments" className="mt-6">
-                <ClassroomAssignments
-                  classId={id}
-                  classItem={classItem}
-                  userId={user.id}
-                  isInstructor={isInstructor}
-                />
-              </TabsContent>
+                  <TabsContent value="assignments" className="mt-6">
+                    <ClassroomAssignments
+                      classId={id}
+                      classItem={classItem}
+                      userId={user.id}
+                      isInstructor={isInstructor}
+                    />
+                  </TabsContent>
+                </>
+              )}
 
               <TabsContent value="announcements" className="mt-6">
                 <ClassroomAnnouncements
