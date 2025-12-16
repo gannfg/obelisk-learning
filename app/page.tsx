@@ -260,11 +260,11 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Main Content Section */}
-      <section className="container mx-auto px-3 sm:px-4 pt-3 sm:pt-4 md:pt-6 pb-8 sm:pb-12">
+      <section className="container mx-auto px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 md:pt-6 pb-8 sm:pb-12">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-4 sm:gap-6 lg:gap-8">
             {/* Left Column - Courses List */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-5 md:space-y-6">
               {/* Top - Advertisement Carousel */}
               {loadingAds ? (
                 <div className="flex items-center justify-center py-12 rounded-2xl border-2 border-border bg-muted/50 min-h-[200px]">
@@ -273,6 +273,36 @@ export default function Home() {
               ) : adSlides.length > 0 ? (
                 <AdCarousel slides={adSlides} autoPlayInterval={5000} />
               ) : null}
+
+              {/* Achievements Section - Mobile only, below advertisement */}
+              <div className="lg:hidden">
+                <div className="mb-2">
+                  <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Achievements</h3>
+                </div>
+                
+                {/* Stats Boxes - Smaller on mobile */}
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="p-2.5 rounded-lg bg-muted/50 border border-border text-center">
+                    <div className="text-lg font-bold mb-0.5">
+                      {loadingStats ? "..." : badgesCount}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">Badges</div>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-muted/50 border border-border text-center">
+                    <div className="text-lg font-bold mb-0.5">
+                      {loadingStats ? "..." : xpCount}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">XP</div>
+                  </div>
+                </div>
+
+                <Button variant="outline" className="w-full rounded-lg group text-xs py-1.5 h-auto" asChild>
+                  <Link href="/achievements" className="flex items-center justify-center gap-2">
+                    <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                    <ArrowRight className="h-3 w-3 opacity-40 group-hover:opacity-80 transition-all" />
+                  </Link>
+                </Button>
+              </div>
 
               {/* Classes */}
               <div className="mb-2">
@@ -285,17 +315,19 @@ export default function Home() {
                 </div>
               ) : classes.length > 0 ? (
                 <>
-                  <div className="space-y-3 mb-4">
-                    {classes.map((classItem) => (
+                  <div className="space-y-2 lg:space-y-3 mb-4">
+                    {classes.slice(0, 4).map((classItem) => (
                       <HorizontalClassCard key={classItem.id} classItem={classItem} />
                     ))}
                   </div>
-                  <Button variant="outline" className="w-full rounded-lg group" asChild>
-                    <Link href="/academy?tab=classes" className="flex items-center justify-center gap-2">
-                      <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
-                      <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
-                    </Link>
-                  </Button>
+                  {classes.length > 4 && (
+                    <Button variant="outline" className="w-full rounded-lg group" asChild>
+                      <Link href="/academy?tab=classes" className="flex items-center justify-center gap-2">
+                        <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                        <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+                      </Link>
+                    </Button>
+                  )}
                 </>
               ) : (
                 <div className="py-6 text-center">
@@ -319,17 +351,19 @@ export default function Home() {
                 </div>
               ) : projects.length > 0 ? (
                 <>
-                  <div className="space-y-3 mb-4">
-                    {projects.map((project) => (
+                  <div className="space-y-2 lg:space-y-3 mb-4">
+                    {projects.slice(0, 4).map((project) => (
                       <HorizontalProjectCard key={project.id} project={project} />
                     ))}
                   </div>
-                  <Button variant="outline" className="w-full rounded-lg group" asChild>
-                    <Link href="/academy?tab=projects" className="flex items-center justify-center gap-2">
-                      <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
-                      <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
-                    </Link>
-                  </Button>
+                  {projects.length > 4 && (
+                    <Button variant="outline" className="w-full rounded-lg group" asChild>
+                      <Link href="/academy?tab=projects" className="flex items-center justify-center gap-2">
+                        <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                        <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+                      </Link>
+                    </Button>
+                  )}
                 </>
               ) : (
                 <div className="py-6 text-center">
@@ -345,7 +379,7 @@ export default function Home() {
             </div>
 
             {/* Right Sidebar */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:space-y-6">
               {/* Achievements Section - Desktop only (in sidebar) */}
               <div className="hidden lg:block">
                 <div className="mb-2">
@@ -380,8 +414,8 @@ export default function Home() {
               </div>
 
               {/* HOW IT WORKS Section */}
-              <Card className="p-6 hidden md:block">
-                <div className="mb-6">
+              <Card className="p-4 sm:p-5 md:p-6 hidden md:block">
+                <div className="mb-4 sm:mb-5 md:mb-6">
                   <h2 className="text-xs uppercase tracking-wider text-muted-foreground">
                     HOW IT WORKS
                   </h2>
@@ -475,17 +509,19 @@ export default function Home() {
                 </div>
               ) : missions.length > 0 ? (
                 <>
-                  <div className="space-y-3 mb-4">
-                    {missions.map((mission) => (
+                  <div className="space-y-2 lg:space-y-3 mb-4">
+                    {missions.slice(0, 4).map((mission) => (
                       <HorizontalMissionCard key={mission.id} mission={mission} />
                     ))}
                   </div>
-                  <Button variant="outline" className="w-full rounded-lg group" asChild>
-                    <Link href="/missions" className="flex items-center justify-center gap-2">
-                      <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
-                      <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
-                    </Link>
-                  </Button>
+                  {missions.length > 4 && (
+                    <Button variant="outline" className="w-full rounded-lg group" asChild>
+                      <Link href="/missions" className="flex items-center justify-center gap-2">
+                        <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                        <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+                      </Link>
+                    </Button>
+                  )}
                 </>
               ) : (
                 <div className="py-6 text-center">
@@ -510,14 +546,16 @@ export default function Home() {
               ) : teams.length > 0 ? (
                 <>
                   <div className="mb-4">
-                    <TeamsTicker teams={teams} />
+                    <TeamsTicker teams={teams.slice(0, 4)} />
                   </div>
-                  <Button variant="outline" className="w-full rounded-lg group" asChild>
-                    <Link href="/academy?tab=teams" className="flex items-center justify-center gap-2">
-                      <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
-                      <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
-                    </Link>
-                  </Button>
+                  {teams.length > 4 && (
+                    <Button variant="outline" className="w-full rounded-lg group" asChild>
+                      <Link href="/academy?tab=teams" className="flex items-center justify-center gap-2">
+                        <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                        <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+                      </Link>
+                    </Button>
+                  )}
                 </>
               ) : (
                 <div className="py-6 text-center">
@@ -532,38 +570,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Achievements Section - Below all content on mobile only */}
-          <div className="lg:hidden">
-            <div className="mb-2">
-              <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Achievements</h3>
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Track your progress and unlock badges
-            </p>
-            
-            {/* Stats Boxes */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
-                <div className="text-2xl font-bold mb-1">
-                  {loadingStats ? "..." : badgesCount}
-                </div>
-                <div className="text-xs text-muted-foreground">Badges</div>
-              </div>
-              <div className="p-4 rounded-lg bg-muted/50 border border-border text-center">
-                <div className="text-2xl font-bold mb-1">
-                  {loadingStats ? "..." : xpCount}
-                </div>
-                <div className="text-xs text-muted-foreground">XP</div>
-              </div>
-            </div>
-
-            <Button variant="outline" className="w-full rounded-lg group" asChild>
-              <Link href="/achievements" className="flex items-center justify-center gap-2">
-                <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
-                <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
-              </Link>
-            </Button>
-          </div>
         </div>
       </section>
 

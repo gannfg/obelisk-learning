@@ -24,6 +24,7 @@ import {
   Search,
   Trophy,
   FolderKanban,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -83,7 +84,7 @@ import {
     { href: "/academy", label: "Academy" },
     { href: "/missions", label: "Missions" },
     { href: "/workshops", label: "Workshops" },
-    { href: "/instructors", label: "Mentors" },
+    { href: "/social", label: "Collaborate" },
   ];
 
   const navItems = isAdmin
@@ -303,9 +304,15 @@ import {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
-                        <Link href="/instructors" className="flex items-center w-full">
-                          <HelpCircle className="mr-2 h-4 w-4" />
-                          Help
+                        <Link href="/social" className="flex items-center w-full">
+                          <UsersIcon className="mr-2 h-4 w-4" />
+                          Social
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/messages" className="flex items-center w-full">
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          Messages
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem
