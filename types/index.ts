@@ -99,6 +99,7 @@ export type Mission = {
   orderIndex: number;
   badgeId?: string;
   submissionFields?: MissionSubmissionField[];
+  prerequisiteClassIds?: string[]; // Optional: class IDs that must be completed before accessing this mission
 };
 
 export type MissionContent = {

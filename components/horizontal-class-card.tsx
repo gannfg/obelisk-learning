@@ -50,11 +50,6 @@ export function HorizontalClassCard({ classItem }: HorizontalClassCardProps) {
                     </p>
                   )}
                 </div>
-                <div className="flex-shrink-0 flex flex-col items-end gap-0.5 lg:gap-1">
-                  <span className="px-1.5 py-0.5 lg:px-2 text-[10px] lg:text-xs font-medium rounded-full bg-muted text-muted-foreground">
-                    {classItem.status}
-                  </span>
-                </div>
               </div>
               
               {/* Tags/Metadata */}

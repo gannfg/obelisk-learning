@@ -367,21 +367,21 @@ export default function EnrollPage() {
                   
                   if (classItem.enrollmentLocked) {
                     return (
-                      <div className="p-3 rounded-md bg-muted border">
-                        <p className="text-sm text-muted-foreground">
-                          Enrollment is currently locked for this class.
-                        </p>
-                      </div>
+                  <div className="p-3 rounded-md bg-muted border">
+                    <p className="text-sm text-muted-foreground">
+                      Enrollment is currently locked for this class.
+                    </p>
+                  </div>
                     );
                   }
                   
                   if (!classItem.published) {
                     return (
-                      <div className="p-3 rounded-md bg-muted border">
-                        <p className="text-sm text-muted-foreground">
-                          This class is not yet published.
-                        </p>
-                      </div>
+                  <div className="p-3 rounded-md bg-muted border">
+                    <p className="text-sm text-muted-foreground">
+                      This class is not yet published.
+                    </p>
+                  </div>
                     );
                   }
                   

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getClassByIdWithModules, getClassEnrollments } from "@/lib/classes";
@@ -26,7 +26,7 @@ export default async function ClassPage({ params }: ClassPageProps) {
 
   // Get current user and check enrollment status
   const user = await getCurrentUser();
-  let userEnrollment = null;
+  let userEnrollment: any = null;
   
   // Get all enrollments and user profiles
   const allEnrollments = await getClassEnrollments(id, learningSupabase);
@@ -36,6 +36,10 @@ export default async function ClassPage({ params }: ClassPageProps) {
     userEnrollment = activeEnrollments.find(
       (enrollment) => enrollment.userId === user.id
     );
+    // If already enrolled, send user directly to the class experience
+    if (userEnrollment) {
+      redirect(`/class/${id}`);
+    }
   }
 
   // Fetch user profiles with avatars for enrolled users
@@ -165,7 +169,7 @@ export default async function ClassPage({ params }: ClassPageProps) {
                       <span className="text-muted-foreground">Not Enrolled</span>
                     )}
                   </p>
-                  {userEnrollment && (
+                  {userEnrollment && userEnrollment.enrolledAt && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Enrolled on {format(userEnrollment.enrolledAt, "MMM d, yyyy")}
                     </p>
@@ -295,7 +299,6 @@ export default async function ClassPage({ params }: ClassPageProps) {
                 <TabsList>
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="modules">Modules</TabsTrigger>
-                  <TabsTrigger value="schedule">Schedule</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="overview" className="space-y-4 pt-4">
@@ -385,7 +388,7 @@ export default async function ClassPage({ params }: ClassPageProps) {
                               </ul>
                             </CardContent>
                           )}
-                          {module.liveSessionLink && (
+                          {module.liveSessionLink && userEnrollment && (
                             <CardContent>
                               <a
                                 href={module.liveSessionLink}
@@ -409,50 +412,6 @@ export default async function ClassPage({ params }: ClassPageProps) {
                   )}
                 </TabsContent>
 
-                <TabsContent value="schedule" className="space-y-4 pt-4">
-                  <h2 className="text-2xl font-bold">Class Schedule</h2>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Start Date</p>
-                          <p className="font-medium">
-                            {format(classItem.startDate, "EEEE, MMMM d, yyyy")}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">End Date</p>
-                          <p className="font-medium">
-                            {format(classItem.endDate, "EEEE, MMMM d, yyyy")}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-1">Duration</p>
-                          <p className="font-medium">
-                            {Math.ceil((classItem.endDate.getTime() - classItem.startDate.getTime()) / (1000 * 60 * 60 * 24))} days
-                          </p>
-                        </div>
-                        {classItem.modules && classItem.modules.length > 0 && (
-                          <div>
-                            <p className="text-sm text-muted-foreground mb-2">Weekly Schedule</p>
-                            <div className="space-y-2">
-                              {classItem.modules.map((module) => (
-                                <div key={module.id} className="text-sm border-l-2 border-primary/20 pl-3">
-                                  <p className="font-medium">Week {module.weekNumber}: {module.title}</p>
-                                  {module.startDate && module.endDate && (
-                                    <p className="text-muted-foreground text-xs">
-                                      {format(module.startDate, "MMM d")} - {format(module.endDate, "MMM d, yyyy")}
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
               </Tabs>
             </div>
           </div>

@@ -5,11 +5,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Target, Clock, CheckCircle2, Circle, Trophy, Filter, Sparkles, Calendar, Users, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Target, Clock, CheckCircle2, Circle, Trophy, Filter, Sparkles, Calendar, Users, ArrowRight, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { MissionCardSkeleton } from "@/components/mission-card-skeleton";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createLearningClient } from "@/lib/supabase/learning-client";
 import type { Mission, MissionProgress, MissionSubmission } from "@/types";
+import { getMissionPrerequisites, canAccessMission, getMissionPrerequisitesWithDetails } from "@/lib/mission-prerequisites";
 
 export default function MissionBoardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -22,6 +23,8 @@ export default function MissionBoardPage() {
   const [joinFilter, setJoinFilter] = useState<"all" | "joined" | "not_joined">("all");
   const [featuredMissions, setFeaturedMissions] = useState<Mission[]>([]);
   const [currentFeaturedIndex, setCurrentFeaturedIndex] = useState(0);
+  const [missionAccessMap, setMissionAccessMap] = useState<Record<string, { canAccess: boolean; missingClasses: string[] }>>({});
+  const [prerequisiteDetailsMap, setPrerequisiteDetailsMap] = useState<Record<string, Array<{ id: string; title: string; thumbnail?: string }>>>({});
 
   useEffect(() => {
     if (authLoading) return;
@@ -69,6 +72,46 @@ export default function MissionBoardPage() {
         })) || [];
 
       setMissions(normalizedMissions);
+
+      // Fetch prerequisites and check access for each mission
+      if (user) {
+        const accessMap: Record<string, { canAccess: boolean; missingClasses: string[] }> = {};
+        const detailsMap: Record<string, Array<{ id: string; title: string; thumbnail?: string }>> = {};
+
+        await Promise.all(
+          normalizedMissions.map(async (mission) => {
+            // Get prerequisite details
+            const prerequisites = await getMissionPrerequisitesWithDetails(mission.id, supabase);
+            detailsMap[mission.id] = prerequisites;
+
+            // Check if user can access this mission
+            const access = await canAccessMission(mission.id, user.id, supabase);
+            accessMap[mission.id] = access;
+          })
+        );
+
+        setPrerequisiteDetailsMap(detailsMap);
+        setMissionAccessMap(accessMap);
+      } else {
+        // For non-authenticated users, check prerequisites but mark all as locked if they have prerequisites
+        const detailsMap: Record<string, Array<{ id: string; title: string; thumbnail?: string }>> = {};
+        const accessMap: Record<string, { canAccess: boolean; missingClasses: string[] }> = {};
+
+        await Promise.all(
+          normalizedMissions.map(async (mission) => {
+            const prerequisites = await getMissionPrerequisitesWithDetails(mission.id, supabase);
+            detailsMap[mission.id] = prerequisites;
+            // If mission has prerequisites, non-authenticated users can't access
+            accessMap[mission.id] = {
+              canAccess: prerequisites.length === 0,
+              missingClasses: prerequisites.map(p => p.id),
+            };
+          })
+        );
+
+        setPrerequisiteDetailsMap(detailsMap);
+        setMissionAccessMap(accessMap);
+      }
 
       // Randomly pick 4 missions for featured hero card
       if (normalizedMissions.length > 0) {
@@ -411,6 +454,9 @@ export default function MissionBoardPage() {
             const progress = progressMap[mission.id];
             const submission = submissionMap[mission.id];
             const isJoined = !!progress;
+            const access = missionAccessMap[mission.id] || { canAccess: true, missingClasses: [] };
+            const isLocked = !access.canAccess;
+            const prerequisiteDetails = prerequisiteDetailsMap[mission.id] || [];
             
             // Calculate progress percentage based on submission status
             let progressPercentage = 0;
@@ -447,19 +493,18 @@ export default function MissionBoardPage() {
 
             const status = submission?.status;
 
-            return (
-              <Link key={mission.id} href={`/missions/${mission.id}`} className="block w-full group">
-                <Card
-                  className={`overflow-hidden transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] hover:shadow-lg ${
-                    progressPercentage === 100
-                      ? "border-green-500/50 bg-green-500/5"
-                      : status === "changes_requested"
-                      ? "border-amber-400/60 bg-amber-50"
-                      : isJoined
-                      ? "border-blue-500/30 bg-blue-500/5"
-                      : ""
-                  }`}
-                >
+            const cardContent = (
+              <Card
+                className={`overflow-hidden transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] hover:shadow-lg ${
+                  progressPercentage === 100
+                    ? "border-green-500/50 bg-green-500/5"
+                    : status === "changes_requested"
+                    ? "border-amber-400/60 bg-amber-50"
+                    : isJoined
+                    ? "border-blue-500/30 bg-blue-500/5"
+                    : ""
+                }`}
+              >
                   <div className="p-4">
                     {/* Top Section - Icon and Title */}
                     <div className="flex items-start gap-2 mb-2">
@@ -497,11 +542,6 @@ export default function MissionBoardPage() {
                           }`}>
                             {mission.difficulty} level
                           </span>
-                          {isJoined && (
-                            <span className="text-xs px-2 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium">
-                              Joined
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -587,6 +627,11 @@ export default function MissionBoardPage() {
                     </div>
                   </div>
                 </Card>
+            );
+
+            return (
+              <Link key={mission.id} href={`/missions/${mission.id}`} className="block w-full group">
+                {cardContent}
               </Link>
             );
           })}
