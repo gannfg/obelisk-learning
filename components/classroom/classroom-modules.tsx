@@ -9,8 +9,6 @@ import type { ClassModule, AssignmentSubmission } from "@/types/classes";
 import type { ClassWithModules } from "@/lib/classes";
 import { getModuleAssignments, getClassModules } from "@/lib/classes";
 import { createLearningClient } from "@/lib/supabase/learning-client";
-import { MarkdownContent } from "@/components/markdown-content";
-import { ModuleEditor } from "./module-editor";
 import { markWeekAttendance } from "@/lib/classroom";
 
 interface ClassroomModulesProps {
@@ -76,7 +74,6 @@ export function ClassroomModules({
   isInstructor,
 }: ClassroomModulesProps) {
   const [modules, setModules] = useState<ClassModule[]>(classItem.modules || []);
-  const [editingModule, setEditingModule] = useState<string | null>(null);
   const [assignmentsByModule, setAssignmentsByModule] = useState<Record<string, any[]>>({});
   const [submissionsByAssignment, setSubmissionsByAssignment] = useState<Record<string, AssignmentSubmission[]>>({});
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
@@ -266,28 +263,8 @@ export function ClassroomModules({
     }
   }, [modules, assignmentsByModule, submissionsByAssignment, classId, userId, isInstructor]);
 
-  const handleModuleUpdate = (updatedModule: ClassModule) => {
-    setModules((prev) =>
-      prev.map((m) => (m.id === updatedModule.id ? updatedModule : m))
-    );
-    setEditingModule(null);
-  };
-
   return (
     <div className="space-y-6">
-      {isInstructor && (
-        <div className="flex justify-end">
-          <Button
-            onClick={() => {
-              // Create new module - would need a modal/form
-              window.location.href = `/admin/classes/${classId}/modules/new`;
-            }}
-          >
-            Add Module
-          </Button>
-        </div>
-      )}
-
       {modules.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
@@ -462,17 +439,6 @@ export function ClassroomModules({
                   </CardContent>
                 )}
 
-                {/* Module Editor (Instructor) */}
-                {isInstructor && editingModule === module.id && (
-                  <CardContent className="border-t pt-4">
-                    <ModuleEditor
-                      module={module}
-                      classId={classId}
-                      onUpdate={handleModuleUpdate}
-                      onCancel={() => setEditingModule(null)}
-                    />
-                  </CardContent>
-                )}
               </Card>
             );
           })}
