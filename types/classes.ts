@@ -41,6 +41,7 @@ export interface ClassModule {
   startDate?: Date;
   endDate?: Date;
   liveSessionLink?: string;
+  embedVideoUrl?: string;
   learningMaterials: LearningMaterial[];
   locked: boolean;
   createdAt: Date;
@@ -193,7 +194,10 @@ export interface CreateModuleInput {
   startDate?: string; // ISO string
   endDate?: string; // ISO string
   liveSessionLink?: string;
+  embedVideoUrl?: string;
   learningMaterials?: LearningMaterial[];
+  // Optional structured content for modules (e.g. description + YouTube blocks)
+  content?: any;
 }
 
 export interface CreateSessionInput {

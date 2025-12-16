@@ -136,9 +136,9 @@ export function ClassroomOverview({
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">Modules Unlocked</p>
+                <p className="text-sm text-muted-foreground">Modules</p>
                 <p className="text-2xl font-bold">
-                  {progress.unlockedModules} / {progress.totalModules}
+                  {progress.totalModules}
                 </p>
               </div>
               <div>

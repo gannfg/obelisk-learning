@@ -126,7 +126,7 @@ export async function markWeekAttendance(
   classId: string,
   userId: string,
   weekNumber: number,
-  method: "qr" | "manual" = "manual",
+  method: "qr" | "manual" | "auto" = "manual",
   checkedBy?: string,
   supabaseClient?: SupabaseClient<any>
 ): Promise<WeekAttendance | null> {
@@ -474,18 +474,14 @@ export async function getStudentProgress(
   try {
     const supabase = ensureSupabaseClient(supabaseClient);
     
-    // Get total modules
+    // Get total modules (all modules are now accessible since we removed locking)
     const { count: totalModules } = await supabase
       .from("class_modules")
       .select("*", { count: "exact", head: true })
       .eq("class_id", classId);
 
-    // Get unlocked modules
-    const { count: unlockedModules } = await supabase
-      .from("class_modules")
-      .select("*", { count: "exact", head: true })
-      .eq("class_id", classId)
-      .eq("is_released", true);
+    // All modules are accessible now (locking removed), so unlocked = total
+    const unlockedModules = totalModules;
 
     // Get attendance count
     const { count: attendanceCount } = await supabase
