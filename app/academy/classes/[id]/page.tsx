@@ -277,9 +277,6 @@ export default async function ClassPage({ params }: ClassPageProps) {
                 <Calendar className="h-5 w-5" />
                 <span>{getDateShort(classItem.startDate)} - {getDateShort(classItem.endDate)}</span>
               </div>
-              <div className="text-muted-foreground">
-                {format(classItem.startDate, "EEEE, MMMM d, yyyy")} - {format(classItem.endDate, "EEEE, MMMM d, yyyy")}
-              </div>
             </div>
 
             {/* Enrollment Status Banner */}
@@ -292,126 +289,36 @@ export default async function ClassPage({ params }: ClassPageProps) {
               </div>
             )}
 
-            {/* Overview with Tabs */}
+            {/* Overview only (hide modules for non-enrolled users) */}
             <div className="space-y-4">
-              <Tabs defaultValue="overview" className="w-full">
-                <TabsList>
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="modules">Modules</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="overview" className="space-y-4 pt-4">
-                  <h2 className="text-2xl font-bold">About This Class</h2>
-                  <div className="prose prose-invert max-w-none">
-                    <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                      {classItem.description || "No description available for this class."}
-                    </p>
-                    <div className="mt-6 space-y-4">
-                      <div>
-                        <h3 className="font-semibold mb-2">Class Details</h3>
-                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                          <li>Semester: {classItem.semester}</li>
-                          <li>Start Date: {format(classItem.startDate, "MMMM d, yyyy")}</li>
-                          <li>End Date: {format(classItem.endDate, "MMMM d, yyyy")}</li>
-                          {classItem.maxCapacity && (
-                            <li>Maximum Capacity: {classItem.maxCapacity} students</li>
-                          )}
-                          <li>Status: <span className="capitalize">{classItem.status}</span></li>
-                        </ul>
-                      </div>
-                      {classItem.category && (
-                        <div>
-                          <h3 className="font-semibold mb-2">Category</h3>
-                          <span className="inline-block rounded-full border border-border bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
-                            {classItem.category}
-                          </span>
-                        </div>
+              <h2 className="text-2xl font-bold">About This Class</h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {classItem.description || "No description available for this class."}
+                </p>
+                <div className="mt-6 space-y-4">
+                  <div>
+                    <h3 className="font-semibold mb-2">Class Details</h3>
+                    <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                      <li>Semester: {classItem.semester}</li>
+                      <li>Start Date: {format(classItem.startDate, "MMMM d, yyyy")}</li>
+                      <li>End Date: {format(classItem.endDate, "MMMM d, yyyy")}</li>
+                      {classItem.maxCapacity && (
+                        <li>Maximum Capacity: {classItem.maxCapacity} students</li>
                       )}
-                    </div>
+                      <li>Status: <span className="capitalize">{classItem.status}</span></li>
+                    </ul>
                   </div>
-                </TabsContent>
-
-                <TabsContent value="modules" className="space-y-4 pt-4">
-                  <h2 className="text-2xl font-bold">Class Modules</h2>
-                  {classItem.modules && classItem.modules.length > 0 ? (
-                    <div className="space-y-4">
-                      {classItem.modules.map((module) => (
-                        <Card key={module.id}>
-                          <CardHeader>
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <CardTitle className="mb-2">
-                                  Week {module.weekNumber}: {module.title}
-                                </CardTitle>
-                                {module.description && (
-                                  <p className="text-sm text-muted-foreground mb-3">
-                                    {module.description}
-                                  </p>
-                                )}
-                                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                  {module.startDate && (
-                                    <div className="flex items-center gap-1">
-                                      <Calendar className="h-3 w-3" />
-                                      <span>Starts: {format(module.startDate, "MMM d, yyyy")}</span>
-                                    </div>
-                                  )}
-                                  {module.endDate && (
-                                    <div className="flex items-center gap-1">
-                                      <Calendar className="h-3 w-3" />
-                                      <span>Ends: {format(module.endDate, "MMM d, yyyy")}</span>
-                                    </div>
-                                  )}
-                                  {module.locked && (
-                                    <span className="text-orange-600 dark:text-orange-400">🔒 Locked</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </CardHeader>
-                          {module.learningMaterials && module.learningMaterials.length > 0 && (
-                            <CardContent>
-                              <h4 className="text-sm font-semibold mb-2">Learning Materials</h4>
-                              <ul className="space-y-1">
-                                {module.learningMaterials.map((material, idx) => (
-                                  <li key={idx} className="text-sm">
-                                    <a
-                                      href={material.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-primary hover:underline"
-                                    >
-                                      {material.title} ({material.type})
-                                    </a>
-                                  </li>
-                                ))}
-                              </ul>
-                            </CardContent>
-                          )}
-                          {module.liveSessionLink && module.liveSessionLink.trim().length > 0 && userEnrollment && (
-                            <CardContent>
-                              <a
-                                href={module.liveSessionLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-primary hover:underline"
-                              >
-                                Join Live Session →
-                              </a>
-                            </CardContent>
-                          )}
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="py-8 text-center">
-                      <p className="text-muted-foreground">
-                        No modules available yet. Check back soon!
-                      </p>
+                  {classItem.category && (
+                    <div>
+                      <h3 className="font-semibold mb-2">Category</h3>
+                      <span className="inline-block rounded-full border border-border bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
+                        {classItem.category}
+                      </span>
                     </div>
                   )}
-                </TabsContent>
-
-              </Tabs>
+                </div>
+              </div>
             </div>
           </div>
         </div>

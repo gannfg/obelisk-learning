@@ -38,6 +38,7 @@ import {
   upsertXPConfig,
   updateModuleLearningMaterials,
 } from "@/lib/classes";
+import { getUserProfile } from "@/lib/profile";
 import type {
   Class,
   ClassModule,
@@ -122,6 +123,9 @@ export default function AdminClassesPage() {
   const [assignments, setAssignments] = useState<ClassAssignment[]>([]);
   const [announcements, setAnnouncements] = useState<ClassAnnouncement[]>([]);
   const [stats, setStats] = useState<ClassStats | null>(null);
+  const [enrollmentProfiles, setEnrollmentProfiles] = useState<
+    Record<string, { username?: string; email?: string }>
+  >({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -299,7 +303,7 @@ export default function AdminClassesPage() {
     title: "",
     description: "",
     instructions: "",
-    deadlineMode: "timer" as "timer" | "date",
+    deadlineMode: "timer" as "timer" | "date" | "none",
     timerHours: "24",
     dueDate: "",
     dueTime: "",
@@ -395,6 +399,37 @@ export default function AdminClassesPage() {
       setEnrollments(enrollmentsData);
       setAnnouncements(announcementsData);
       setStats(statsData);
+
+      // Load profiles for enrolled users (name/email)
+      try {
+        const authSupabase = createClient();
+        const profilesMap: Record<string, { username?: string; email?: string }> = {};
+        await Promise.all(
+          enrollmentsData.map(async (enrollment) => {
+            try {
+              const profile = await getUserProfile(enrollment.userId, undefined, authSupabase);
+              if (profile) {
+                const username =
+                  (profile as any).username ||
+                  (profile as any).handle ||
+                  (profile as any).full_name ||
+                  (profile as any).name ||
+                  (profile.email ? profile.email.split("@")[0] : undefined) ||
+                  enrollment.userId;
+                profilesMap[enrollment.userId] = {
+                  username,
+                  email: profile.email,
+                };
+              }
+            } catch {
+              // ignore missing profile
+            }
+          })
+        );
+        setEnrollmentProfiles(profilesMap);
+      } catch (err) {
+        console.error("Error loading enrollment profiles", err);
+      }
 
       // Load sessions for all modules
       const allSessions: LiveSession[] = [];
@@ -1443,9 +1478,27 @@ export default function AdminClassesPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {enrollments.map((enrollment) => (
-                          <TableRow key={enrollment.id}>
-                            <TableCell>{enrollment.userId}</TableCell>
+                        {enrollments.map((enrollment) => {
+                          const profile = enrollmentProfiles[enrollment.userId];
+                          const displayUsername =
+                            profile?.username ||
+                            (profile?.email ? profile.email.split("@")[0] : undefined) ||
+                            enrollment.userId;
+                          const displayEmail = profile?.email;
+                          return (
+                            <TableRow key={enrollment.id}>
+                              <TableCell>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium break-words">
+                                    {displayUsername}
+                                  </span>
+                                  {displayEmail && (
+                                    <span className="text-xs text-muted-foreground break-words">
+                                      {displayEmail}
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
                             <TableCell>
                               {format(enrollment.enrolledAt, "MMM d, yyyy")}
                             </TableCell>
@@ -1480,8 +1533,9 @@ export default function AdminClassesPage() {
                                 <Trash2 className="h-3 w-3 text-destructive" />
                               </Button>
                             </TableCell>
-                          </TableRow>
-                        ))}
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </CardContent>
@@ -2354,7 +2408,7 @@ export default function AdminClassesPage() {
             <div className="space-y-3">
               <div>
                 <label className="text-sm font-medium">Deadline Type</label>
-                <div className="flex gap-3 mt-1">
+                <div className="flex flex-wrap gap-3 mt-1">
                   <label className="flex items-center gap-2 text-sm">
                     <input
                       type="radio"
@@ -2385,6 +2439,24 @@ export default function AdminClassesPage() {
                     />
                     Calendar Date
                   </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="deadline-mode"
+                      value="none"
+                      checked={assignmentForm.deadlineMode === "none"}
+                      onChange={() =>
+                        setAssignmentForm({
+                          ...assignmentForm,
+                          deadlineMode: "none",
+                          dueDate: "",
+                          dueTime: "",
+                          timerHours: "24",
+                        })
+                      }
+                    />
+                    No deadline (until class ends)
+                  </label>
                 </div>
               </div>
 
@@ -2407,7 +2479,7 @@ export default function AdminClassesPage() {
                     Assignment deadline will be set to now + timer.
                   </p>
                 </div>
-              ) : (
+              ) : assignmentForm.deadlineMode === "date" ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium">Due Date *</label>
@@ -2432,6 +2504,10 @@ export default function AdminClassesPage() {
                       If empty, defaults to 23:59.
                     </p>
                   </div>
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">
+                  No deadline; students can submit until the class end date.
                 </div>
               )}
             </div>
@@ -2485,6 +2561,7 @@ export default function AdminClassesPage() {
                 const timerHoursNumber = Number(assignmentForm.timerHours);
                 const isTimerMode = assignmentForm.deadlineMode === "timer";
                 const isDateMode = assignmentForm.deadlineMode === "date";
+                const isNoDeadline = assignmentForm.deadlineMode === "none";
 
                 if (
                   !assignmentForm.title ||
@@ -2518,9 +2595,15 @@ export default function AdminClassesPage() {
                   if (isTimerMode) {
                     const timerMs = timerHoursNumber * 60 * 60 * 1000;
                     dueDateTime = new Date(Date.now() + timerMs);
-                  } else {
+                  } else if (isDateMode) {
                     const timePart = assignmentForm.dueTime || "23:59";
                     dueDateTime = new Date(`${assignmentForm.dueDate}T${timePart}`);
+                  } else {
+                    const end = selectedClass.endDate
+                      ? new Date(selectedClass.endDate)
+                      : new Date("2099-12-31T23:59:59Z");
+                    end.setHours(23, 59, 59, 999);
+                    dueDateTime = end;
                   }
 
                   if (editingAssignment) {
