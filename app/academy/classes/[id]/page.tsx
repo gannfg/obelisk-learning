@@ -210,7 +210,6 @@ export default async function ClassPage({ params }: ClassPageProps) {
                             fill
                             className="object-cover"
                             sizes="32px"
-                            unoptimized
                           />
                         ) : (
                           <div className="h-full w-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
@@ -388,7 +387,7 @@ export default async function ClassPage({ params }: ClassPageProps) {
                               </ul>
                             </CardContent>
                           )}
-                          {module.liveSessionLink && userEnrollment && (
+                          {module.liveSessionLink && module.liveSessionLink.trim().length > 0 && userEnrollment && (
                             <CardContent>
                               <a
                                 href={module.liveSessionLink}

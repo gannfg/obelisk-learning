@@ -75,6 +75,7 @@ function normalizeModule(data: any): ClassModule {
     startDate: data.start_date ? new Date(data.start_date) : undefined,
     endDate: data.end_date ? new Date(data.end_date) : undefined,
     liveSessionLink: data.live_session_link,
+    embedVideoUrl: data.embed_video_url,
     learningMaterials: data.learning_materials || [],
     locked: data.locked,
     createdAt: new Date(data.created_at),
@@ -467,7 +468,10 @@ export async function createModule(
         start_date: input.startDate,
         end_date: input.endDate,
         live_session_link: input.liveSessionLink,
+        embed_video_url: input.embedVideoUrl,
         learning_materials: input.learningMaterials || [],
+        // Support structured content (e.g. sections with description + YouTube URL)
+        content: (input as any).content,
       })
       .select()
       .single();
@@ -501,6 +505,7 @@ export async function updateModule(
     if (updates.startDate !== undefined) updateData.start_date = updates.startDate;
     if (updates.endDate !== undefined) updateData.end_date = updates.endDate;
     if (updates.liveSessionLink !== undefined) updateData.live_session_link = updates.liveSessionLink;
+     if (updates.embedVideoUrl !== undefined) updateData.embed_video_url = updates.embedVideoUrl;
     if (updates.learningMaterials !== undefined) updateData.learning_materials = updates.learningMaterials;
     // Support content and releaseDate from classroom system
     if ((updates as any).content !== undefined) updateData.content = (updates as any).content;
@@ -813,6 +818,63 @@ export async function createAssignment(
     };
   } catch (error) {
     console.error("Error in createAssignment:", error);
+    return null;
+  }
+}
+
+/**
+ * Update an existing assignment
+ */
+export async function updateAssignment(
+  assignmentId: string,
+  input: Partial<CreateAssignmentInput> & { dueDate?: string },
+  supabaseClient?: SupabaseClient<any>
+): Promise<ClassAssignment | null> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const updateData: any = {};
+    
+    if (input.title !== undefined) updateData.title = input.title;
+    if (input.description !== undefined) updateData.description = input.description;
+    if (input.instructions !== undefined) updateData.instructions = input.instructions;
+    if (input.dueDate !== undefined) updateData.due_date = input.dueDate;
+    if (input.submissionType !== undefined) updateData.submission_type = input.submissionType;
+    if (input.maxFileSize !== undefined) updateData.max_file_size = input.maxFileSize;
+    if (input.allowedFileTypes !== undefined) updateData.allowed_file_types = input.allowedFileTypes;
+    if (input.lockAfterDeadline !== undefined) updateData.lock_after_deadline = input.lockAfterDeadline;
+    if (input.xpReward !== undefined) updateData.xp_reward = input.xpReward;
+
+    const { data, error } = await supabase
+      .from("class_assignments")
+      .update(updateData)
+      .eq("id", assignmentId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating assignment:", error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      moduleId: data.module_id,
+      classId: data.class_id,
+      title: data.title,
+      description: data.description,
+      instructions: data.instructions,
+      dueDate: new Date(data.due_date),
+      submissionType: data.submission_type,
+      maxFileSize: data.max_file_size,
+      allowedFileTypes: data.allowed_file_types,
+      lockAfterDeadline: data.lock_after_deadline,
+      xpReward: data.xp_reward,
+      createdBy: data.created_by,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+    };
+  } catch (error) {
+    console.error("Error in updateAssignment:", error);
     return null;
   }
 }

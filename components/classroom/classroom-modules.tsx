@@ -3,20 +3,68 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lock, Unlock, Calendar, ExternalLink, FileText, Video, Link as LinkIcon } from "lucide-react";
+import { ExternalLink, FileText, Video, Link as LinkIcon, ChevronDown, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import type { ClassModule, AssignmentSubmission } from "@/types/classes";
 import type { ClassWithModules } from "@/lib/classes";
 import { getModuleAssignments, getClassModules } from "@/lib/classes";
 import { createLearningClient } from "@/lib/supabase/learning-client";
-import { MarkdownContent } from "@/components/markdown-content";
-import { ModuleEditor } from "./module-editor";
+import { markWeekAttendance } from "@/lib/classroom";
 
 interface ClassroomModulesProps {
   classId: string;
   classItem: ClassWithModules;
   userId: string;
   isInstructor: boolean;
+}
+
+type ModuleSection = {
+  description?: string;
+  youtubeUrl?: string;
+};
+
+function getEmbedUrl(raw?: string): string | null {
+  if (!raw) return null;
+  const url = raw.trim();
+
+  // Convert common YouTube URLs to embed format
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtube.com")) {
+      const videoId = u.searchParams.get("v");
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+    }
+    if (u.hostname === "youtu.be") {
+      const videoId = u.pathname.replace("/", "");
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+    }
+  } catch {
+    // If URL parsing fails, fall back to raw value
+  }
+
+  return url;
+}
+
+function getModuleSections(module: ClassModule): ModuleSection[] {
+  const content = module.content as any;
+  if (content && typeof content === "object" && Array.isArray(content.sections)) {
+    return content.sections.map((section: any) => ({
+      description: section.description || "",
+      youtubeUrl: section.youtubeUrl || section.youtube_url || "",
+    }));
+  }
+
+  // Fallback to single description + YouTube URL from legacy fields
+  return [
+    {
+      description: module.description,
+      youtubeUrl: module.embedVideoUrl,
+    },
+  ];
 }
 
 export function ClassroomModules({
@@ -26,10 +74,9 @@ export function ClassroomModules({
   isInstructor,
 }: ClassroomModulesProps) {
   const [modules, setModules] = useState<ClassModule[]>(classItem.modules || []);
-  const [editingModule, setEditingModule] = useState<string | null>(null);
   const [assignmentsByModule, setAssignmentsByModule] = useState<Record<string, any[]>>({});
   const [submissionsByAssignment, setSubmissionsByAssignment] = useState<Record<string, AssignmentSubmission[]>>({});
-  const [openModuleId, setOpenModuleId] = useState<string | null>(null);
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Always refresh modules from backend to avoid stale/empty data
@@ -125,13 +172,6 @@ export function ClassroomModules({
     loadSubmissions();
   }, [assignmentsByModule, userId]);
 
-  const canAccessModule = (module: ClassModule) => {
-    if (isInstructor) return true;
-    if (!module.locked) return true;
-    if (module.releaseDate && new Date(module.releaseDate) <= new Date()) return true;
-    return false;
-  };
-
   // Determine if a module is completed: all assignments approved/reviewed, or no assignments
   const isModuleCompleted = (moduleId: string) => {
     const assignments = assignmentsByModule[moduleId] || [];
@@ -145,28 +185,86 @@ export function ClassroomModules({
     });
   };
 
-  const handleModuleUpdate = (updatedModule: ClassModule) => {
-    setModules((prev) =>
-      prev.map((m) => (m.id === updatedModule.id ? updatedModule : m))
-    );
-    setEditingModule(null);
-  };
+  // Automatically mark attendance when a module is completed
+  useEffect(() => {
+    if (isInstructor) return; // Only for students
+
+    const markAttendanceForCompletedModules = async () => {
+      const supabase = createLearningClient();
+      if (!supabase) return;
+
+      for (const module of modules) {
+        if (isModuleCompleted(module.id)) {
+          try {
+            // Check if attendance already marked for this week
+            const { data: existingAttendance } = await supabase
+              .from("class_attendance")
+              .select("id")
+              .eq("class_id", classId)
+              .eq("user_id", userId)
+              .eq("week_number", module.weekNumber)
+              .single();
+
+            // Only mark if not already marked
+            if (!existingAttendance) {
+              const result = await markWeekAttendance(
+                classId,
+                userId,
+                module.weekNumber,
+                "auto",
+                userId,
+                supabase
+              );
+              if (!result) {
+                // If auto method fails (maybe constraint not updated), try with manual
+                await markWeekAttendance(
+                  classId,
+                  userId,
+                  module.weekNumber,
+                  "manual",
+                  userId,
+                  supabase
+                );
+              }
+            }
+          } catch (error) {
+            // Silently fail if attendance already exists or other error
+            // Try with manual method as fallback
+            try {
+              const { data: existing } = await supabase
+                .from("class_attendance")
+                .select("id")
+                .eq("class_id", classId)
+                .eq("user_id", userId)
+                .eq("week_number", module.weekNumber)
+                .single();
+              
+              if (!existing) {
+                await markWeekAttendance(
+                  classId,
+                  userId,
+                  module.weekNumber,
+                  "manual",
+                  userId,
+                  supabase
+                );
+              }
+            } catch (fallbackError) {
+              // Silently ignore if still fails
+            }
+          }
+        }
+      }
+    };
+
+    // Only run if we have modules and assignments loaded
+    if (modules.length > 0 && Object.keys(assignmentsByModule).length > 0) {
+      markAttendanceForCompletedModules();
+    }
+  }, [modules, assignmentsByModule, submissionsByAssignment, classId, userId, isInstructor]);
 
   return (
     <div className="space-y-6">
-      {isInstructor && (
-        <div className="flex justify-end">
-          <Button
-            onClick={() => {
-              // Create new module - would need a modal/form
-              window.location.href = `/admin/classes/${classId}/modules/new`;
-            }}
-          >
-            Add Module
-          </Button>
-        </div>
-      )}
-
       {modules.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
@@ -174,184 +272,177 @@ export function ClassroomModules({
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="divide-y">
-              {modules.map((module, idx) => {
-          // Sequential gating: only allow access if all prior modules are completed
-          const previousModulesCompleted = modules
-            .slice(0, idx)
-            .every((m) => isModuleCompleted(m.id));
-          const canAccess = canAccessModule(module) && previousModulesCompleted;
-          const assignments = assignmentsByModule[module.id] || [];
+        <div className="space-y-4">
+          {modules.map((module) => {
+            const assignments = assignmentsByModule[module.id] || [];
 
-          return (
-            <div key={module.id} className={!canAccess ? "opacity-60" : ""}>
-              <button
-                type="button"
-                className="w-full flex items-stretch text-left hover:bg-muted/60 transition-colors"
-                onClick={() =>
-                  setOpenModuleId((prev) => (prev === module.id ? null : module.id))
+            const isExpanded = expandedModules.has(module.id);
+            const toggleExpand = () => {
+              setExpandedModules((prev) => {
+                const next = new Set(prev);
+                if (next.has(module.id)) {
+                  next.delete(module.id);
+                } else {
+                  next.add(module.id);
                 }
-              >
-                <div className="w-28 flex items-center justify-center border-r px-4 py-4">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Week {module.weekNumber}
-                  </span>
-                </div>
-                <div className="flex-1 px-4 py-4 flex items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-sm sm:text-base">
-                        {module.title}
-                      </span>
-                      {!canAccess && (
-                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600">
-                          Locked
-                        </span>
-                      )}
-                    </div>
-                    {module.description && (
-                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
-                        {module.description}
-                      </p>
-                    )}
-                    <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-                      {module.startDate && (
-                        <span>
-                          Starts: {format(new Date(module.startDate), "MMM d")}
-                        </span>
-                      )}
-                      {module.endDate && (
-                        <span>
-                          Ends: {format(new Date(module.endDate), "MMM d")}
-                        </span>
-                      )}
-                      {assignments.length > 0 && (
-                        <span>{assignments.length} assignment{assignments.length !== 1 ? "s" : ""}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="hidden sm:block text-xs text-muted-foreground">
-                    {isModuleCompleted(module.id) ? "Completed" : "In progress"}
-                  </div>
-                </div>
-              </button>
+                return next;
+              });
+            };
 
-              {canAccess && openModuleId === module.id && (
-                <div className="px-4 pb-5 bg-muted/40 space-y-4">
-                  {/* Module Content */}
-                  {module.content && (
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      {typeof module.content === "string" ? (
-                        <MarkdownContent content={module.content} />
+            return (
+              <Card key={module.id} className="overflow-hidden">
+                <button
+                  type="button"
+                  onClick={toggleExpand}
+                  className="w-full text-left"
+                >
+                  <CardContent className="p-4">
+                    {/* Module Header - Always Visible */}
+                    <div className="flex items-center gap-2">
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       ) : (
-                        <pre className="whitespace-pre-wrap">{JSON.stringify(module.content, null, 2)}</pre>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       )}
-                    </div>
-                  )}
-
-                  {/* Learning Materials */}
-                  {module.learningMaterials && module.learningMaterials.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold mb-2">Learning Materials</h4>
-                      <div className="space-y-2">
-                        {module.learningMaterials.map((material, idx) => (
-                          <a
-                            key={idx}
-                            href={material.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-sm text-primary hover:underline"
-                          >
-                            {material.type === "document" && <FileText className="h-4 w-4" />}
-                            {material.type === "video" && <Video className="h-4 w-4" />}
-                            {material.type === "link" && <LinkIcon className="h-4 w-4" />}
-                            {material.type === "file" && <FileText className="h-4 w-4" />}
-                            <span>{material.title}</span>
-                          </a>
-                        ))}
+                      <h3 className="font-semibold text-base sm:text-lg flex-1">
+                        Week {module.weekNumber}: {module.title}
+                      </h3>
+                      <div className="text-xs text-muted-foreground">
+                        {isModuleCompleted(module.id) ? "Completed" : "In progress"}
                       </div>
                     </div>
-                  )}
+                  </CardContent>
+                </button>
 
-                  {/* Live Session Link */}
-                  {module.liveSessionLink && (
-                    <div>
-                      <Button asChild variant="outline" className="w-full">
-                        <a href={module.liveSessionLink} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Join Live Session
-                        </a>
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Assignment Preview */}
-                  {assignments.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-semibold mb-2">Assignments</h4>
-                      <div className="space-y-2">
-                        {assignments.map((assignment) => (
-                          <div
-                            key={assignment.id}
-                            className="p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
-                            onClick={() => {
-                              window.location.href = `/class/${classId}?tab=assignments#assignment-${assignment.id}`;
-                            }}
-                          >
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <p className="font-medium text-sm">{assignment.title}</p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Due: {format(assignment.dueDate, "MMM d, yyyy 'at' h:mm a")}
-                                </p>
+                {/* Module Content - Only visible when expanded */}
+                {isExpanded && (
+                  <CardContent className="pt-0 px-4 pb-4">
+                    <div className="space-y-4 pl-6">
+                      {/* Structured sections: description + YouTube URL pairs */}
+                      {getModuleSections(module).map((section, idx) => {
+                        const embed = getEmbedUrl(section.youtubeUrl);
+                        return (
+                          <div key={idx} className="space-y-2">
+                            {section.description && (
+                              <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed break-words">
+                                {section.description}
+                              </p>
+                            )}
+                            {embed && (
+                              <div className="mt-1 aspect-video w-full overflow-hidden rounded-lg bg-black">
+                                <iframe
+                                  src={embed}
+                                  title={module.title}
+                                  className="h-full w-full border-0"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                  allowFullScreen
+                                />
                               </div>
-                            </div>
+                            )}
                           </div>
-                        ))}
+                        );
+                      })}
+
+                      {/* Date Range */}
+                      {module.startDate && (
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(module.startDate), "MMM d")} -{" "}
+                          {module.endDate ? format(new Date(module.endDate), "MMM d") : "TBD"}
+                        </p>
+                      )}
+
+
+                      {/* Learning Materials */}
+                      {module.learningMaterials && module.learningMaterials.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-semibold mb-2">Learning Materials</h4>
+                          <div className="space-y-2">
+                            {module.learningMaterials.map((material, idx) => (
+                              <a
+                                key={idx}
+                                href={material.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-sm text-primary hover:underline"
+                              >
+                                {material.type === "document" && <FileText className="h-4 w-4" />}
+                                {material.type === "video" && <Video className="h-4 w-4" />}
+                                {material.type === "link" && <LinkIcon className="h-4 w-4" />}
+                                {material.type === "file" && <FileText className="h-4 w-4" />}
+                                <span>{material.title}</span>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Live Session Link */}
+                      {module.liveSessionLink && module.liveSessionLink.trim().length > 0 && (
+                        <div>
+                          <Button asChild variant="outline" className="w-full">
+                            <a href={module.liveSessionLink} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Join Live Session
+                            </a>
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Assignments Section - Inside expanded content */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold">
+                            Assignments ({assignments.length})
+                          </p>
+                        </div>
+                        {assignments.length > 0 ? (
+                          <div className="space-y-2">
+                            {assignments.map((assignment) => {
+                              const submission = submissionsByAssignment[assignment.id]?.[0];
+                              return (
+                                <div
+                                  key={assignment.id}
+                                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.location.href = `/class/${classId}?tab=assignments#assignment-${assignment.id}`;
+                                  }}
+                                >
+                                  <div className="flex-1">
+                                    <h4 className="font-medium text-sm">{assignment.title}</h4>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Due: {format(assignment.dueDate, "MMM d, yyyy 'at' h:mm a")}
+                                    </p>
+                                    {submission && (
+                                      <p className={`text-xs mt-1 ${
+                                        submission.status === "approved" || submission.status === "reviewed"
+                                          ? "text-green-600 dark:text-green-400"
+                                          : submission.status === "changes_requested"
+                                          ? "text-amber-600 dark:text-amber-400"
+                                          : "text-blue-600 dark:text-blue-400"
+                                      }`}>
+                                        Status: {submission.status.replace("_", " ")}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            No assignments yet for this module.
+                          </p>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
+                  </CardContent>
+                )}
 
-              {!canAccess && (
-                <div className="px-4 py-4 text-center text-sm text-muted-foreground">
-                  {previousModulesCompleted ? (
-                    <p>
-                      This module will be unlocked on{" "}
-                      {module.releaseDate
-                        ? format(new Date(module.releaseDate), "MMM d, yyyy")
-                        : module.startDate
-                        ? format(new Date(module.startDate), "MMM d, yyyy")
-                        : "the scheduled date"}
-                    </p>
-                  ) : (
-                    <p>
-                      Complete the previous module to unlock this one.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Module Editor (Instructor) */}
-              {isInstructor && editingModule === module.id && (
-                <CardContent className="border-t">
-                  <ModuleEditor
-                    module={module}
-                    classId={classId}
-                    onUpdate={handleModuleUpdate}
-                    onCancel={() => setEditingModule(null)}
-                  />
-                </CardContent>
-              )}
-            </div>
-          );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+              </Card>
+            );
+          })}
+        </div>
       )}
     </div>
   );

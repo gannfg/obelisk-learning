@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS class_attendance (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   week_number INTEGER NOT NULL,
   checked_in_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
-  method TEXT NOT NULL CHECK (method IN ('qr', 'manual')),
+  method TEXT NOT NULL CHECK (method IN ('qr', 'manual', 'auto')),
   checked_in_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   UNIQUE(class_id, user_id, week_number)
 );

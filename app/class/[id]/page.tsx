@@ -246,7 +246,6 @@ export default async function ClassPage({ params }: ClassPageProps) {
                             fill
                             className="object-cover"
                             sizes="32px"
-                            unoptimized
                           />
                         ) : (
                           <div className="h-full w-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
@@ -275,61 +274,15 @@ export default async function ClassPage({ params }: ClassPageProps) {
               </h1>
             </div>
 
-            {/* Tabs */}
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="modules">Modules</TabsTrigger>
-                <TabsTrigger value="attendance">Attendance</TabsTrigger>
-                <TabsTrigger value="assignments">Assignments</TabsTrigger>
-                <TabsTrigger value="announcements">Announcements</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overview" className="mt-6">
-                <ClassroomOverview
-                  classId={id}
-                  classItem={classItem}
-                  userId={user.id}
-                  isInstructor={isInstructor}
-                />
-              </TabsContent>
-
-              <TabsContent value="modules" className="mt-6">
-                <ClassroomModules
-                  classId={id}
-                  classItem={classItem}
-                  userId={user.id}
-                  isInstructor={isInstructor}
-                />
-              </TabsContent>
-
-              <TabsContent value="attendance" className="mt-6">
-                <ClassroomAttendance
-                  classId={id}
-                  classItem={classItem}
-                  userId={user.id}
-                  isInstructor={isInstructor}
-                />
-              </TabsContent>
-
-              <TabsContent value="assignments" className="mt-6">
-                <ClassroomAssignments
-                  classId={id}
-                  classItem={classItem}
-                  userId={user.id}
-                  isInstructor={isInstructor}
-                />
-              </TabsContent>
-
-              <TabsContent value="announcements" className="mt-6">
-                <ClassroomAnnouncements
-                  classId={id}
-                  classItem={classItem}
-                  userId={user.id}
-                  isInstructor={isInstructor}
-                />
-              </TabsContent>
-            </Tabs>
+            {/* Modules only (no tabs header) */}
+            <div className="mt-6">
+              <ClassroomModules
+                classId={id}
+                classItem={classItem}
+                userId={user.id}
+                isInstructor={isInstructor}
+              />
+            </div>
           </div>
         </div>
       </div>
