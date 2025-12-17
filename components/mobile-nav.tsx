@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, Target, Calendar, User } from "lucide-react";
+import { Home, BookOpen, Target, Calendar, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
@@ -26,6 +26,11 @@ const navItems = [
     href: "/workshops",
     label: "Workshop",
     icon: Calendar,
+  },
+  {
+    href: "/social",
+    label: "Collaborate",
+    icon: Users,
   },
   {
     href: "/profile",

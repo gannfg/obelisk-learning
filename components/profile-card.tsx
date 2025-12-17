@@ -4,20 +4,29 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserProfile } from "@/lib/profile";
-import { User, Mail, Calendar, Edit, Trophy, Users as UsersIcon } from "lucide-react";
+import { User, Mail, Calendar, Edit, Trophy, Users as UsersIcon, MapPin, Globe, Star, TrendingUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { createLearningClient } from "@/lib/supabase/learning-client";
-import { getUserBadges, Badge } from "@/lib/badges";
+import { getUserBadges, Badge as BadgeType } from "@/lib/badges";
+import { getLevel } from "@/lib/progress";
 
 interface ProfileCardProps {
   profile: UserProfile;
   showEditButton?: boolean;
+  collaborationStatus?: {
+    skills?: string[];
+    location?: string;
+    languages?: string[];
+  } | null;
+  xp?: number;
+  level?: number;
 }
 
-export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps) {
-  const [badges, setBadges] = useState<Badge[]>([]);
+export function ProfileCard({ profile, showEditButton = true, collaborationStatus, xp, level }: ProfileCardProps) {
+  const [badges, setBadges] = useState<BadgeType[]>([]);
   const [loadingBadges, setLoadingBadges] = useState(true);
   const [teamLogo, setTeamLogo] = useState<string | null>(null);
   const [teamName, setTeamName] = useState<string | null>(null);
@@ -125,6 +134,7 @@ export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps
                     alt={displayName}
                     fill
                     className="object-cover"
+                    sizes="(max-width: 640px) 80px, 96px"
                   />
                 </div>
               ) : (
@@ -143,7 +153,7 @@ export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps
                     alt={teamName || "Team"}
                     fill
                     className="object-cover"
-                    unoptimized
+                    sizes="64px"
                   />
                 </div>
               ) : (
@@ -178,6 +188,91 @@ export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps
               {profile.bio && (
                 <div className="pt-2">
                   <p className="text-xs sm:text-sm text-muted-foreground break-words">{profile.bio}</p>
+                </div>
+              )}
+
+              {/* Location */}
+              {collaborationStatus?.location && (
+                <div className="flex items-start gap-2 pt-2">
+                  <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <span className="text-xs sm:text-sm text-muted-foreground break-words">{collaborationStatus.location}</span>
+                </div>
+              )}
+
+              {/* Languages */}
+              {collaborationStatus?.languages && collaborationStatus.languages.length > 0 && (
+                <div className="pt-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium text-muted-foreground">Languages</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {collaborationStatus.languages.map((lang, index) => (
+                      <Badge key={index} variant="secondary" className="text-[10px] sm:text-xs">
+                        {lang}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Skills/Mastery */}
+              {collaborationStatus?.skills && collaborationStatus.skills.length > 0 && (
+                <div className="pt-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Trophy className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium text-muted-foreground">Skills & Mastery</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {collaborationStatus.skills.map((skill, index) => (
+                      <Badge key={index} variant="secondary" className="text-[10px] sm:text-xs">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* XP & Level */}
+              {(xp !== undefined && xp > 0) && (
+                <div className="pt-2 border-t border-border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium">Level & XP</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs sm:text-sm text-muted-foreground">Level</span>
+                      <span className="text-sm sm:text-base font-semibold">{level || getLevel(xp)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs sm:text-sm text-muted-foreground">Total XP</span>
+                      <span className="text-sm sm:text-base font-semibold">{xp.toLocaleString()}</span>
+                    </div>
+                    {(() => {
+                      const currentLevel = level || getLevel(xp);
+                      const currentLevelBase = (currentLevel - 1) * 500;
+                      const nextLevelBase = currentLevel * 500;
+                      const currentInLevel = xp - currentLevelBase;
+                      const neededForNext = nextLevelBase - currentLevelBase;
+                      const progress = neededForNext > 0 ? currentInLevel / neededForNext : 1;
+                      
+                      return (
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">
+                            <span>Progress to Level {currentLevel + 1}</span>
+                            <span>{currentInLevel} / {neededForNext} XP</span>
+                          </div>
+                          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 transition-all duration-300"
+                              style={{ width: `${Math.max(2, Math.min(100, progress * 100))}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               )}
 
@@ -225,7 +320,7 @@ export function ProfileCard({ profile, showEditButton = true }: ProfileCardProps
                   alt={teamName || "Team"}
                   fill
                   className="object-cover"
-                  unoptimized
+                  sizes="80px"
                 />
               </div>
             ) : (

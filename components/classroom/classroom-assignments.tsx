@@ -40,6 +40,7 @@ export function ClassroomAssignments({
   const [selectedAssignment, setSelectedAssignment] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState<number>(Date.now());
 
   useEffect(() => {
     const loadData = async () => {
@@ -78,6 +79,22 @@ export function ClassroomAssignments({
 
     loadData();
   }, [classId, userId, isInstructor]);
+
+  // Ticking clock for countdowns
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const formatCountdown = (ms: number) => {
+    if (ms <= 0) return "Expired";
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  };
 
   const handleFileUpload = async (assignment: any, file: File) => {
     setSubmitting(true);
@@ -132,7 +149,9 @@ export function ClassroomAssignments({
         assignments.map((assignment) => {
           const submission = submissions[assignment.id];
           const assignmentSubmissions = allSubmissions[assignment.id] || [];
-          const isPastDue = new Date(assignment.dueDate) < new Date();
+          const dueDateMs = new Date(assignment.dueDate).getTime();
+          const remainingMs = dueDateMs - now;
+          const isPastDue = remainingMs <= 0;
           const isSelected = selectedAssignment === assignment.id;
 
           return (
@@ -151,6 +170,12 @@ export function ClassroomAssignments({
                           Due: {format(assignment.dueDate, "MMM d, yyyy 'at' h:mm a")}
                         </span>
                       </div>
+                      {!isPastDue && (
+                        <div className="flex items-center gap-1 text-primary font-medium">
+                          <Clock className="h-4 w-4" />
+                          <span>Time remaining: {formatCountdown(remainingMs)}</span>
+                        </div>
+                      )}
                       {isPastDue && (
                         <span className="text-red-600">Past Due</span>
                       )}

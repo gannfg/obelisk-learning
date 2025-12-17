@@ -51,6 +51,8 @@ export interface UserProfile {
   image_url?: string | null;
   bio?: string | null;
   is_admin?: boolean | null;
+  location?: string | null;
+  languages?: string[] | null;
   created_at?: string;
   updated_at?: string;
 }

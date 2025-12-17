@@ -1,12 +1,23 @@
 "use client";
 
 import { useAuth } from "@/lib/hooks/use-auth";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { ProfileCard } from "@/components/profile-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { getUserProfile, updateUserProfile, UserProfile } from "@/lib/profile";
+import { getCollaborationStatus, updateCollaborationStatus } from "@/lib/collaboration";
+import { countries } from "@/lib/countries";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
 import { createLearningClient } from "@/lib/supabase/learning-client";
 import { uploadProfilePicture } from "@/lib/storage";
@@ -22,6 +33,10 @@ import {
   CheckCircle2,
   MapPin,
   Video,
+  Globe,
+  Trophy,
+  User,
+  Edit,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -31,7 +46,7 @@ import { format } from "date-fns";
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -43,7 +58,12 @@ export default function ProfilePage() {
     first_name: "",
     last_name: "",
     bio: "",
+    location: "",
+    languages: [] as string[],
+    skills: [] as string[],
   });
+  const [languageInput, setLanguageInput] = useState("");
+  const [skillInput, setSkillInput] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [userStats, setUserStats] = useState({
@@ -54,6 +74,13 @@ export default function ProfilePage() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [attendedWorkshops, setAttendedWorkshops] = useState<any[]>([]);
   const [loadingAttendance, setLoadingAttendance] = useState(true);
+  const [collaborationStatus, setCollaborationStatus] = useState<{
+    skills: string[];
+    location?: string;
+    languages?: string[];
+  } | null>(null);
+  const [userXP, setUserXP] = useState<number | undefined>(undefined);
+  const [userLevel, setUserLevel] = useState<number | undefined>(undefined);
 
   // Load profile data
   useEffect(() => {
@@ -65,7 +92,39 @@ export default function ProfilePage() {
 
       setLoading(true);
       try {
-        const userProfile = await getUserProfile(user.id, user.email || undefined, supabase);
+        if (!supabase) {
+          setLoading(false);
+          return;
+        }
+
+        const [userProfile, collabStatus] = await Promise.all([
+          getUserProfile(user.id, user.email || undefined, supabase),
+          getCollaborationStatus(user.id, supabase),
+        ]);
+        
+        // Fetch XP from user profile
+        const { data: userData } = await supabase
+          .from("users")
+          .select("xp")
+          .eq("id", user.id)
+          .maybeSingle();
+        
+        const xp = (userData?.xp as number) || 0;
+        if (xp > 0) {
+          const { getLevel } = await import("@/lib/progress");
+          setUserXP(xp);
+          setUserLevel(getLevel(xp));
+        } else {
+          setUserXP(undefined);
+          setUserLevel(undefined);
+        }
+        
+        // Set collaboration status for display
+        setCollaborationStatus({
+          skills: collabStatus?.collaborationInterests || [],
+          location: userProfile?.location || undefined,
+          languages: userProfile?.languages || undefined,
+        });
         
         if (userProfile) {
           setProfile(userProfile);
@@ -74,6 +133,9 @@ export default function ProfilePage() {
             first_name: userProfile.first_name || "",
             last_name: userProfile.last_name || "",
             bio: userProfile.bio || "",
+            location: userProfile.location || "",
+            languages: userProfile.languages || [],
+            skills: collabStatus?.collaborationInterests || [],
           });
         } else {
           // If no profile exists, initialize with Supabase Auth user data
@@ -82,6 +144,9 @@ export default function ProfilePage() {
             first_name: user.user_metadata?.first_name || user.user_metadata?.full_name?.split(' ')[0] || "",
             last_name: user.user_metadata?.last_name || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || "",
             bio: "",
+            location: "",
+            languages: [],
+            skills: collabStatus?.collaborationInterests || [],
           });
         }
       } catch (error) {
@@ -92,7 +157,8 @@ export default function ProfilePage() {
     };
 
     loadProfile();
-  }, [user, authLoading, supabase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, authLoading]);
 
   // Load user stats
   useEffect(() => {
@@ -217,16 +283,46 @@ export default function ProfilePage() {
     
     try {
       const email = user.email || '';
+      
+      // Update user profile (location, languages, etc.)
       const updateSuccess = await updateUserProfile(user.id, {
         username: formData.username || null,
         first_name: formData.first_name || null,
         last_name: formData.last_name || null,
         bio: formData.bio || null,
+        location: formData.location || null,
+        languages: formData.languages.length > 0 ? formData.languages : null,
       }, email, supabase);
 
-      if (updateSuccess) {
+      // Update collaboration status (skills/mastery)
+      const collaborationSuccess = await updateCollaborationStatus({
+        collaborationInterests: formData.skills.length > 0 ? formData.skills : [],
+      }, supabase);
+
+      if (updateSuccess && collaborationSuccess && supabase) {
         // Reload profile
-        const updatedProfile = await getUserProfile(user.id, user.email || undefined, supabase);
+        const [updatedProfile, updatedCollaborationStatus] = await Promise.all([
+          getUserProfile(user.id, user.email || undefined, supabase),
+          getCollaborationStatus(user.id, supabase),
+        ]);
+        
+        // Fetch updated XP
+        const { data: updatedUserData } = await supabase
+          .from("users")
+          .select("xp")
+          .eq("id", user.id)
+          .maybeSingle();
+        
+        const updatedXP = (updatedUserData?.xp as number) || 0;
+        if (updatedXP > 0) {
+          const { getLevel } = await import("@/lib/progress");
+          setUserXP(updatedXP);
+          setUserLevel(getLevel(updatedXP));
+        } else {
+          setUserXP(undefined);
+          setUserLevel(undefined);
+        }
+        
         if (updatedProfile) {
           setProfile(updatedProfile);
           setFormData({
@@ -234,6 +330,9 @@ export default function ProfilePage() {
             first_name: updatedProfile.first_name || "",
             last_name: updatedProfile.last_name || "",
             bio: updatedProfile.bio || "",
+            location: updatedProfile.location || "",
+            languages: updatedProfile.languages || [],
+            skills: updatedCollaborationStatus?.collaborationInterests || [],
           });
         }
         setSuccess(true);
@@ -290,6 +389,8 @@ export default function ProfilePage() {
     // Prefer database image_url (user-uploaded) over auth provider avatar
     image_url: profile?.image_url || user.user_metadata?.avatar_url || null,
     bio: profile?.bio || null,
+    location: profile?.location || null,
+    languages: profile?.languages || null,
     created_at: profile?.created_at,
     updated_at: profile?.updated_at,
   };
@@ -319,7 +420,13 @@ export default function ProfilePage() {
           {/* Profile Card View */}
           {!isEditing && (
             <div className="mb-4 sm:mb-6">
-              <ProfileCard profile={displayProfile} showEditButton={false} />
+              <ProfileCard 
+                profile={displayProfile} 
+                showEditButton={false} 
+                collaborationStatus={collaborationStatus}
+                xp={userXP}
+                level={userLevel}
+              />
             </div>
           )}
 
@@ -577,7 +684,7 @@ export default function ProfilePage() {
                     <label htmlFor="bio" className="text-xs sm:text-sm font-medium">
                       Bio
                     </label>
-                    <textarea
+                    <Textarea
                       id="bio"
                       value={formData.bio}
                       onChange={(e) =>
@@ -585,8 +692,155 @@ export default function ProfilePage() {
                       }
                       placeholder="Tell us about yourself..."
                       rows={4}
-                      className="flex w-full border-b border-border bg-transparent px-0 py-2 text-xs sm:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-foreground disabled:cursor-not-allowed disabled:opacity-40 resize-none"
+                      className="text-xs sm:text-sm"
                     />
+                  </div>
+
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <label htmlFor="location" className="text-xs sm:text-sm font-medium">
+                      Location (Country)
+                    </label>
+                    <Select
+                      value={formData.location || undefined}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, location: value })
+                      }
+                    >
+                      <SelectTrigger className="text-xs sm:text-sm h-9 sm:h-10">
+                        <SelectValue placeholder="Select your country" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {countries.map((country) => (
+                          <SelectItem key={country} value={country}>
+                            {country}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <label htmlFor="languages" className="text-xs sm:text-sm font-medium">
+                      Languages
+                    </label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {formData.languages.map((lang, index) => (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          {lang}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                languages: formData.languages.filter((_, i) => i !== index),
+                              });
+                            }}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        id="languages"
+                        value={languageInput}
+                        onChange={(e) => setLanguageInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && languageInput.trim()) {
+                            e.preventDefault();
+                            if (!formData.languages.includes(languageInput.trim())) {
+                              setFormData({
+                                ...formData,
+                                languages: [...formData.languages, languageInput.trim()],
+                              });
+                              setLanguageInput("");
+                            }
+                          }
+                        }}
+                        placeholder="Add a language (press Enter)"
+                        className="text-xs sm:text-sm h-9 sm:h-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (languageInput.trim() && !formData.languages.includes(languageInput.trim())) {
+                            setFormData({
+                              ...formData,
+                              languages: [...formData.languages, languageInput.trim()],
+                            });
+                            setLanguageInput("");
+                          }
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <label htmlFor="skills" className="text-xs sm:text-sm font-medium">
+                      Mastery / Skills
+                    </label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {formData.skills.map((skill, index) => (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          {skill}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                skills: formData.skills.filter((_, i) => i !== index),
+                              });
+                            }}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        id="skills"
+                        value={skillInput}
+                        onChange={(e) => setSkillInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && skillInput.trim()) {
+                            e.preventDefault();
+                            if (!formData.skills.includes(skillInput.trim())) {
+                              setFormData({
+                                ...formData,
+                                skills: [...formData.skills, skillInput.trim()],
+                              });
+                              setSkillInput("");
+                            }
+                          }
+                        }}
+                        placeholder="Add a skill/mastery (press Enter)"
+                        className="text-xs sm:text-sm h-9 sm:h-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (skillInput.trim() && !formData.skills.includes(skillInput.trim())) {
+                            setFormData({
+                              ...formData,
+                              skills: [...formData.skills, skillInput.trim()],
+                            });
+                            setSkillInput("");
+                          }
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-4">
@@ -621,6 +875,9 @@ export default function ProfilePage() {
                             first_name: profile.first_name || "",
                             last_name: profile.last_name || "",
                             bio: profile.bio || "",
+                            location: profile.location || "",
+                            languages: profile.languages || [],
+                            skills: [], // Will be loaded separately from collaboration status
                           });
                         }
                       }}

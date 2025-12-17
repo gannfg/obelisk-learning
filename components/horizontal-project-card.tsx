@@ -15,12 +15,12 @@ export function HorizontalProjectCard({ project }: HorizontalProjectCardProps) {
       className="block w-full group"
     >
       <Card className="overflow-hidden w-full transition-all duration-300 hover:scale-[1.02] hover:shadow-md">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
+        <CardContent className="p-2.5 lg:p-4">
+          <div className="flex items-center gap-2.5 lg:gap-4">
             {/* Small Image/Icon on Left */}
             <div className="flex-shrink-0">
               {project.thumbnail ? (
-                <div className="relative w-16 h-16 rounded-lg overflow-hidden">
+                <div className="relative w-12 h-12 lg:w-16 lg:h-16 rounded-lg overflow-hidden">
                   <Image
                     src={project.thumbnail}
                     alt={project.title}
@@ -30,27 +30,27 @@ export function HorizontalProjectCard({ project }: HorizontalProjectCardProps) {
                   />
                 </div>
               ) : (
-                <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                  <FolderKanban className="h-8 w-8 text-primary" />
+                <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                  <FolderKanban className="h-6 w-6 lg:h-8 lg:w-8 text-primary" />
                 </div>
               )}
             </div>
 
             {/* Main Content */}
             <div className="flex-1 min-w-0">
-              <div className="mb-1">
-                <h3 className="text-base font-semibold truncate mb-1">
+              <div className="mb-0.5 lg:mb-1">
+                <h3 className="text-sm lg:text-base font-semibold truncate mb-0.5 lg:mb-1">
                   {project.title}
                 </h3>
                 {project.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-1">
+                  <p className="text-[10px] lg:text-xs text-muted-foreground line-clamp-1">
                     {project.description}
                   </p>
                 )}
               </div>
               
               {/* Tags/Metadata */}
-              <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5 lg:gap-2 flex-wrap text-[10px] lg:text-xs text-muted-foreground">
                 {project.difficulty && (
                   <>
                     <span className="capitalize">{project.difficulty}</span>

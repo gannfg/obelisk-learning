@@ -9,11 +9,14 @@ import { ClassroomModules } from "@/components/classroom/classroom-modules";
 import { ClassroomAttendance } from "@/components/classroom/classroom-attendance";
 import { ClassroomAssignments } from "@/components/classroom/classroom-assignments";
 import { ClassroomAnnouncements } from "@/components/classroom/classroom-announcements";
-import { ArrowLeft, CheckCircle2, ExternalLink } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ExternalLink, Calendar } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { format } from "date-fns";
+import { getClassAssignments } from "@/lib/classroom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ExpandableText } from "@/components/expandable-text";
 
 interface ClassPageProps {
   params: Promise<{ id: string }>;
@@ -60,6 +63,13 @@ export default async function ClassPage({ params }: ClassPageProps) {
     redirect(`/academy/classes/${id}/enroll`);
   }
 
+  // Fetch assignments to show alongside modules
+  const assignments = await getClassAssignments(id, learningSupabase);
+  const assignmentsByModule: Record<string, typeof assignments> = {};
+  (classItem.modules || []).forEach((mod) => {
+    assignmentsByModule[mod.id] = assignments.filter((a) => a.moduleId === mod.id);
+  });
+
   // Get enrolled students for left panel
   const activeEnrollments = allEnrollments.filter(e => e.status === "active");
   const enrolledUsersWithAvatars = await Promise.all(
@@ -80,6 +90,12 @@ export default async function ClassPage({ params }: ClassPageProps) {
       }
     })
   );
+
+  const getDateShort = (date: Date) => {
+    const month = format(date, "MMM").toUpperCase();
+    const day = format(date, "d");
+    return `${month} ${day}`;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -102,9 +118,17 @@ export default async function ClassPage({ params }: ClassPageProps) {
         <div className="flex flex-col lg:grid lg:grid-cols-[400px_1fr] gap-6 lg:gap-12">
           {/* Left Panel - Class Image & Information */}
           <div className="space-y-4 sm:space-y-6 order-2 lg:order-1">
+            {/* Date badge above image */}
+            <div className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+              <span className="inline-flex items-center gap-1 rounded-full border px-3 py-1">
+                <Calendar className="h-4 w-4" />
+                {`${getDateShort(classItem.startDate)} - ${getDateShort(classItem.endDate)}`}
+              </span>
+            </div>
+
             {/* Class Image */}
             {classItem.thumbnail ? (
-              <div className="relative w-full aspect-[3/4] rounded-xl sm:rounded-2xl overflow-hidden">
+              <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden">
                 <Image
                   src={classItem.thumbnail}
                   alt={classItem.title}
@@ -115,8 +139,15 @@ export default async function ClassPage({ params }: ClassPageProps) {
                 />
               </div>
             ) : (
-              <div className="relative w-full aspect-[3/4] rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 flex items-center justify-center">
+              <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 flex items-center justify-center">
                 <span className="text-6xl">📚</span>
+              </div>
+            )}
+
+            {/* Description moved below image with See more */}
+            {classItem.description && (
+              <div className="bg-card rounded-lg p-4 border border-border">
+                <ExpandableText text={classItem.description} maxChars={420} />
               </div>
             )}
 
@@ -138,7 +169,7 @@ export default async function ClassPage({ params }: ClassPageProps) {
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground mb-1">Duration</p>
                 <p className="font-medium text-sm">
-                  {format(classItem.startDate, "MMM d")} - {format(classItem.endDate, "MMM d, yyyy")}
+                  {`${getDateShort(classItem.startDate)} - ${getDateShort(classItem.endDate)}`}
                 </p>
               </div>
 
@@ -215,7 +246,6 @@ export default async function ClassPage({ params }: ClassPageProps) {
                             fill
                             className="object-cover"
                             sizes="32px"
-                            unoptimized
                           />
                         ) : (
                           <div className="h-full w-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
@@ -242,68 +272,17 @@ export default async function ClassPage({ params }: ClassPageProps) {
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 leading-tight">
                 {classItem.title}
               </h1>
-              {classItem.description && (
-                <p className="text-base sm:text-lg text-muted-foreground">
-                  {classItem.description}
-                </p>
-              )}
             </div>
 
-            {/* Tabs */}
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="modules">Modules</TabsTrigger>
-                <TabsTrigger value="attendance">Attendance</TabsTrigger>
-                <TabsTrigger value="assignments">Assignments</TabsTrigger>
-                <TabsTrigger value="announcements">Announcements</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overview" className="mt-6">
-                <ClassroomOverview
-                  classId={id}
-                  classItem={classItem}
-                  userId={user.id}
-                  isInstructor={isInstructor}
-                />
-              </TabsContent>
-
-              <TabsContent value="modules" className="mt-6">
+            {/* Modules only (no tabs header) */}
+            <div className="mt-6">
                 <ClassroomModules
                   classId={id}
                   classItem={classItem}
                   userId={user.id}
                   isInstructor={isInstructor}
                 />
-              </TabsContent>
-
-              <TabsContent value="attendance" className="mt-6">
-                <ClassroomAttendance
-                  classId={id}
-                  classItem={classItem}
-                  userId={user.id}
-                  isInstructor={isInstructor}
-                />
-              </TabsContent>
-
-              <TabsContent value="assignments" className="mt-6">
-                <ClassroomAssignments
-                  classId={id}
-                  classItem={classItem}
-                  userId={user.id}
-                  isInstructor={isInstructor}
-                />
-              </TabsContent>
-
-              <TabsContent value="announcements" className="mt-6">
-                <ClassroomAnnouncements
-                  classId={id}
-                  classItem={classItem}
-                  userId={user.id}
-                  isInstructor={isInstructor}
-                />
-              </TabsContent>
-            </Tabs>
+            </div>
           </div>
         </div>
       </div>

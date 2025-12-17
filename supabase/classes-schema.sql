@@ -375,7 +375,6 @@ CREATE POLICY "Anyone can view published classes"
   ON classes FOR SELECT
   USING (published = TRUE);
 
--- Class Modules: Admins and mentors can manage, enrolled users can view
 DROP POLICY IF EXISTS "Admins and mentors can manage modules" ON class_modules;
 CREATE POLICY "Admins and mentors can manage modules"
   ON class_modules FOR ALL
@@ -388,14 +387,13 @@ CREATE POLICY "Admins and mentors can manage modules"
     EXISTS (SELECT 1 FROM classes WHERE id = class_id AND is_class_instructor(auth.uid(), id))
   );
 
+-- Enrolled users can view all modules; locking/progression is handled in the app UI
 DROP POLICY IF EXISTS "Enrolled users can view unlocked modules" ON class_modules;
-CREATE POLICY "Enrolled users can view unlocked modules"
+CREATE POLICY "Enrolled users can view modules"
   ON class_modules FOR SELECT
   USING (
-    locked = FALSE AND (
       is_enrolled(auth.uid(), class_id) OR 
       is_class_instructor(auth.uid(), class_id)
-    )
   );
 
 -- Live Sessions: Similar to modules
