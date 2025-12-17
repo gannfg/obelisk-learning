@@ -4,11 +4,10 @@ import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Message, subscribeToMessages } from "@/lib/messages";
+import { Message } from "@/lib/messages";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { createClient } from "@/lib/supabase/client";
 
 interface MessageThreadProps {
   conversationId: string;
@@ -59,30 +58,11 @@ export function MessageThread({
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const supabase = createClient();
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  // Subscribe to new messages
-  useEffect(() => {
-    if (!conversationId || !supabase) return;
-
-    const unsubscribe = subscribeToMessages(
-      conversationId,
-      (newMessage) => {
-        // Message will be handled by parent component's state
-        // This just ensures real-time updates work
-      },
-      supabase
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [conversationId, supabase]);
 
   const handleSend = async () => {
     const trimmed = input.trim();

@@ -1,18 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { ConversationListItem } from "@/components/conversation-list-item";
-import { getConversations, type Conversation } from "@/lib/messages";
+import {
+  getConversations,
+  createDirectConversation,
+  type Conversation,
+} from "@/lib/messages";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { MessageSquare, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
-export default function MessagesPage() {
+function MessagesPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const supabase = createClient();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const ensureStarting = useRef(false);
 
   useEffect(() => {
     async function loadConversations() {
@@ -33,6 +41,23 @@ export default function MessagesPage() {
     }
 
     loadConversations();
+
+    // If navigated with ?userId=... ensure a conversation exists, then redirect
+    const targetUserId = searchParams?.get("userId");
+    if (user && targetUserId && !ensureStarting.current) {
+      ensureStarting.current = true;
+      (async () => {
+        const convId = await createDirectConversation(targetUserId);
+        if (convId) {
+          router.replace(`/messages/${convId}`);
+        } else {
+          // If creation failed, stay on list but clear the param
+          router.replace("/messages");
+        }
+      })().finally(() => {
+        ensureStarting.current = false;
+      });
+    }
 
     // Set up real-time subscription for conversation updates
     if (supabase && user) {
@@ -103,6 +128,15 @@ export default function MessagesPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+// Wrap in Suspense to satisfy useSearchParams requirement
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-muted-foreground">Loading...</div>}>
+      <MessagesPageInner />
+    </Suspense>
   );
 }
 
