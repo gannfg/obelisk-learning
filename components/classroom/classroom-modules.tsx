@@ -3,7 +3,16 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, FileText, Video, Link as LinkIcon, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  ExternalLink,
+  FileText,
+  Video,
+  Link as LinkIcon,
+  ChevronDown,
+  ChevronRight,
+  CheckCircle2,
+  Lock as LockIcon,
+} from "lucide-react";
 import { format } from "date-fns";
 import type { ClassModule, AssignmentSubmission } from "@/types/classes";
 import type { ClassWithModules } from "@/lib/classes";
@@ -77,6 +86,7 @@ export function ClassroomModules({
   const [assignmentsByModule, setAssignmentsByModule] = useState<Record<string, any[]>>({});
   const [submissionsByAssignment, setSubmissionsByAssignment] = useState<Record<string, AssignmentSubmission[]>>({});
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
 
   useEffect(() => {
     // Always refresh modules from backend to avoid stale/empty data
@@ -180,10 +190,22 @@ export function ClassroomModules({
     return assignments.every((assignment) => {
       const submissions = submissionsByAssignment[assignment.id] || [];
       return submissions.some(
-        (sub) => sub.status === "approved" || sub.status === "reviewed"
+        (sub) =>
+          sub.status === "approved" ||
+          sub.status === "reviewed" ||
+          sub.status === "submitted" ||
+          sub.status === "late"
       );
     });
   };
+
+  const getNextModule = (currentModuleId: string) => {
+    const idx = modules.findIndex((m) => m.id === currentModuleId);
+    if (idx === -1) return null;
+    return modules[idx + 1] || null;
+  };
+
+  const firstIncompleteModule = modules.find((m) => !isModuleCompleted(m.id));
 
   // Automatically mark attendance when a module is completed
   useEffect(() => {
@@ -263,6 +285,13 @@ export function ClassroomModules({
     }
   }, [modules, assignmentsByModule, submissionsByAssignment, classId, userId, isInstructor]);
 
+  // Auto-focus the first incomplete module when data is ready
+  useEffect(() => {
+    if (hasAutoExpanded || !firstIncompleteModule) return;
+    setExpandedModules(new Set([firstIncompleteModule.id]));
+    setHasAutoExpanded(true);
+  }, [firstIncompleteModule, hasAutoExpanded]);
+
   return (
     <div className="space-y-6">
       {modules.length === 0 ? (
@@ -276,8 +305,14 @@ export function ClassroomModules({
           {modules.map((module) => {
             const assignments = assignmentsByModule[module.id] || [];
 
-            const isExpanded = expandedModules.has(module.id);
+            const moduleIndex = modules.findIndex((m) => m.id === module.id);
+            const allPreviousCompleted = modules
+              .slice(0, moduleIndex)
+              .every((m) => isModuleCompleted(m.id));
+            const isLocked = !allPreviousCompleted;
+            const isExpanded = expandedModules.has(module.id) && (!isLocked || isInstructor);
             const toggleExpand = () => {
+              if (isLocked && !isInstructor) return;
               setExpandedModules((prev) => {
                 const next = new Set(prev);
                 if (next.has(module.id)) {
@@ -294,7 +329,8 @@ export function ClassroomModules({
                 <button
                   type="button"
                   onClick={toggleExpand}
-                  className="w-full text-left"
+                  className={`w-full text-left ${isLocked && !isInstructor ? "cursor-not-allowed opacity-60" : ""}`}
+                  disabled={isLocked && !isInstructor}
                 >
                   <CardContent className="p-4">
                     {/* Module Header - Always Visible */}
@@ -307,8 +343,20 @@ export function ClassroomModules({
                       <h3 className="font-semibold text-base sm:text-lg flex-1">
                         Week {module.weekNumber}: {module.title}
                       </h3>
-                      <div className="text-xs text-muted-foreground">
-                        {isModuleCompleted(module.id) ? "Completed" : "In progress"}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {isModuleCompleted(module.id) && (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        )}
+                        {!isInstructor && isLocked && !isModuleCompleted(module.id) ? (
+                          <>
+                            <LockIcon className="h-4 w-4" />
+                            <span>Locked</span>
+                          </>
+                        ) : isModuleCompleted(module.id) ? (
+                          <span className="text-green-500">Completed</span>
+                        ) : (
+                          <span>In progress</span>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -435,6 +483,25 @@ export function ClassroomModules({
                           </p>
                         )}
                       </div>
+
+                      {/* Continue button to next week */}
+                      {isModuleCompleted(module.id) && getNextModule(module.id) && !isInstructor && (
+                        <div className="pt-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const next = getNextModule(module.id);
+                              if (next) {
+                                setExpandedModules(new Set([next.id]));
+                              }
+                            }}
+                          >
+                            Continue to Week {getNextModule(module.id)?.weekNumber}
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 )}
