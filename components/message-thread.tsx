@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Message } from "@/lib/messages";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Loader2, Paperclip, Send } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
 
 interface MessageThreadProps {
@@ -89,7 +89,7 @@ export function MessageThread({
   return (
     <div className="flex flex-col h-full">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
         {messages.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
             <p className="text-sm">No messages yet. Start the conversation!</p>
@@ -125,7 +125,7 @@ export function MessageThread({
                     )}
                   </div>
                 )}
-                <div className="flex flex-col max-w-[80%]">
+                <div className="flex flex-col max-w-[90%] sm:max-w-[80%]">
                   {!isOwnMessage && (
                     <p className="text-xs text-muted-foreground mb-1 px-1">
                       {otherParticipant?.name || "User"}
@@ -161,12 +161,48 @@ export function MessageThread({
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-border bg-background/80 p-4 space-y-2">
+      {/* Mobile pill-style composer */}
+      <div className="border-t border-border bg-background/80 p-2 sm:hidden">
+        <div className="flex items-center gap-2 rounded-full border border-border bg-card px-2.5 py-1.5 shadow-sm">
+          <button
+            type="button"
+            className="h-8 w-8 inline-flex items-center justify-center text-muted-foreground/70"
+            aria-label="Add attachment (coming soon)"
+            disabled
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a message..."
+            className="flex-1 min-h-[34px] max-h-[120px] resize-none border-0 bg-transparent text-sm focus:outline-none focus-visible:outline-none"
+            disabled={isSending}
+          />
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={isSending || !input.trim()}
+            aria-label="Send message"
+            className="h-8 w-8 inline-flex items-center justify-center text-primary disabled:text-muted-foreground/60"
+          >
+            {isSending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop composer */}
+      <div className="hidden sm:block border-t border-border bg-background/80 p-4 space-y-2">
         <Textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message... (Press Enter to send, Shift+Enter for new line)"
+          placeholder="Type a message..."
           className="min-h-[72px] max-h-[160px] resize-y text-sm"
           disabled={isSending}
         />

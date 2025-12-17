@@ -137,7 +137,7 @@ export default function ConversationPage() {
   }
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+    <div className="mx-auto flex h-[100vh] flex-col px-3 py-3 sm:container sm:h-auto sm:px-4 sm:py-6">
       <div className="mb-4">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/messages">
@@ -147,9 +147,9 @@ export default function ConversationPage() {
         </Button>
       </div>
 
-      <div className="flex flex-col h-[calc(100vh-150px)] rounded-lg border border-border bg-muted/10 backdrop-blur-sm">
+      <div className="flex flex-1 flex-col rounded-lg border border-border bg-muted/10 backdrop-blur-sm overflow-hidden">
         {/* Chat Header */}
-        <div className="border-b border-border bg-background/80 p-4 flex items-center gap-3">
+        <div className="sticky top-0 z-10 border-b border-border bg-background/90 p-3 sm:p-4 flex items-center gap-3">
           {otherParticipant?.user?.avatar ? (
             <Image
               src={otherParticipant.user.avatar}
@@ -170,14 +170,14 @@ export default function ConversationPage() {
               )}
             </div>
           )}
-          <div className="flex-1">
-            <h3 className="font-semibold">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold truncate">
               {conversation.type === "group"
                 ? `Group Chat (${conversation.participants.length})`
                 : otherParticipant?.user?.name || "Unknown User"}
             </h3>
             {conversation.type === "direct" && otherParticipant?.user?.username && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground truncate">
                 @{otherParticipant.user.username}
               </p>
             )}
@@ -185,20 +185,22 @@ export default function ConversationPage() {
         </div>
 
         {/* Message Thread */}
-        <MessageThread
-          conversationId={conversationId}
-          messages={messages}
-          onSendMessage={handleSendMessage}
-          isLoading={loadingMessages}
-          otherParticipant={
-            conversation.type === "direct" && otherParticipant
-              ? {
-                  name: otherParticipant.user?.name || "Unknown",
-                  avatar: otherParticipant.user?.avatar || undefined,
-                }
-              : undefined
-          }
-        />
+        <div className="flex-1 min-h-0">
+          <MessageThread
+            conversationId={conversationId}
+            messages={messages}
+            onSendMessage={handleSendMessage}
+            isLoading={loadingMessages}
+            otherParticipant={
+              conversation.type === "direct" && otherParticipant
+                ? {
+                    name: otherParticipant.user?.name || "Unknown",
+                    avatar: otherParticipant.user?.avatar || undefined,
+                  }
+                : undefined
+            }
+          />
+        </div>
       </div>
     </div>
   );
