@@ -1,4 +1,46 @@
 import { createClient } from "@/lib/supabase/client";
+import { notifyNewMessage } from "@/lib/notifications-helpers";
+
+/**
+ * Ensure the current user has a profile row (FK target for participants)
+ */
+async function ensureUserProfile(
+  supabase: any,
+  user: { id: string; email?: string | null; user_metadata?: Record<string, any> }
+) {
+  const { data: existing, error: profileFetchError } = await supabase
+    .from("users")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileFetchError) {
+    console.error("Error checking user profile:", profileFetchError);
+    return false;
+  }
+
+  if (existing) {
+    return true;
+  }
+
+  const metadata = user.user_metadata || {};
+  const { error: profileInsertError } = await supabase
+    .from("users")
+    .upsert({
+      id: user.id,
+      email: user.email || "",
+      first_name: metadata.first_name || metadata.full_name || null,
+      last_name: metadata.last_name || null,
+      image_url: metadata.avatar_url || null,
+    });
+
+  if (profileInsertError) {
+    console.error("Error creating user profile:", profileInsertError);
+    return false;
+  }
+
+  return true;
+}
 
 /**
  * Message type
@@ -51,6 +93,37 @@ export async function createDirectConversation(
   otherUserId: string,
   supabaseClient?: any
 ): Promise<string | null> {
+  // Prefer server-backed API (uses service role) to avoid RLS edge cases.
+  // If API fails, do NOT silently fall back unless a supabaseClient is explicitly provided.
+  if (typeof fetch !== "undefined") {
+    try {
+      const res = await fetch("/api/messages/create-direct", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ otherUserId }),
+      });
+      const text = await res.text();
+      if (res.ok) {
+        const data = text ? JSON.parse(text) : {};
+        if (data?.conversationId) {
+          return data.conversationId as string;
+        }
+        console.warn("API create-direct missing conversationId", data);
+        return null;
+      } else {
+        console.error("API create-direct failed", res.status, text);
+        if (!supabaseClient) {
+          return null;
+        }
+      }
+    } catch (err) {
+      console.error("API create-direct error", err);
+      if (!supabaseClient) {
+        return null;
+      }
+    }
+  }
+
   const supabase = supabaseClient || createClient();
   
   if (!supabase) {
@@ -63,6 +136,13 @@ export async function createDirectConversation(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       console.error("User not authenticated");
+      return null;
+    }
+
+    // Ensure profile exists so FK on conversation_participants passes
+    const profileOk = await ensureUserProfile(supabase, user);
+    if (!profileOk) {
+      console.error("Unable to ensure user profile exists");
       return null;
     }
 
@@ -198,6 +278,25 @@ export async function createDirectConversation(
     }
 
     // Then add the other user as participant (RLS allows this once we're a participant)
+    const { data: otherUserProfile, error: otherProfileError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("id", otherUserId)
+      .maybeSingle();
+
+    if (otherProfileError) {
+      console.error("Error checking other user profile:", otherProfileError);
+      // Clean up conversation
+      await supabase.from("conversations").delete().eq("id", newConversationId);
+      return null;
+    }
+
+    if (!otherUserProfile) {
+      console.error("Other user profile missing; cannot add participant");
+      await supabase.from("conversations").delete().eq("id", newConversationId);
+      return null;
+    }
+
     const { error: otherParticipantError } = await supabase
       .from("conversation_participants")
       .insert({
@@ -239,21 +338,73 @@ export async function getConversations(
       return [];
     }
 
-    // Get conversations where user is a participant
-    const { data: conversations, error } = await supabase
+    // Get conversations where user is a participant (with fallback if nested user RLS fails)
+    let conversations: any[] | null = null;
+    let convoError: any = null;
+
+    const { data: conversationsWithUsers, error: convoWithUsersError } = await supabase
       .from("conversations")
       .select(`
         *,
         conversation_participants(
-          *,
-          user:users(id, first_name, last_name, username, image_url)
+          *
         )
       `)
       .order("updated_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching conversations:", error);
-      return [];
+    if (convoWithUsersError) {
+      convoError = convoWithUsersError;
+      // Fallback without nested users (some deployments may lack permissive users RLS)
+      const { data: conversationsFallback, error: convoFallbackError } = await supabase
+        .from("conversations")
+        .select(`
+          *,
+          conversation_participants(
+            conversation_id,
+            user_id,
+            joined_at,
+            last_read_at
+          )
+        `)
+        .order("updated_at", { ascending: false });
+
+      if (convoFallbackError) {
+        console.error("Error fetching conversations (fallback):", convoFallbackError);
+        return [];
+      }
+      conversations = conversationsFallback;
+    } else {
+      conversations = conversationsWithUsers;
+    }
+
+    // If participants have no embedded user info, fetch user profiles in one query
+    const participantIds = new Set<string>();
+    conversations?.forEach((conv: any) => {
+      conv.conversation_participants?.forEach((p: any) => {
+        if (p?.user_id) participantIds.add(p.user_id);
+      });
+    });
+
+    const userMap: Record<string, any> = {};
+    if (participantIds.size > 0) {
+      const { data: userRows, error: usersError } = await supabase
+        .from("users")
+        .select("id, first_name, last_name, username, image_url")
+        .in("id", Array.from(participantIds));
+
+      if (!usersError && userRows) {
+        userRows.forEach((u: any) => {
+          userMap[u.id] = {
+            id: u.id,
+            name:
+              [u.first_name, u.last_name].filter(Boolean).join(" ").trim() ||
+              u.username ||
+              "User",
+            username: u.username,
+            avatar: u.image_url,
+          };
+        });
+      }
     }
 
     if (!conversations) {
@@ -302,12 +453,12 @@ export async function getConversations(
           // Format participants with user data
           const participants: ConversationParticipant[] =
             conv.conversation_participants.map((p: any) => {
-              const userData = p.user;
+              const userData = p.user || userMap[p.user_id];
               const fullName = userData
                 ? [userData.first_name, userData.last_name]
                     .filter(Boolean)
                     .join(" ")
-                    .trim() || userData.username || "User"
+                    .trim() || userData.username || userData.name || "User"
                 : "User";
 
               return {
@@ -317,10 +468,10 @@ export async function getConversations(
                 lastReadAt: p.last_read_at,
                 user: userData
                   ? {
-                      id: userData.id,
+                      id: userData.id || p.user_id,
                       name: fullName,
                       username: userData.username,
-                      avatar: userData.image_url,
+                      avatar: userData.image_url || userData.avatar,
                     }
                   : undefined,
               };
@@ -522,6 +673,60 @@ export async function sendMessage(
       .from("conversations")
       .update({ updated_at: new Date().toISOString() })
       .eq("id", conversationId);
+
+    // Fire notifications to other participants (best-effort, non-blocking)
+    (async () => {
+      try {
+        // Fetch participants excluding sender
+        const { data: participants, error: participantsError } = await supabase
+          .from("conversation_participants")
+          .select("user_id")
+          .eq("conversation_id", conversationId);
+
+        if (participantsError || !participants) return;
+
+        // Fetch sender profile for name
+        let senderName = "Someone";
+        const { data: senderProfile } = await supabase
+          .from("users")
+          .select("first_name,last_name,username")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (senderProfile) {
+          senderName =
+            [senderProfile.first_name, senderProfile.last_name]
+              .filter(Boolean)
+              .join(" ")
+              .trim() ||
+            senderProfile.username ||
+            "Someone";
+        }
+
+        const messagePreview =
+          trimmedContent.length > 120
+            ? `${trimmedContent.slice(0, 117)}...`
+            : trimmedContent;
+
+        await Promise.all(
+          participants
+            .map((p: any) => p.user_id)
+            .filter((id: string) => id !== user.id)
+            .map((recipientId: string) =>
+              notifyNewMessage(
+                recipientId,
+                user.id,
+                senderName,
+                messagePreview,
+                conversationId,
+                supabase
+              ).catch(() => null)
+            )
+        );
+      } catch (notifyErr) {
+        console.warn("Notification send skipped/error:", notifyErr);
+      }
+    })();
 
     return {
       id: message.id,

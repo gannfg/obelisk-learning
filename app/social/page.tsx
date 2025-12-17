@@ -86,14 +86,11 @@ export default function SocialPage() {
     
     try {
       // Create or get conversation
-      const convId = await createDirectConversation(userId, supabase);
-      if (convId) {
-        // Redirect to messages page with the conversation
-        router.push(`/messages/${convId}`);
-      }
+      const convId = await createDirectConversation(userId);
+      // Always navigate to messages; prefer direct conversation if we have an id
+      router.push(convId ? `/messages/${convId}` : "/messages");
     } catch (error) {
       console.error("Error creating conversation:", error);
-      // Still redirect to messages page
       router.push('/messages');
     }
   };
