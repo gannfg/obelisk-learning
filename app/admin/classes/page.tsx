@@ -38,6 +38,7 @@ import {
   upsertXPConfig,
   updateModuleLearningMaterials,
 } from "@/lib/classes";
+import { getUserProfile } from "@/lib/profile";
 import type {
   Class,
   ClassModule,
@@ -122,6 +123,9 @@ export default function AdminClassesPage() {
   const [assignments, setAssignments] = useState<ClassAssignment[]>([]);
   const [announcements, setAnnouncements] = useState<ClassAnnouncement[]>([]);
   const [stats, setStats] = useState<ClassStats | null>(null);
+  const [enrollmentProfiles, setEnrollmentProfiles] = useState<
+    Record<string, { username?: string; email?: string }>
+  >({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -395,6 +399,37 @@ export default function AdminClassesPage() {
       setEnrollments(enrollmentsData);
       setAnnouncements(announcementsData);
       setStats(statsData);
+
+      // Load profiles for enrolled users (name/email)
+      try {
+        const authSupabase = createClient();
+        const profilesMap: Record<string, { username?: string; email?: string }> = {};
+        await Promise.all(
+          enrollmentsData.map(async (enrollment) => {
+            try {
+              const profile = await getUserProfile(enrollment.userId, undefined, authSupabase);
+              if (profile) {
+                const username =
+                  (profile as any).username ||
+                  (profile as any).handle ||
+                  (profile as any).full_name ||
+                  (profile as any).name ||
+                  (profile.email ? profile.email.split("@")[0] : undefined) ||
+                  enrollment.userId;
+                profilesMap[enrollment.userId] = {
+                  username,
+                  email: profile.email,
+                };
+              }
+            } catch {
+              // ignore missing profile
+            }
+          })
+        );
+        setEnrollmentProfiles(profilesMap);
+      } catch (err) {
+        console.error("Error loading enrollment profiles", err);
+      }
 
       // Load sessions for all modules
       const allSessions: LiveSession[] = [];
@@ -1443,9 +1478,27 @@ export default function AdminClassesPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {enrollments.map((enrollment) => (
-                          <TableRow key={enrollment.id}>
-                            <TableCell>{enrollment.userId}</TableCell>
+                        {enrollments.map((enrollment) => {
+                          const profile = enrollmentProfiles[enrollment.userId];
+                          const displayUsername =
+                            profile?.username ||
+                            (profile?.email ? profile.email.split("@")[0] : undefined) ||
+                            enrollment.userId;
+                          const displayEmail = profile?.email;
+                          return (
+                            <TableRow key={enrollment.id}>
+                              <TableCell>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium break-words">
+                                    {displayUsername}
+                                  </span>
+                                  {displayEmail && (
+                                    <span className="text-xs text-muted-foreground break-words">
+                                      {displayEmail}
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
                             <TableCell>
                               {format(enrollment.enrolledAt, "MMM d, yyyy")}
                             </TableCell>
@@ -1480,8 +1533,9 @@ export default function AdminClassesPage() {
                                 <Trash2 className="h-3 w-3 text-destructive" />
                               </Button>
                             </TableCell>
-                          </TableRow>
-                        ))}
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </CardContent>

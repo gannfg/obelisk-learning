@@ -392,8 +392,8 @@ DROP POLICY IF EXISTS "Enrolled users can view unlocked modules" ON class_module
 CREATE POLICY "Enrolled users can view modules"
   ON class_modules FOR SELECT
   USING (
-    is_enrolled(auth.uid(), class_id) OR 
-    is_class_instructor(auth.uid(), class_id)
+      is_enrolled(auth.uid(), class_id) OR 
+      is_class_instructor(auth.uid(), class_id)
   );
 
 -- Live Sessions: Similar to modules
