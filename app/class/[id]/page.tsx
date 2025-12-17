@@ -276,12 +276,12 @@ export default async function ClassPage({ params }: ClassPageProps) {
 
             {/* Modules only (no tabs header) */}
             <div className="mt-6">
-              <ClassroomModules
-                classId={id}
-                classItem={classItem}
-                userId={user.id}
-                isInstructor={isInstructor}
-              />
+                <ClassroomModules
+                  classId={id}
+                  classItem={classItem}
+                  userId={user.id}
+                  isInstructor={isInstructor}
+                />
             </div>
           </div>
         </div>

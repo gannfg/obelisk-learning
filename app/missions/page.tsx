@@ -494,17 +494,17 @@ export default function MissionBoardPage() {
             const status = submission?.status;
 
             const cardContent = (
-              <Card
-                className={`overflow-hidden transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] hover:shadow-lg ${
-                  progressPercentage === 100
-                    ? "border-green-500/50 bg-green-500/5"
-                    : status === "changes_requested"
-                    ? "border-amber-400/60 bg-amber-50"
-                    : isJoined
-                    ? "border-blue-500/30 bg-blue-500/5"
-                    : ""
-                }`}
-              >
+                <Card
+                  className={`overflow-hidden transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] hover:shadow-lg ${
+                    progressPercentage === 100
+                      ? "border-green-500/50 bg-green-500/5"
+                      : status === "changes_requested"
+                      ? "border-amber-400/60 bg-amber-50"
+                      : isJoined
+                      ? "border-blue-500/30 bg-blue-500/5"
+                      : ""
+                  }`}
+                >
                   <div className="p-4">
                     {/* Top Section - Icon and Title */}
                     <div className="flex items-start gap-2 mb-2">
