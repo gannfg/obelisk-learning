@@ -232,9 +232,9 @@ export async function notifyNewMessage(
     {
       userId: recipientId,
       type: "message",
-      title: `New Message from ${senderName}`,
-      message: messagePreview,
-      link: `/mentor-chat?conversation=${conversationId}`,
+      title: `You received a message`,
+      message: `${senderName}: ${messagePreview}`,
+      link: `/messages/${conversationId}`,
       metadata: {
         sender_id: senderId,
         sender_name: senderName,
