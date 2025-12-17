@@ -299,7 +299,7 @@ export default function AdminClassesPage() {
     title: "",
     description: "",
     instructions: "",
-    deadlineMode: "timer" as "timer" | "date",
+    deadlineMode: "timer" as "timer" | "date" | "none",
     timerHours: "24",
     dueDate: "",
     dueTime: "",
@@ -2354,7 +2354,7 @@ export default function AdminClassesPage() {
             <div className="space-y-3">
               <div>
                 <label className="text-sm font-medium">Deadline Type</label>
-                <div className="flex gap-3 mt-1">
+                <div className="flex flex-wrap gap-3 mt-1">
                   <label className="flex items-center gap-2 text-sm">
                     <input
                       type="radio"
@@ -2385,6 +2385,24 @@ export default function AdminClassesPage() {
                     />
                     Calendar Date
                   </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="deadline-mode"
+                      value="none"
+                      checked={assignmentForm.deadlineMode === "none"}
+                      onChange={() =>
+                        setAssignmentForm({
+                          ...assignmentForm,
+                          deadlineMode: "none",
+                          dueDate: "",
+                          dueTime: "",
+                          timerHours: "24",
+                        })
+                      }
+                    />
+                    No deadline (until class ends)
+                  </label>
                 </div>
               </div>
 
@@ -2407,7 +2425,7 @@ export default function AdminClassesPage() {
                     Assignment deadline will be set to now + timer.
                   </p>
                 </div>
-              ) : (
+              ) : assignmentForm.deadlineMode === "date" ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium">Due Date *</label>
@@ -2432,6 +2450,10 @@ export default function AdminClassesPage() {
                       If empty, defaults to 23:59.
                     </p>
                   </div>
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">
+                  No deadline; students can submit until the class end date.
                 </div>
               )}
             </div>
@@ -2485,6 +2507,7 @@ export default function AdminClassesPage() {
                 const timerHoursNumber = Number(assignmentForm.timerHours);
                 const isTimerMode = assignmentForm.deadlineMode === "timer";
                 const isDateMode = assignmentForm.deadlineMode === "date";
+                const isNoDeadline = assignmentForm.deadlineMode === "none";
 
                 if (
                   !assignmentForm.title ||
@@ -2518,9 +2541,15 @@ export default function AdminClassesPage() {
                   if (isTimerMode) {
                     const timerMs = timerHoursNumber * 60 * 60 * 1000;
                     dueDateTime = new Date(Date.now() + timerMs);
-                  } else {
+                  } else if (isDateMode) {
                     const timePart = assignmentForm.dueTime || "23:59";
                     dueDateTime = new Date(`${assignmentForm.dueDate}T${timePart}`);
+                  } else {
+                    const end = selectedClass.endDate
+                      ? new Date(selectedClass.endDate)
+                      : new Date("2099-12-31T23:59:59Z");
+                    end.setHours(23, 59, 59, 999);
+                    dueDateTime = end;
                   }
 
                   if (editingAssignment) {
