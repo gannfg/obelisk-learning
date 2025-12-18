@@ -1486,7 +1486,7 @@ export default function AdminClassesPage() {
                             enrollment.userId;
                           const displayEmail = profile?.email;
                           return (
-                            <TableRow key={enrollment.id}>
+                          <TableRow key={enrollment.id}>
                               <TableCell>
                                 <div className="flex flex-col">
                                   <span className="text-sm font-medium break-words">
@@ -1533,7 +1533,7 @@ export default function AdminClassesPage() {
                                 <Trash2 className="h-3 w-3 text-destructive" />
                               </Button>
                             </TableCell>
-                            </TableRow>
+                          </TableRow>
                           );
                         })}
                       </TableBody>
@@ -2178,10 +2178,10 @@ export default function AdminClassesPage() {
                         Remove
                       </Button>
                     )}
-                  </div>
-                  <div>
+            </div>
+            <div>
                     <label className="text-xs font-medium">Description</label>
-                    <Textarea
+              <Textarea
                       value={section.description}
                       onChange={(e) =>
                         setModuleSections((prev) =>
@@ -2190,12 +2190,12 @@ export default function AdminClassesPage() {
                           )
                         )
                       }
-                      rows={3}
-                    />
-                  </div>
-                  <div>
+                rows={3}
+              />
+            </div>
+              <div>
                     <label className="text-xs font-medium">YouTube Video URL (optional)</label>
-                    <Input
+                <Input
                       value={section.youtubeUrl}
                       onChange={(e) =>
                         setModuleSections((prev) =>
@@ -2205,9 +2205,9 @@ export default function AdminClassesPage() {
                         )
                       }
                       placeholder="https://www.youtube.com/watch?v=..."
-                    />
-                  </div>
-                </div>
+                />
+              </div>
+              </div>
               ))}
             </div>
             <div>
@@ -2480,30 +2480,30 @@ export default function AdminClassesPage() {
                   </p>
                 </div>
               ) : assignmentForm.deadlineMode === "date" ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Due Date *</label>
-                    <Input
-                      type="date"
-                      value={assignmentForm.dueDate}
-                      onChange={(e) =>
-                        setAssignmentForm({ ...assignmentForm, dueDate: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Due Time</label>
-                    <Input
-                      type="time"
-                      value={assignmentForm.dueTime}
-                      onChange={(e) =>
-                        setAssignmentForm({ ...assignmentForm, dueTime: e.target.value })
-                      }
-                    />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Due Date *</label>
+                <Input
+                  type="date"
+                  value={assignmentForm.dueDate}
+                  onChange={(e) =>
+                    setAssignmentForm({ ...assignmentForm, dueDate: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Due Time</label>
+                <Input
+                  type="time"
+                  value={assignmentForm.dueTime}
+                  onChange={(e) =>
+                    setAssignmentForm({ ...assignmentForm, dueTime: e.target.value })
+                  }
+                />
                     <p className="text-xs text-muted-foreground mt-1">
                       If empty, defaults to 23:59.
                     </p>
-                  </div>
+              </div>
                 </div>
               ) : (
                 <div className="text-xs text-muted-foreground">
@@ -2629,41 +2629,41 @@ export default function AdminClassesPage() {
                     }
                   } else {
                     // Create new assignment
-                    const newAssignment = await createAssignment(
-                      {
-                        moduleId: selectedModuleId,
-                        classId: selectedClass.id,
-                        title: assignmentForm.title,
-                        description: assignmentForm.description || undefined,
-                        instructions: assignmentForm.instructions || undefined,
-                        dueDate: dueDateTime.toISOString(),
-                        submissionType: assignmentForm.submissionType,
-                        xpReward: assignmentForm.xpReward,
-                        lockAfterDeadline: assignmentForm.lockAfterDeadline,
-                      },
-                      user.id,
-                      learningSupabase
-                    );
-                    
+                  const newAssignment = await createAssignment(
+                    {
+                      moduleId: selectedModuleId,
+                      classId: selectedClass.id,
+                      title: assignmentForm.title,
+                      description: assignmentForm.description || undefined,
+                      instructions: assignmentForm.instructions || undefined,
+                      dueDate: dueDateTime.toISOString(),
+                      submissionType: assignmentForm.submissionType,
+                      xpReward: assignmentForm.xpReward,
+                      lockAfterDeadline: assignmentForm.lockAfterDeadline,
+                    },
+                    user.id,
+                    learningSupabase
+                  );
+                  
                     // Send notifications to all enrolled students (only for new assignments)
-                    if (newAssignment) {
-                      try {
-                        const { notifyNewAssignment } = await import("@/lib/classroom-notifications");
-                        // Fetch module to get title
-                        const modules = await getClassModules(selectedClass.id, learningSupabase);
-                        const module = modules.find(m => m.id === selectedModuleId);
-                        await notifyNewAssignment(
-                          selectedClass.id,
-                          selectedClass.title,
-                          assignmentForm.title,
-                          dueDateTime,
-                          learningSupabase,
-                          authSupabase,
-                          module?.title
-                        );
-                      } catch (notifError) {
-                        console.error("Error sending assignment notifications:", notifError);
-                        // Don't fail the assignment creation if notification fails
+                  if (newAssignment) {
+                    try {
+                      const { notifyNewAssignment } = await import("@/lib/classroom-notifications");
+                      // Fetch module to get title
+                      const modules = await getClassModules(selectedClass.id, learningSupabase);
+                      const module = modules.find(m => m.id === selectedModuleId);
+                      await notifyNewAssignment(
+                        selectedClass.id,
+                        selectedClass.title,
+                        assignmentForm.title,
+                        dueDateTime,
+                        learningSupabase,
+                        authSupabase,
+                        module?.title
+                      );
+                    } catch (notifError) {
+                      console.error("Error sending assignment notifications:", notifError);
+                      // Don't fail the assignment creation if notification fails
                       }
                     }
                   }
@@ -2705,9 +2705,9 @@ export default function AdminClassesPage() {
                     Number(assignmentForm.timerHours) <= 0)) ||
                 (assignmentForm.deadlineMode === "date" && !assignmentForm.dueDate)
               }
-              >
-                {saving ? "Creating..." : "Create"}
-              </Button>
+            >
+              {saving ? "Creating..." : "Create"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -303,7 +303,7 @@ export function ClassroomModules({
       ) : (
         <div className="space-y-4">
           {modules.map((module) => {
-            const assignments = assignmentsByModule[module.id] || [];
+          const assignments = assignmentsByModule[module.id] || [];
 
             const moduleIndex = modules.findIndex((m) => m.id === module.id);
             const allPreviousCompleted = modules
@@ -324,7 +324,7 @@ export function ClassroomModules({
               });
             };
 
-            return (
+          return (
               <Card key={module.id} className="overflow-hidden">
                 <button
                   type="button"
@@ -357,7 +357,7 @@ export function ClassroomModules({
                         ) : (
                           <span>In progress</span>
                         )}
-                      </div>
+                        </div>
                     </div>
                   </CardContent>
                 </button>
@@ -385,9 +385,9 @@ export function ClassroomModules({
                                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                   allowFullScreen
                                 />
-                              </div>
-                            )}
-                          </div>
+                  </div>
+                  )}
+                </div>
                         );
                       })}
 
@@ -400,41 +400,41 @@ export function ClassroomModules({
                       )}
 
 
-                      {/* Learning Materials */}
-                      {module.learningMaterials && module.learningMaterials.length > 0 && (
-                        <div>
-                          <h4 className="text-sm font-semibold mb-2">Learning Materials</h4>
-                          <div className="space-y-2">
-                            {module.learningMaterials.map((material, idx) => (
-                              <a
-                                key={idx}
-                                href={material.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-sm text-primary hover:underline"
-                              >
-                                {material.type === "document" && <FileText className="h-4 w-4" />}
-                                {material.type === "video" && <Video className="h-4 w-4" />}
-                                {material.type === "link" && <LinkIcon className="h-4 w-4" />}
-                                {material.type === "file" && <FileText className="h-4 w-4" />}
-                                <span>{material.title}</span>
-                              </a>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                  {/* Learning Materials */}
+                  {module.learningMaterials && module.learningMaterials.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">Learning Materials</h4>
+                      <div className="space-y-2">
+                        {module.learningMaterials.map((material, idx) => (
+                          <a
+                            key={idx}
+                            href={material.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sm text-primary hover:underline"
+                          >
+                            {material.type === "document" && <FileText className="h-4 w-4" />}
+                            {material.type === "video" && <Video className="h-4 w-4" />}
+                            {material.type === "link" && <LinkIcon className="h-4 w-4" />}
+                            {material.type === "file" && <FileText className="h-4 w-4" />}
+                            <span>{material.title}</span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                      {/* Live Session Link */}
+                  {/* Live Session Link */}
                       {module.liveSessionLink && module.liveSessionLink.trim().length > 0 && (
-                        <div>
-                          <Button asChild variant="outline" className="w-full">
-                            <a href={module.liveSessionLink} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              Join Live Session
-                            </a>
-                          </Button>
-                        </div>
-                      )}
+                    <div>
+                      <Button asChild variant="outline" className="w-full">
+                        <a href={module.liveSessionLink} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Join Live Session
+                        </a>
+                      </Button>
+                    </div>
+                  )}
 
                       {/* Assignments Section - Inside expanded content */}
                       <div className="space-y-2">
@@ -448,19 +448,19 @@ export function ClassroomModules({
                             {assignments.map((assignment) => {
                               const submission = submissionsByAssignment[assignment.id]?.[0];
                               return (
-                                <div
-                                  key={assignment.id}
+                          <div
+                            key={assignment.id}
                                   className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    window.location.href = `/class/${classId}?tab=assignments#assignment-${assignment.id}`;
-                                  }}
-                                >
+                              window.location.href = `/class/${classId}?tab=assignments#assignment-${assignment.id}`;
+                            }}
+                          >
                                   <div className="flex-1">
                                     <h4 className="font-medium text-sm">{assignment.title}</h4>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      Due: {format(assignment.dueDate, "MMM d, yyyy 'at' h:mm a")}
-                                    </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Due: {format(assignment.dueDate, "MMM d, yyyy 'at' h:mm a")}
+                                </p>
                                     {submission && (
                                       <p className={`text-xs mt-1 ${
                                         submission.status === "approved" || submission.status === "reviewed"
@@ -472,8 +472,8 @@ export function ClassroomModules({
                                         Status: {submission.status.replace("_", " ")}
                                       </p>
                                     )}
-                                  </div>
-                                </div>
+                              </div>
+                            </div>
                               );
                             })}
                           </div>
@@ -503,11 +503,11 @@ export function ClassroomModules({
                         </div>
                       )}
                     </div>
-                  </CardContent>
-                )}
+                </CardContent>
+              )}
 
-              </Card>
-            );
+            </Card>
+          );
           })}
         </div>
       )}

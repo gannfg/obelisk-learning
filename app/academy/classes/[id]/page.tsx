@@ -291,34 +291,34 @@ export default async function ClassPage({ params }: ClassPageProps) {
 
             {/* Overview only (hide modules for non-enrolled users) */}
             <div className="space-y-4">
-              <h2 className="text-2xl font-bold">About This Class</h2>
-              <div className="prose prose-invert max-w-none">
-                <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {classItem.description || "No description available for this class."}
-                </p>
-                <div className="mt-6 space-y-4">
-                  <div>
-                    <h3 className="font-semibold mb-2">Class Details</h3>
-                    <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                      <li>Semester: {classItem.semester}</li>
-                      <li>Start Date: {format(classItem.startDate, "MMMM d, yyyy")}</li>
-                      <li>End Date: {format(classItem.endDate, "MMMM d, yyyy")}</li>
-                      {classItem.maxCapacity && (
-                        <li>Maximum Capacity: {classItem.maxCapacity} students</li>
+                  <h2 className="text-2xl font-bold">About This Class</h2>
+                  <div className="prose prose-invert max-w-none">
+                    <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                      {classItem.description || "No description available for this class."}
+                    </p>
+                    <div className="mt-6 space-y-4">
+                      <div>
+                        <h3 className="font-semibold mb-2">Class Details</h3>
+                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                          <li>Semester: {classItem.semester}</li>
+                          <li>Start Date: {format(classItem.startDate, "MMMM d, yyyy")}</li>
+                          <li>End Date: {format(classItem.endDate, "MMMM d, yyyy")}</li>
+                          {classItem.maxCapacity && (
+                            <li>Maximum Capacity: {classItem.maxCapacity} students</li>
+                          )}
+                          <li>Status: <span className="capitalize">{classItem.status}</span></li>
+                        </ul>
+                      </div>
+                      {classItem.category && (
+                        <div>
+                          <h3 className="font-semibold mb-2">Category</h3>
+                          <span className="inline-block rounded-full border border-border bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
+                            {classItem.category}
+                          </span>
+                        </div>
                       )}
-                      <li>Status: <span className="capitalize">{classItem.status}</span></li>
-                    </ul>
-                  </div>
-                  {classItem.category && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Category</h3>
-                      <span className="inline-block rounded-full border border-border bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
-                        {classItem.category}
-                      </span>
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
             </div>
           </div>
         </div>
