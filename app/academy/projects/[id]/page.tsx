@@ -26,6 +26,7 @@ import Image from "next/image";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useAdmin } from "@/lib/hooks/use-admin";
 import { deleteProject, updateProject } from "@/lib/projects";
+import { addProjectComment, fetchProjectComments, type ProjectComment } from "@/lib/comments";
 
 export default function ProjectPage() {
   const params = useParams();
@@ -48,6 +49,10 @@ export default function ProjectPage() {
   const [editMode, setEditMode] = useState(false);
   const [editDescription, setEditDescription] = useState("");
   const [editProgressLog, setEditProgressLog] = useState("");
+  const [comments, setComments] = useState<ProjectComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentInput, setCommentInput] = useState("");
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   useEffect(() => {
     const loadProject = async () => {
@@ -137,6 +142,11 @@ export default function ProjectPage() {
             }
           }
         }
+
+        // Load comments
+        const fetchedComments = await fetchProjectComments(id);
+        setComments(fetchedComments);
+        setCommentsLoading(false);
       } catch (error) {
         console.error("Error loading project:", error);
       } finally {
@@ -220,6 +230,38 @@ export default function ProjectPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSubmitComment = async () => {
+    if (!commentInput.trim() || !project) return;
+    setCommentSubmitting(true);
+    const newComment = await addProjectComment(project.id, commentInput);
+    if (newComment) {
+      // Optimistically add; user details will be minimal unless refetched
+      setComments((prev) => [
+        {
+          ...newComment,
+          user: user
+            ? {
+                id: user.id,
+                name:
+                  [user.user_metadata?.first_name, user.user_metadata?.last_name]
+                    .filter(Boolean)
+                    .join(" ")
+                    .trim() ||
+                  user.user_metadata?.username ||
+                  user.email ||
+                  "You",
+                username: user.user_metadata?.username,
+                avatar: user.user_metadata?.image_url,
+              }
+            : undefined,
+        },
+        ...prev,
+      ]);
+      setCommentInput("");
+    }
+    setCommentSubmitting(false);
   };
 
   const handleShare = async () => {
@@ -535,31 +577,90 @@ export default function ProjectPage() {
             Comments
           </h2>
           <p className="text-sm text-muted-foreground mb-4">Add Comment</p>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex gap-2 mb-4 border-b border-border pb-2">
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                  <span className="font-bold">B</span>
-                </Button>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                  <span className="italic">I</span>
-                </Button>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                  <span className="underline">U</span>
-                </Button>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                  <span>•</span>
-                </Button>
-              </div>
+          <Card className="mb-4">
+            <CardContent className="pt-6 space-y-3">
               <textarea
-                className="w-full bg-transparent border-0 resize-none focus:outline-none min-h-[150px] text-sm"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="Write your comment here..."
+                value={commentInput}
+                onChange={(e) => setCommentInput(e.target.value)}
+                rows={4}
               />
-              <div className="flex justify-end pt-4 border-t border-border">
-                <Button size="sm">Comment</Button>
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    const body = commentInput.trim();
+                    if (!body) return;
+                    setCommentSubmitting(true);
+                    try {
+                      const newComment = await addProjectComment(id, body);
+                      if (newComment) {
+                        setComments((prev) => [...prev, newComment]);
+                        setCommentInput("");
+                      }
+                    } catch (err) {
+                      console.error("Error adding comment", err);
+                    } finally {
+                      setCommentSubmitting(false);
+                    }
+                  }}
+                  disabled={commentSubmitting || !commentInput.trim()}
+                >
+                  {commentSubmitting ? "Posting..." : "Comment"}
+                </Button>
               </div>
             </CardContent>
           </Card>
+
+          {commentsLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading comments...
+            </div>
+          ) : comments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No comments yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {comments.map((c) => (
+                <Card key={c.id}>
+                  <CardContent className="py-4">
+                    <div className="flex items-start gap-3">
+                      <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
+                        {c.author?.avatar ? (
+                          <Image
+                            src={c.author.avatar}
+                            alt={c.author?.name || "User"}
+                            fill
+                            className="object-cover"
+                            sizes="36px"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="h-full w-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
+                            {c.author?.name?.charAt(0).toUpperCase() || "U"}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-semibold truncate">
+                            {c.author?.name || "Unknown"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(c.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <p className="text-sm text-foreground whitespace-pre-wrap mt-1">
+                          {c.body}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Edit Mode Save Button */}

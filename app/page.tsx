@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Target, BookOpen, Users, Sparkles, ArrowRight, User, Zap, Wallet, Trophy, FolderKanban, UserPlus } from "lucide-react";
+import { Target, BookOpen, Users, Sparkles, ArrowRight, User, Zap, Wallet, Trophy, FolderKanban, UserPlus, CheckCircle2 } from "lucide-react";
 import { AdCarousel } from "@/components/ad-carousel";
 import { useEffect, useState } from "react";
 import { getAllClasses } from "@/lib/classes";
@@ -41,6 +41,13 @@ export default function Home() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [ads, setAds] = useState<any[]>([]);
   const [loadingAds, setLoadingAds] = useState(true);
+  const [stepCompletion, setStepCompletion] = useState({
+    profile: false,
+    learning: false,
+    projects: false,
+    rewards: false,
+  });
+  const [loadingSteps, setLoadingSteps] = useState(true);
   
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
@@ -234,6 +241,99 @@ export default function Home() {
     loadStats();
   }, [user, learningSupabase]);
 
+  // Check step completion status
+  useEffect(() => {
+    if (!user) {
+      setStepCompletion({
+        profile: false,
+        learning: false,
+        projects: false,
+        rewards: false,
+      });
+      setLoadingSteps(false);
+      return;
+    }
+
+    const checkSteps = async () => {
+      setLoadingSteps(true);
+      try {
+        // Step 1: Check if profile is created (has username or name)
+        const { getUserProfile } = await import("@/lib/profile");
+        const profile = await getUserProfile(user.id, user.email || undefined, supabase);
+        const hasProfile = !!(profile?.username || profile?.first_name || profile?.last_name);
+
+        // Step 2: Check if user has enrolled in any class or course
+        let hasLearning = false;
+        if (learningSupabase) {
+          const { count: classEnrollments } = await learningSupabase
+            .from("class_enrollments")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("status", "active");
+          
+          // Also check for course enrollments if that table exists
+          let courseEnrollments = 0;
+          try {
+            const { count } = await learningSupabase
+              .from("enrollments")
+              .select("*", { count: "exact", head: true })
+              .eq("user_id", user.id);
+            courseEnrollments = count || 0;
+          } catch {
+            // Table might not exist, ignore
+          }
+          
+          hasLearning = (classEnrollments || 0) > 0 || courseEnrollments > 0;
+        }
+
+        // Step 3: Check if user has created or is a member of any project
+        let hasProjects = false;
+        if (supabase) {
+          const { data: projectMembers } = await supabase
+            .from("project_members")
+            .select("project_id")
+            .eq("user_id", user.id)
+            .limit(1);
+          
+          const { data: createdProjects } = await supabase
+            .from("projects")
+            .select("id")
+            .eq("created_by", user.id)
+            .limit(1);
+          
+          hasProjects = !!(projectMembers && projectMembers.length > 0) || !!(createdProjects && createdProjects.length > 0);
+        }
+
+        // Step 4: Check if user has earned rewards (badges or XP)
+        let hasRewards = false;
+        if (learningSupabase) {
+          const badges = await getUserBadges(learningSupabase, user.id);
+          const { data: userData } = await learningSupabase
+            .from("users")
+            .select("xp")
+            .eq("id", user.id)
+            .maybeSingle();
+          
+          const xp = (userData?.xp as number) || 0;
+          hasRewards = badges.length > 0 || xp > 0;
+        }
+
+        setStepCompletion({
+          profile: hasProfile,
+          learning: hasLearning,
+          projects: hasProjects,
+          rewards: hasRewards,
+        });
+      } catch (error) {
+        console.error("Error checking step completion:", error);
+      } finally {
+        setLoadingSteps(false);
+      }
+    };
+
+    checkSteps();
+  }, [user, supabase, learningSupabase]);
+
   // Fallback ads if database is empty
   const fallbackAds = [
     {
@@ -414,82 +514,114 @@ export default function Home() {
               </div>
 
               {/* HOW IT WORKS Section */}
-              <Card className="p-4 sm:p-5 md:p-6 hidden md:block">
-                <div className="mb-4 sm:mb-5 md:mb-6">
-                  <h2 className="text-xs uppercase tracking-wider text-muted-foreground">
+              <Card className="p-3 sm:p-4 md:p-5 hidden md:block">
+                <div className="mb-3 sm:mb-4">
+                  <h2 className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground">
                     HOW IT WORKS
                   </h2>
                 </div>
 
                 {/* Vertical Steps List with Connecting Line */}
                 <div className="relative">
-                  {/* Connecting Line (aligned to icon centers) */}
-                  <div className="absolute left-5 sm:left-6 top-0 bottom-0 w-px bg-border hidden sm:block z-0" />
+                  {/* Connecting Line (centered on icon circles, stops at last circle) */}
+                  <div className="absolute left-[16px] sm:left-[18px] top-[16px] sm:top-[18px] bottom-[16px] sm:bottom-[18px] w-px bg-border hidden sm:block z-0" />
 
-                  <div className="space-y-4 sm:space-y-6">
+                  <div className="space-y-3 sm:space-y-4">
                     {/* Step 1 - Create your Profile */}
-                    <div className="relative flex items-start gap-3 sm:gap-4">
+                    <div className="relative flex items-start gap-2 sm:gap-3">
                       {/* Icon Circle */}
-                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-background border border-border flex items-center justify-center">
-                        <UserPlus className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
+                      <div className={`relative z-10 flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full border flex items-center justify-center ${
+                        stepCompletion.profile 
+                          ? "bg-green-500/10 border-green-500" 
+                          : "bg-background border-border"
+                      }`}>
+                        {stepCompletion.profile ? (
+                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                        ) : (
+                          <UserPlus className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+                        )}
                       </div>
                       {/* Content */}
-                      <div className="flex-1 pt-0.5 sm:pt-1">
-                        <h3 className="text-base sm:text-lg font-bold mb-1 text-muted-foreground">
+                      <div className="flex-1 pt-0">
+                        <h3 className="text-sm sm:text-base font-semibold mb-0.5 text-muted-foreground">
                           Create your Profile
                         </h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground">
+                        <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
                           Set up your account and personalize your learning experience
                         </p>
                       </div>
                     </div>
 
                     {/* Step 2 - Start Learning */}
-                    <div className="relative flex items-start gap-3 sm:gap-4">
+                    <div className="relative flex items-start gap-2 sm:gap-3">
                       {/* Icon Circle */}
-                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-background border border-border flex items-center justify-center">
-                        <User className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
+                      <div className={`relative z-10 flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full border flex items-center justify-center ${
+                        stepCompletion.learning 
+                          ? "bg-green-500/10 border-green-500" 
+                          : "bg-background border-border"
+                      }`}>
+                        {stepCompletion.learning ? (
+                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                        ) : (
+                          <User className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+                        )}
                       </div>
                       {/* Content */}
-                      <div className="flex-1 pt-0.5 sm:pt-1">
-                        <h3 className="text-base sm:text-lg font-bold mb-1 text-muted-foreground">
+                      <div className="flex-1 pt-0">
+                        <h3 className="text-sm sm:text-base font-semibold mb-0.5 text-muted-foreground">
                           Start Learning
                         </h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground">
+                        <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
                           Enroll in courses or pick a mission to begin your journey
                         </p>
                       </div>
                     </div>
 
                     {/* Step 3 - Build Projects */}
-                    <div className="relative flex items-start gap-3 sm:gap-4">
+                    <div className="relative flex items-start gap-2 sm:gap-3">
                       {/* Icon Circle */}
-                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-background border border-border flex items-center justify-center">
-                        <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
+                      <div className={`relative z-10 flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full border flex items-center justify-center ${
+                        stepCompletion.projects 
+                          ? "bg-green-500/10 border-green-500" 
+                          : "bg-background border-border"
+                      }`}>
+                        {stepCompletion.projects ? (
+                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                        ) : (
+                          <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+                        )}
                       </div>
                       {/* Content */}
-                      <div className="flex-1 pt-0.5 sm:pt-1">
-                        <h3 className="text-base sm:text-lg font-bold mb-1 text-muted-foreground">
+                      <div className="flex-1 pt-0">
+                        <h3 className="text-sm sm:text-base font-semibold mb-0.5 text-muted-foreground">
                           Build Projects
                         </h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground">
+                        <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
                           Complete hands-on missions and collaborate with teams
                         </p>
                       </div>
                     </div>
 
                     {/* Step 4 - Earn Rewards */}
-                    <div className="relative flex items-start gap-3 sm:gap-4">
+                    <div className="relative flex items-start gap-2 sm:gap-3">
                       {/* Icon Circle */}
-                      <div className="relative z-10 flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-background border border-border flex items-center justify-center">
-                        <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
+                      <div className={`relative z-10 flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full border flex items-center justify-center ${
+                        stepCompletion.rewards 
+                          ? "bg-green-500/10 border-green-500" 
+                          : "bg-background border-border"
+                      }`}>
+                        {stepCompletion.rewards ? (
+                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                        ) : (
+                          <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+                        )}
                       </div>
                       {/* Content */}
-                      <div className="flex-1 pt-0.5 sm:pt-1">
-                        <h3 className="text-base sm:text-lg font-bold mb-1 text-muted-foreground">
+                      <div className="flex-1 pt-0">
+                        <h3 className="text-sm sm:text-base font-semibold mb-0.5 text-muted-foreground">
                           Earn Rewards
                         </h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground">
+                        <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
                           Unlock badges, gain XP, and track your progress
                         </p>
                       </div>
