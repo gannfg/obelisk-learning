@@ -8,6 +8,30 @@ interface HorizontalProjectCardProps {
   project: ProjectWithMembers;
 }
 
+function getShortDescription(description: string, maxLength: number = 160) {
+  if (!description) return "";
+
+  const sentences = description.split(/(?<=[.!?])\s+/);
+  let result = "";
+
+  for (const sentence of sentences) {
+    const tentative = result ? `${result} ${sentence}` : sentence;
+    if (tentative.length > maxLength) break;
+    result = tentative;
+    if (result.length >= maxLength * 0.7) break;
+  }
+
+  if (!result) {
+    result = description.slice(0, maxLength);
+  }
+
+  if (result.length < description.length) {
+    result = result.replace(/\s+$/, "") + "…";
+  }
+
+  return result;
+}
+
 export function HorizontalProjectCard({ project }: HorizontalProjectCardProps) {
   return (
     <Link 
@@ -42,11 +66,6 @@ export function HorizontalProjectCard({ project }: HorizontalProjectCardProps) {
                 <h3 className="text-sm lg:text-base font-semibold truncate mb-0.5 lg:mb-1">
                   {project.title}
                 </h3>
-                {project.description && (
-                  <p className="text-[10px] lg:text-xs text-muted-foreground line-clamp-1">
-                    {project.description}
-                  </p>
-                )}
               </div>
               
               {/* Tags/Metadata */}
