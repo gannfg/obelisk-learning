@@ -103,7 +103,7 @@ function MessagesPageInner() {
 
     return () => {
       if (supabase) {
-        supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
       }
     };
   }, [user, supabase]);

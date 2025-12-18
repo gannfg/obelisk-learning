@@ -242,7 +242,7 @@ export function NotificationsDropdown({
       const success = await deleteNotification(notificationId, userId, supabase);
       if (!success) {
         // If deletion failed, restore the notification
-        fetchNotifications();
+      fetchNotifications();
       }
     } catch (error) {
       console.error("Error deleting notification:", error);

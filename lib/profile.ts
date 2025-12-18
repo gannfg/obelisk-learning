@@ -53,6 +53,10 @@ export interface UserProfile {
   is_admin?: boolean | null;
   location?: string | null;
   languages?: string[] | null;
+  twitter_url?: string | null;
+  linkedin_url?: string | null;
+  github_url?: string | null;
+  website_url?: string | null;
   created_at?: string;
   updated_at?: string;
 }

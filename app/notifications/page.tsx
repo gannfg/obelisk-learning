@@ -202,8 +202,8 @@ export default function NotificationsPage() {
       const success = await deleteNotification(notificationId, user.id, supabase);
       if (!success) {
         // If deletion failed, restore the notification
-        const notifs = await getUserNotifications(user.id, supabase);
-        setNotifications(notifs);
+      const notifs = await getUserNotifications(user.id, supabase);
+      setNotifications(notifs);
       }
     } catch (error) {
       console.error("Error deleting notification:", error);
