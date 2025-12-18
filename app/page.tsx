@@ -416,11 +416,11 @@ export default function Home() {
               ) : classes.length > 0 ? (
                 <>
                   <div className="space-y-2 lg:space-y-3 mb-4">
-                    {classes.slice(0, 4).map((classItem) => (
+                    {classes.slice(0, 10).map((classItem) => (
                       <HorizontalClassCard key={classItem.id} classItem={classItem} />
                     ))}
                   </div>
-                  {classes.length > 4 && (
+                  {classes.length > 10 && (
                     <Button variant="outline" className="w-full rounded-lg group" asChild>
                       <Link href="/academy?tab=classes" className="flex items-center justify-center gap-2">
                         <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
