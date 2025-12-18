@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,12 @@ export default function MissionBoardPage() {
   const [currentFeaturedIndex, setCurrentFeaturedIndex] = useState(0);
   const [missionAccessMap, setMissionAccessMap] = useState<Record<string, { canAccess: boolean; missingClasses: string[] }>>({});
   const [prerequisiteDetailsMap, setPrerequisiteDetailsMap] = useState<Record<string, Array<{ id: string; title: string; thumbnail?: string }>>>({});
+  
+  // Refs for filter button containers
+  const difficultyFilterRef = useRef<HTMLDivElement>(null);
+  const joinFilterRef = useRef<HTMLDivElement>(null);
+  const [difficultyIndicatorStyle, setDifficultyIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
+  const [joinIndicatorStyle, setJoinIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
 
   useEffect(() => {
     if (authLoading) return;
@@ -186,6 +192,74 @@ export default function MissionBoardPage() {
     return () => clearInterval(interval);
   }, [featuredMissions.length]);
 
+  // Update difficulty filter indicator position
+  useEffect(() => {
+    const updateIndicator = () => {
+      if (!difficultyFilterRef.current) return;
+      
+      const buttons = difficultyFilterRef.current.querySelectorAll('button');
+      const difficultyLevels = ["all", "beginner", "intermediate", "advanced"];
+      const activeIndex = difficultyLevels.indexOf(filter);
+      
+      if (activeIndex >= 0 && buttons[activeIndex]) {
+        const activeButton = buttons[activeIndex] as HTMLElement;
+        const container = difficultyFilterRef.current;
+        const containerRect = container.getBoundingClientRect();
+        const buttonRect = activeButton.getBoundingClientRect();
+        
+        setDifficultyIndicatorStyle({
+          left: buttonRect.left - containerRect.left,
+          width: buttonRect.width,
+        });
+      }
+    };
+
+    // Use requestAnimationFrame to ensure DOM is ready
+    const rafId = requestAnimationFrame(() => {
+      updateIndicator();
+    });
+    
+    window.addEventListener('resize', updateIndicator);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', updateIndicator);
+    };
+  }, [filter]);
+
+  // Update join filter indicator position
+  useEffect(() => {
+    const updateIndicator = () => {
+      if (!joinFilterRef.current) return;
+      
+      const buttons = joinFilterRef.current.querySelectorAll('button');
+      const joinFilters = ["all", "joined", "not_joined"];
+      const activeIndex = joinFilters.indexOf(joinFilter);
+      
+      if (activeIndex >= 0 && buttons[activeIndex]) {
+        const activeButton = buttons[activeIndex] as HTMLElement;
+        const container = joinFilterRef.current;
+        const containerRect = container.getBoundingClientRect();
+        const buttonRect = activeButton.getBoundingClientRect();
+        
+        setJoinIndicatorStyle({
+          left: buttonRect.left - containerRect.left,
+          width: buttonRect.width,
+        });
+      }
+    };
+
+    // Use requestAnimationFrame to ensure DOM is ready
+    const rafId = requestAnimationFrame(() => {
+      updateIndicator();
+    });
+    
+    window.addEventListener('resize', updateIndicator);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', updateIndicator);
+    };
+  }, [joinFilter]);
+
   // Manual navigation functions
   const goToPrevious = () => {
     if (featuredMissions.length < 2) return;
@@ -257,12 +331,27 @@ export default function MissionBoardPage() {
       {/* Hero Mission Card */}
       {featuredMission && (
         <Link href={`/missions/${featuredMission.id}`} className="block mb-6 group">
-          <Card className="overflow-visible border shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer relative">
-            {/* Background Image */}
-            <div 
-              className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none z-0 bg-cover bg-center bg-no-repeat"
-              style={{ backgroundImage: 'url(/superteam_color.svg)' }}
-            />
+          <Card className="overflow-hidden border shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer relative">
+            {/* Background Image - Full box with transparency and fade */}
+            {featuredMission.imageUrl ? (
+              <div className="absolute inset-0 z-0">
+                <Image
+                  src={featuredMission.imageUrl}
+                  alt={featuredMission.title}
+                  fill
+                  className="object-cover opacity-60 transition-opacity duration-300 group-hover:opacity-70"
+                  sizes="100vw"
+                  priority
+                />
+                {/* Fade overlay gradient - stronger at top, transparent at bottom */}
+                <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background/10" />
+              </div>
+            ) : (
+              <div 
+                className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none z-0 bg-cover bg-center bg-no-repeat opacity-40"
+                style={{ backgroundImage: 'url(/superteam_color.svg)' }}
+              />
+            )}
             
             {/* Left Navigation Button - Only visible on hover */}
             {featuredMissions.length >= 2 && (
@@ -298,19 +387,19 @@ export default function MissionBoardPage() {
               {/* Left Side - Mission Info */}
               <div className="flex-1 flex flex-col justify-between min-h-[200px]">
                 <div>
-                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 text-white">
+                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 text-foreground drop-shadow-lg">
                     {featuredMission.title}
                   </h2>
                   
                   {/* Stats */}
-                  <div className="flex flex-wrap gap-4 text-base md:text-lg text-white">
+                  <div className="flex flex-wrap gap-4 text-base md:text-lg text-foreground drop-shadow-md">
                     <div className="flex items-center gap-1.5">
-                      <Users className="h-5 w-5 text-white" />
+                      <Users className="h-5 w-5" />
                       <span>{joinCounts[featuredMission.id] || 0} joined</span>
                     </div>
                     {featuredDaysRemaining !== null && (
                       <div className="flex items-center gap-1.5">
-                        <Clock className="h-5 w-5 text-white" />
+                        <Clock className="h-5 w-5" />
                         <span>
                           {featuredDaysRemaining < 0
                             ? "Closed"
@@ -336,7 +425,7 @@ export default function MissionBoardPage() {
                             setCurrentFeaturedIndex(i);
                           }}
                           className={`h-1.5 rounded-full transition-all ${
-                            i === currentFeaturedIndex ? "w-6 bg-white" : "w-1.5 bg-white/50"
+                            i === currentFeaturedIndex ? "w-6 bg-foreground" : "w-1.5 bg-foreground/50"
                           }`}
                           aria-label={`Go to mission ${i + 1}`}
                         />
@@ -346,15 +435,15 @@ export default function MissionBoardPage() {
                 </div>
               </div>
 
-              {/* Right Side - Mission Image (Square) */}
-              <div className="relative w-full md:w-64 h-64 md:h-64 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+              {/* Right Side - Small Mission Image Box */}
+              <div className="relative w-full md:w-48 h-48 md:h-48 bg-background/20 backdrop-blur-sm rounded-lg overflow-hidden flex-shrink-0 border border-foreground/10 shadow-lg">
                 {featuredMission.imageUrl ? (
                   <Image
                     src={featuredMission.imageUrl}
                     alt={featuredMission.title}
                     fill
                     className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 256px"
+                    sizes="(max-width: 768px) 100vw, 192px"
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -375,14 +464,32 @@ export default function MissionBoardPage() {
               <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Difficulty:</span>
             </div>
-            <div className="flex flex-wrap gap-1.5">
+            <div 
+              ref={difficultyFilterRef}
+              className="relative flex flex-wrap gap-1.5"
+            >
+              {/* Sliding indicator */}
+              <div
+                className="absolute h-7 bg-foreground rounded-md z-0"
+                style={{
+                  left: `${difficultyIndicatorStyle.left}px`,
+                  width: `${difficultyIndicatorStyle.width}px`,
+                  opacity: difficultyIndicatorStyle.width > 0 ? 1 : 0,
+                  transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.1s ease-out',
+                  willChange: 'left, width',
+                }}
+              />
               {["all", "beginner", "intermediate", "advanced"].map((level) => (
                 <Button
                   key={level}
-                  variant={filter === level ? "default" : "outline"}
+                  variant="outline"
                   size="sm"
                   onClick={() => setFilter(level as typeof filter)}
-                  className="text-xs h-7 px-2.5"
+                  className={`text-xs h-7 px-2.5 relative z-10 transition-colors duration-300 ${
+                    filter === level 
+                      ? "bg-transparent border-transparent text-background" 
+                      : ""
+                  }`}
                 >
                   {level.charAt(0).toUpperCase() + level.slice(1)}
                 </Button>
@@ -391,28 +498,54 @@ export default function MissionBoardPage() {
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
             <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Joined:</span>
-            <div className="flex flex-wrap gap-1.5">
+            <div 
+              ref={joinFilterRef}
+              className="relative flex flex-wrap gap-1.5"
+            >
+              {/* Sliding indicator */}
+              <div
+                className="absolute h-7 bg-foreground rounded-md z-0"
+                style={{
+                  left: `${joinIndicatorStyle.left}px`,
+                  width: `${joinIndicatorStyle.width}px`,
+                  opacity: joinIndicatorStyle.width > 0 ? 1 : 0,
+                  transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.1s ease-out',
+                  willChange: 'left, width',
+                }}
+              />
               <Button
-                variant={joinFilter === "all" ? "default" : "outline"}
+                variant="outline"
                 size="sm"
                 onClick={() => setJoinFilter("all")}
-                className="text-xs h-7 px-2.5"
+                className={`text-xs h-7 px-2.5 relative z-10 transition-colors duration-300 ${
+                  joinFilter === "all" 
+                    ? "bg-transparent border-transparent text-background" 
+                    : ""
+                }`}
               >
                 All
               </Button>
               <Button
-                variant={joinFilter === "joined" ? "default" : "outline"}
+                variant="outline"
                 size="sm"
                 onClick={() => setJoinFilter("joined")}
-                className="text-xs h-7 px-2.5"
+                className={`text-xs h-7 px-2.5 relative z-10 transition-colors duration-300 ${
+                  joinFilter === "joined" 
+                    ? "bg-transparent border-transparent text-background" 
+                    : ""
+                }`}
               >
                 Joined
               </Button>
               <Button
-                variant={joinFilter === "not_joined" ? "default" : "outline"}
+                variant="outline"
                 size="sm"
                 onClick={() => setJoinFilter("not_joined")}
-                className="text-xs h-7 px-2.5"
+                className={`text-xs h-7 px-2.5 relative z-10 transition-colors duration-300 ${
+                  joinFilter === "not_joined" 
+                    ? "bg-transparent border-transparent text-background" 
+                    : ""
+                }`}
               >
                 Not Joined
               </Button>
