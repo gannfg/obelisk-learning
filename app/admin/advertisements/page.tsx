@@ -136,7 +136,7 @@ export default function AdminAdvertisementsPage() {
         cta_text: "Click to view", // Default CTA for database compatibility
         href,
         image_url: imageUrl,
-        order_index: null,
+        order_index: 0, // Default to 0 instead of null to satisfy NOT NULL constraint
         is_active: true,
       };
 
@@ -151,7 +151,7 @@ export default function AdminAdvertisementsPage() {
         // Create new ad
         const created = await createAd(learningSupabase, adData);
         if (!created) {
-          setError("Failed to create advertisement");
+          setError("Failed to create advertisement. Please check the console for details.");
           return;
         }
       }
@@ -264,6 +264,8 @@ export default function AdminAdvertisementsPage() {
                     alt="Preview"
                     fill
                     className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 512px"
+                    unoptimized
                   />
                 </div>
               )}
@@ -331,9 +333,11 @@ export default function AdminAdvertisementsPage() {
                     <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden">
                       <Image
                         src={ad.image_url}
-                        alt={ad.title}
+                        alt={ad.title || "Advertisement image"}
                         fill
                         className="object-cover"
+                        sizes="96px"
+                        unoptimized
                       />
                     </div>
                   ) : (

@@ -121,23 +121,6 @@ export default function MissionBoardPage() {
         setCurrentFeaturedIndex(0);
       }
 
-      // Fetch join counts for all missions
-      const missionIds = normalizedMissions.map(m => m.id);
-      if (missionIds.length > 0) {
-        const { data: joinCountData } = await supabase
-          .from("mission_progress")
-          .select("mission_id")
-          .in("mission_id", missionIds);
-
-        if (joinCountData) {
-          const counts: Record<string, number> = {};
-          joinCountData.forEach((item) => {
-            counts[item.mission_id] = (counts[item.mission_id] || 0) + 1;
-          });
-          setJoinCounts(counts);
-        }
-      }
-
       // Fetch progress and submissions for authenticated users
       if (user) {
         // Fetch mission progress
@@ -148,10 +131,13 @@ export default function MissionBoardPage() {
 
         if (progressData) {
           const progressMap: Record<string, MissionProgress> = {};
+          const counts: Record<string, number> = {};
           progressData.forEach((p) => {
             progressMap[p.mission_id] = p as MissionProgress;
+            counts[p.mission_id] = 1; // user joined this mission
           });
           setProgressMap(progressMap);
+          setJoinCounts(counts);
         }
 
         // Fetch mission submissions

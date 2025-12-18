@@ -760,24 +760,12 @@ export default function MissionPage() {
 
             {/* Date & Time */}
             {(mission.submissionDeadline || mission.endDate) && (
-              <div className="space-y-1">
-                <div className="text-lg font-semibold">
-                    {mission.submissionDeadline
-                    ? format(mission.submissionDeadline, "yyyy/MM/dd")
-                    : "No start date"}
-                  {mission.endDate &&
-                    ` - ${format(mission.endDate, "yyyy/MM/dd")}`}
-                </div>
-                {(mission.submissionDeadline || mission.endDate) && (
-                  <div className="text-muted-foreground">
-                    {mission.submissionDeadline
-                      ? format(mission.submissionDeadline, "PPP")
-                      : null}
-                    {mission.endDate
-                      ? ` • Ends: ${format(mission.endDate, "PPP")}`
-                      : null}
-                  </div>
-                )}
+              <div className="text-lg font-semibold">
+                  {mission.submissionDeadline
+                  ? format(mission.submissionDeadline, "yyyy/MM/dd")
+                  : "No start date"}
+                {mission.endDate &&
+                  ` - ${format(mission.endDate, "yyyy/MM/dd")}`}
               </div>
             )}
 

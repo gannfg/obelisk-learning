@@ -21,14 +21,17 @@ function MessagesPageInner() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const ensureStarting = useRef(false);
+  const loadingRef = useRef(false);
 
   useEffect(() => {
     async function loadConversations() {
+      if (loadingRef.current) return;
       if (!user || !supabase) {
         setLoading(false);
         return;
       }
 
+      loadingRef.current = true;
       setLoading(true);
       try {
         const convs = await getConversations(supabase);
@@ -36,6 +39,7 @@ function MessagesPageInner() {
       } catch (error) {
         console.error("Error loading conversations:", error);
       } finally {
+        loadingRef.current = false;
         setLoading(false);
       }
     }
@@ -66,12 +70,23 @@ function MessagesPageInner() {
         .on(
           "postgres_changes",
           {
-            event: "*",
+            event: "UPDATE",
             schema: "public",
             table: "conversations",
           },
           () => {
             // Reload conversations when there's a change
+            loadConversations();
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "conversations",
+          },
+          () => {
             loadConversations();
           }
         )
