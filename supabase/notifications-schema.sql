@@ -37,10 +37,12 @@ CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
 -- Enable Row Level Security (RLS)
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies if they existA
+-- Drop existing policies if they exist
 DROP POLICY IF EXISTS "Users can view own notifications" ON notifications;
 DROP POLICY IF EXISTS "Users can update own notifications" ON notifications;
 DROP POLICY IF EXISTS "Users can insert own notifications" ON notifications;
+DROP POLICY IF EXISTS "Users can delete own notifications" ON notifications;
+DROP POLICY IF EXISTS "Users can create message notifications" ON notifications;
 DROP POLICY IF EXISTS "System can create notifications" ON notifications;
 
 -- RLS Policies
@@ -57,6 +59,12 @@ CREATE POLICY "Users can update own notifications"
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
+-- Users can delete their own notifications
+CREATE POLICY "Users can delete own notifications"
+  ON notifications
+  FOR DELETE
+  USING (auth.uid() = user_id);
+
 -- Users can insert notifications for themselves (for testing, etc.)
 CREATE POLICY "Users can insert own notifications"
   ON notifications
@@ -71,6 +79,17 @@ CREATE POLICY "System can create notifications"
   ON notifications
   FOR INSERT
   WITH CHECK (true); -- Allow authenticated users to create notifications
+
+-- Allow authenticated users to create message notifications for other users
+-- This is needed so users can notify each other when sending messages
+CREATE POLICY "Users can create message notifications"
+  ON notifications
+  FOR INSERT
+  WITH CHECK (
+    type = 'message' 
+    AND auth.uid() IS NOT NULL
+    AND (metadata->>'sender_id')::uuid = auth.uid()
+  );
 
 -- Function to mark notification as read
 CREATE OR REPLACE FUNCTION mark_notification_read(notification_id UUID)
@@ -148,7 +167,7 @@ $$;
 
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
-GRANT SELECT, INSERT, UPDATE ON notifications TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON notifications TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION mark_notification_read(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION mark_all_notifications_read() TO authenticated;
 GRANT EXECUTE ON FUNCTION get_unread_notification_count() TO authenticated;

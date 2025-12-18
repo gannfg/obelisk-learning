@@ -178,12 +178,18 @@ export async function createTeam(
 
     // Add creator as owner
     if (data) {
-      await supabase.from('team_members').insert({
+      const { error: memberError } = await supabase.from('team_members').insert({
         team_id: data.id,
         user_id: userId,
         role: 'owner',
         joined_at: new Date().toISOString(),
       });
+
+      if (memberError) {
+        console.error('Error adding creator as team member:', memberError);
+        // Don't fail team creation, but log the error
+        // The team is created but the member wasn't added
+      }
     }
 
     return {

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { getUserProfile, updateUserProfile, UserProfile } from "@/lib/profile";
 import { getCollaborationStatus, updateCollaborationStatus } from "@/lib/collaboration";
+import { getUserBadges } from "@/lib/badges";
 import { countries } from "@/lib/countries";
 import {
   Select,
@@ -37,6 +38,12 @@ import {
   Trophy,
   User,
   Edit,
+  Share2,
+  Twitter,
+  Linkedin,
+  Github,
+  UserPlus,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -61,6 +68,10 @@ export default function ProfilePage() {
     location: "",
     languages: [] as string[],
     skills: [] as string[],
+    twitter_url: "",
+    linkedin_url: "",
+    github_url: "",
+    website_url: "",
   });
   const [languageInput, setLanguageInput] = useState("");
   const [skillInput, setSkillInput] = useState("");
@@ -81,6 +92,27 @@ export default function ProfilePage() {
   } | null>(null);
   const [userXP, setUserXP] = useState<number | undefined>(undefined);
   const [userLevel, setUserLevel] = useState<number | undefined>(undefined);
+  const [activeTab, setActiveTab] = useState<"proof-of-work" | "activity-feed" | "personal-projects">("proof-of-work");
+  const [badgeStats, setBadgeStats] = useState({
+    badgesCount: 0,
+    achievementsCount: 0,
+  });
+  const [loadingBadgeStats, setLoadingBadgeStats] = useState(true);
+  const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
+  const [loadingTeams, setLoadingTeams] = useState(true);
+  const [userProjects, setUserProjects] = useState<Array<{
+    id: string;
+    title: string;
+    description: string;
+    thumbnail?: string;
+    status: "planning" | "in-progress" | "completed" | "archived";
+    difficulty: "beginner" | "intermediate" | "advanced";
+    tags: string[];
+    repositoryUrl?: string;
+    liveUrl?: string;
+    createdAt: Date;
+  }>>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
 
   // Load profile data
   useEffect(() => {
@@ -136,6 +168,10 @@ export default function ProfilePage() {
             location: userProfile.location || "",
             languages: userProfile.languages || [],
             skills: collabStatus?.collaborationInterests || [],
+            twitter_url: userProfile.twitter_url || "",
+            linkedin_url: userProfile.linkedin_url || "",
+            github_url: userProfile.github_url || "",
+            website_url: userProfile.website_url || "",
           });
         } else {
           // If no profile exists, initialize with Supabase Auth user data
@@ -147,6 +183,10 @@ export default function ProfilePage() {
             location: "",
             languages: [],
             skills: collabStatus?.collaborationInterests || [],
+            twitter_url: "",
+            linkedin_url: "",
+            github_url: "",
+            website_url: "",
           });
         }
       } catch (error) {
@@ -274,6 +314,168 @@ export default function ProfilePage() {
     loadAttendance();
   }, [user, authLoading]);
 
+  // Load badge and achievement stats
+  useEffect(() => {
+    const loadBadgeStats = async () => {
+      if (authLoading || !user) {
+        setLoadingBadgeStats(false);
+        return;
+      }
+
+      try {
+        setLoadingBadgeStats(true);
+        const learningSupabase = createLearningClient();
+        if (!learningSupabase) {
+          setLoadingBadgeStats(false);
+          return;
+        }
+
+        // Get badges count
+        const badges = await getUserBadges(learningSupabase, user.id);
+        const badgesCount = badges.length;
+
+        // Get achievements count (missions completed)
+        const { count: achievementsCount } = await learningSupabase
+          .from("mission_progress")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("completed", true);
+
+        setBadgeStats({
+          badgesCount: badgesCount || 0,
+          achievementsCount: achievementsCount || 0,
+        });
+      } catch (error) {
+        console.error("Error loading badge stats:", error);
+      } finally {
+        setLoadingBadgeStats(false);
+      }
+    };
+
+    loadBadgeStats();
+  }, [user, authLoading]);
+
+  // Load user teams
+  useEffect(() => {
+    const loadUserTeams = async () => {
+      if (authLoading || !user) {
+        setLoadingTeams(false);
+        return;
+      }
+
+      try {
+        setLoadingTeams(true);
+        const learningSupabase = createLearningClient();
+        if (!learningSupabase) {
+          setLoadingTeams(false);
+          return;
+        }
+
+        // Get teams the user is a member of
+        const { data: teamMembersData, error } = await learningSupabase
+          .from("team_members")
+          .select(`
+            teams(id, name, avatar)
+          `)
+          .eq("user_id", user.id);
+
+        if (error) {
+          console.error("Error loading user teams:", error);
+          setUserTeams([]);
+        } else {
+          const teams = (teamMembersData || [])
+            .map((tm: any) => tm.teams)
+            .filter((team: any) => team !== null && team !== undefined)
+            .map((team: any) => ({
+              id: team.id,
+              name: team.name,
+              avatar: team.avatar || undefined,
+            }));
+          setUserTeams(teams);
+        }
+      } catch (error) {
+        console.error("Error loading user teams:", error);
+        setUserTeams([]);
+      } finally {
+        setLoadingTeams(false);
+      }
+    };
+
+    loadUserTeams();
+  }, [user, authLoading]);
+
+  // Load user projects
+  useEffect(() => {
+    const loadUserProjects = async () => {
+      if (authLoading || !user) {
+        setLoadingProjects(false);
+        return;
+      }
+
+      try {
+        setLoadingProjects(true);
+        const learningSupabase = createLearningClient();
+        if (!learningSupabase) {
+          setLoadingProjects(false);
+          return;
+        }
+
+        // Get projects where user is a member
+        const { data: projectMembers } = await learningSupabase
+          .from("project_members")
+          .select("project_id")
+          .eq("user_id", user.id);
+        
+        const projectMemberIds = new Set(projectMembers?.map((pm) => pm.project_id) || []);
+        
+        // Get projects created by user
+        const { data: createdProjects } = await learningSupabase
+          .from("projects")
+          .select("id")
+          .eq("created_by", user.id);
+        
+        createdProjects?.forEach((p) => projectMemberIds.add(p.id));
+        
+        // Fetch full project details
+        if (projectMemberIds.size > 0) {
+          const { data: projectsData, error } = await learningSupabase
+            .from("projects")
+            .select("*")
+            .in("id", Array.from(projectMemberIds))
+            .order("created_at", { ascending: false });
+
+          if (error) {
+            console.error("Error loading user projects:", error);
+            setUserProjects([]);
+          } else {
+            const projects = (projectsData || []).map((project: any) => ({
+              id: project.id,
+              title: project.title,
+              description: project.description,
+              thumbnail: project.thumbnail || undefined,
+              status: project.status,
+              difficulty: project.difficulty,
+              tags: project.tags || [],
+              repositoryUrl: project.repository_url || undefined,
+              liveUrl: project.live_url || undefined,
+              createdAt: new Date(project.created_at),
+            }));
+            setUserProjects(projects);
+          }
+        } else {
+          setUserProjects([]);
+        }
+      } catch (error) {
+        console.error("Error loading user projects:", error);
+        setUserProjects([]);
+      } finally {
+        setLoadingProjects(false);
+      }
+    };
+
+    loadUserProjects();
+  }, [user, authLoading]);
+
   const handleSave = async () => {
     if (!user) return;
 
@@ -284,7 +486,7 @@ export default function ProfilePage() {
     try {
       const email = user.email || '';
       
-      // Update user profile (location, languages, etc.)
+      // Update user profile (location, languages, social links, etc.)
       const updateSuccess = await updateUserProfile(user.id, {
         username: formData.username || null,
         first_name: formData.first_name || null,
@@ -292,6 +494,10 @@ export default function ProfilePage() {
         bio: formData.bio || null,
         location: formData.location || null,
         languages: formData.languages.length > 0 ? formData.languages : null,
+        twitter_url: formData.twitter_url || null,
+        linkedin_url: formData.linkedin_url || null,
+        github_url: formData.github_url || null,
+        website_url: formData.website_url || null,
       }, email, supabase);
 
       // Update collaboration status (skills/mastery)
@@ -333,6 +539,10 @@ export default function ProfilePage() {
             location: updatedProfile.location || "",
             languages: updatedProfile.languages || [],
             skills: updatedCollaborationStatus?.collaborationInterests || [],
+            twitter_url: updatedProfile.twitter_url || "",
+            linkedin_url: updatedProfile.linkedin_url || "",
+            github_url: updatedProfile.github_url || "",
+            website_url: updatedProfile.website_url || "",
           });
         }
         setSuccess(true);
@@ -391,640 +601,961 @@ export default function ProfilePage() {
     bio: profile?.bio || null,
     location: profile?.location || null,
     languages: profile?.languages || null,
+    twitter_url: profile?.twitter_url || null,
+    linkedin_url: profile?.linkedin_url || null,
+    github_url: profile?.github_url || null,
+    website_url: profile?.website_url || null,
     created_at: profile?.created_at,
     updated_at: profile?.updated_at,
   };
 
+  // Format XP as earned amount (e.g., "$636")
+  const formatXPAsEarned = (xp: number | undefined): string => {
+    if (!xp || xp === 0) return "$0";
+    return `$${xp.toLocaleString()}`;
+  };
+
+  // Get full name
+  const fullName = displayProfile.first_name && displayProfile.last_name
+    ? `${displayProfile.first_name} ${displayProfile.last_name}`
+    : displayProfile.first_name || displayProfile.last_name || "User";
+
+  // Handle share profile
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `${fullName}'s Profile`,
+        url: window.location.href,
+      }).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 2000);
+    }
+  };
+
   return (
-    <div className="container mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 max-w-4xl pb-20 sm:pb-8">
-      <div className="mb-6 sm:mb-8">
-        <Button asChild variant="ghost" size="sm" className="mb-3 sm:mb-4 text-xs sm:text-sm h-8 sm:h-9">
-          <Link href="/dashboard">
-            <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-            <span className="hidden sm:inline">Back to Dashboard</span>
-            <span className="sm:hidden">Back</span>
-          </Link>
-        </Button>
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3">Profile</h1>
-        <p className="text-sm sm:text-base md:text-lg text-muted-foreground">
-          Manage your profile information and preferences.
-        </p>
-      </div>
-
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-5xl pb-20 sm:pb-8">
       {loading ? (
-        <div className="flex items-center justify-center py-8 sm:py-12">
-          <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-muted-foreground" />
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      ) : (
-        <>
-          {/* Profile Card View */}
-          {!isEditing && (
-            <div className="mb-4 sm:mb-6">
-              <ProfileCard 
-                profile={displayProfile} 
-                showEditButton={false} 
-                collaborationStatus={collaborationStatus}
-                xp={userXP}
-                level={userLevel}
-              />
-            </div>
-          )}
-
-          {/* User Stats */}
-          {!isEditing && (
-            <Card className="mb-4 sm:mb-6">
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-lg sm:text-xl">Activity Overview</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Your learning and participation statistics</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-                {loadingStats ? (
-                  <div className="flex items-center justify-center py-6 sm:py-8">
-                    <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                    <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg">
-                      <div className="p-2 sm:p-3 bg-primary/10 rounded-lg flex-shrink-0">
-                        <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xl sm:text-2xl font-bold">{userStats.classesCount}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Classes</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg">
-                      <div className="p-2 sm:p-3 bg-primary/10 rounded-lg flex-shrink-0">
-                        <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xl sm:text-2xl font-bold">{userStats.workshopsCount}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground break-words">Workshops Attended</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg">
-                      <div className="p-2 sm:p-3 bg-primary/10 rounded-lg flex-shrink-0">
-                        <FolderKanban className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xl sm:text-2xl font-bold">{userStats.projectsCount}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Projects</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Edit Form */}
-          <Card>
-            <CardHeader className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-                <div className="min-w-0 flex-1">
-                  <CardTitle className="text-lg sm:text-xl md:text-2xl">{isEditing ? "Edit Profile" : "Profile Information"}</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
-                    {isEditing
-                      ? "Update your profile information below."
-                      : "View and edit your profile information."}
-                  </CardDescription>
-                </div>
-                {!isEditing && (
-                  <Button onClick={() => setIsEditing(true)} variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-9 sm:h-10">
-                    Edit
-                  </Button>
-                )}
+      ) : isEditing ? (
+        <Card>
+          <CardHeader className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-lg sm:text-xl md:text-2xl">Edit Profile</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                  Update your profile information below.
+                </CardDescription>
               </div>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-              {/* Error Message */}
-              {error && (
-                <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 rounded-md bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
-                  <p className="text-xs sm:text-sm text-red-800 dark:text-red-200 break-words">{error}</p>
-                </div>
-              )}
-              
-              {/* Success Message */}
-              {success && (
-                <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 rounded-md bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
-                  <p className="text-xs sm:text-sm text-green-800 dark:text-green-200">
-                    ✅ Profile updated successfully!
-                  </p>
-                </div>
-              )}
-
-              {isEditing ? (
-                <div className="space-y-4 sm:space-y-6">
-                  {/* Profile Picture Upload */}
-                  <div className="space-y-2">
-                    <label className="text-xs sm:text-sm font-medium">Profile Picture</label>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                      <div className="relative flex-shrink-0">
-                        {(imagePreview || displayProfile.image_url) ? (
-                          <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-border">
-                            <Image
-                              src={imagePreview || displayProfile.image_url || ''}
-                              alt="Profile"
-                              fill
-                              className="object-cover"
-                              unoptimized
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted flex items-center justify-center border-2 border-border">
-                            <span className="text-xl sm:text-2xl font-medium text-muted-foreground">
-                              {user.email?.charAt(0).toUpperCase() || 'U'}
-                            </span>
-                          </div>
-                        )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsEditing(false)}
+                className="w-full sm:w-auto text-xs sm:text-sm h-9 sm:h-10"
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            {error && (
+              <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 rounded-md bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+                <p className="text-xs sm:text-sm text-red-800 dark:text-red-200 break-words">{error}</p>
+              </div>
+            )}
+            {success && (
+              <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 rounded-md bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+                <p className="text-xs sm:text-sm text-green-800 dark:text-green-200">
+                  ✅ Profile updated successfully!
+                </p>
+              </div>
+            )}
+            <div className="space-y-4 sm:space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Profile Picture</label>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                  <div className="relative flex-shrink-0">
+                    {(imagePreview || displayProfile.image_url) ? (
+                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-border">
+                        <Image
+                          src={imagePreview || displayProfile.image_url || ''}
+                          alt="Profile"
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
                       </div>
-                      <div className="flex-1 w-full sm:w-auto">
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                          <input
-                            type="file"
-                            id="profile-picture"
-                            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                            className="hidden"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (!file || !user) return;
-
-                              // Validate file size (5MB max)
-                              if (file.size > 5 * 1024 * 1024) {
-                                setError('Image size must be less than 5MB');
-                                return;
-                              }
-
-                              // Create preview
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setImagePreview(reader.result as string);
-                              };
-                              reader.readAsDataURL(file);
-
-                              // Upload to Supabase Storage
-                              setUploadingImage(true);
-                              setError(null);
-                              try {
-                                const imageUrl = await uploadProfilePicture(file, user.id, supabase);
-                                if (imageUrl) {
-                                  // Update profile with new image URL
-                                  await updateUserProfile(
-                                    user.id,
-                                    { image_url: imageUrl },
-                                    user.email || '',
-                                    supabase
-                                  );
-                                  // Reload profile
-                                  const updatedProfile = await getUserProfile(user.id, user.email || undefined, supabase);
-                                  if (updatedProfile) {
-                                    setProfile(updatedProfile);
-                                    setImagePreview(null);
-                                  }
-                                } else {
-                                  setError('Failed to upload image. Please try again.');
-                                  setImagePreview(null);
-                                }
-                              } catch (err) {
-                                console.error('Error uploading image:', err);
-                                setError('Failed to upload image. Please try again.');
+                    ) : (
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted flex items-center justify-center border-2 border-border">
+                        <span className="text-xl sm:text-2xl font-medium text-muted-foreground">
+                          {user.email?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 w-full sm:w-auto">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <input
+                        type="file"
+                        id="profile-picture"
+                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file || !user) return;
+                          if (file.size > 5 * 1024 * 1024) {
+                            setError('Image size must be less than 5MB');
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setImagePreview(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                          setUploadingImage(true);
+                          setError(null);
+                          try {
+                            const imageUrl = await uploadProfilePicture(file, user.id, supabase);
+                            if (imageUrl) {
+                              await updateUserProfile(
+                                user.id,
+                                { image_url: imageUrl },
+                                user.email || '',
+                                supabase
+                              );
+                              const updatedProfile = await getUserProfile(user.id, user.email || undefined, supabase);
+                              if (updatedProfile) {
+                                setProfile(updatedProfile);
                                 setImagePreview(null);
-                              } finally {
-                                setUploadingImage(false);
                               }
-                            }}
-                            disabled={uploadingImage}
-                          />
-                          <label
-                            htmlFor="profile-picture"
-                            className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium border border-border rounded-md cursor-pointer hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
-                          >
-                            {uploadingImage ? (
-                              <>
-                                <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                                <span className="hidden sm:inline">Uploading...</span>
-                                <span className="sm:hidden">Uploading</span>
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                <span className="hidden sm:inline">{displayProfile.image_url ? 'Change Picture' : 'Upload Picture'}</span>
-                                <span className="sm:hidden">{displayProfile.image_url ? 'Change' : 'Upload'}</span>
-                              </>
-                            )}
-                          </label>
-                          {imagePreview && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="sm:ml-2 w-full sm:w-auto"
-                              onClick={() => setImagePreview(null)}
-                              disabled={uploadingImage}
-                            >
-                              <X className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-0" />
-                              <span className="sm:hidden">Cancel</span>
-                            </Button>
-                          )}
-                        </div>
+                            } else {
+                              setError('Failed to upload image. Please try again.');
+                              setImagePreview(null);
+                            }
+                          } catch (err) {
+                            console.error('Error uploading image:', err);
+                            setError('Failed to upload image. Please try again.');
+                            setImagePreview(null);
+                          } finally {
+                            setUploadingImage(false);
+                          }
+                        }}
+                        disabled={uploadingImage}
+                      />
+                      <label
+                        htmlFor="profile-picture"
+                        className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium border border-border rounded-md cursor-pointer hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+                      >
+                        {uploadingImage ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                            <span className="hidden sm:inline">Uploading...</span>
+                            <span className="sm:hidden">Uploading</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            <span className="hidden sm:inline">{displayProfile.image_url ? 'Change Picture' : 'Upload Picture'}</span>
+                            <span className="sm:hidden">{displayProfile.image_url ? 'Change' : 'Upload'}</span>
+                          </>
+                        )}
+                      </label>
+                      {imagePreview && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="sm:ml-2 w-full sm:w-auto"
+                          onClick={() => setImagePreview(null)}
+                          disabled={uploadingImage}
+                        >
+                          <X className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-0" />
+                          <span className="sm:hidden">Cancel</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  JPG, PNG, GIF or WEBP. Max 5MB.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label htmlFor="first_name" className="text-xs sm:text-sm font-medium">
+                    First Name
+                  </label>
+                  <Input
+                    id="first_name"
+                    value={formData.first_name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, first_name: e.target.value })
+                    }
+                    placeholder="Enter your first name"
+                    className="text-xs sm:text-sm h-9 sm:h-10"
+                  />
+                </div>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label htmlFor="last_name" className="text-xs sm:text-sm font-medium">
+                    Last Name
+                  </label>
+                  <Input
+                    id="last_name"
+                    value={formData.last_name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, last_name: e.target.value })
+                    }
+                    placeholder="Enter your last name"
+                    className="text-xs sm:text-sm h-9 sm:h-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5 sm:space-y-2">
+                <label htmlFor="username" className="text-xs sm:text-sm font-medium">
+                  Username
+                </label>
+                <Input
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                  }
+                  placeholder="Enter your username"
+                  className="text-xs sm:text-sm h-9 sm:h-10"
+                />
+              </div>
+              <div className="space-y-1.5 sm:space-y-2">
+                <label htmlFor="bio" className="text-xs sm:text-sm font-medium">
+                  Bio
+                </label>
+                <Textarea
+                  id="bio"
+                  value={formData.bio}
+                  onChange={(e) =>
+                    setFormData({ ...formData, bio: e.target.value })
+                  }
+                  placeholder="Tell us about yourself..."
+                  rows={4}
+                  className="text-xs sm:text-sm"
+                />
+              </div>
+              <div className="space-y-1.5 sm:space-y-2">
+                <label htmlFor="location" className="text-xs sm:text-sm font-medium">
+                  Location (Country)
+                </label>
+                <Select
+                  value={formData.location || undefined}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, location: value })
+                  }
+                >
+                  <SelectTrigger className="text-xs sm:text-sm h-9 sm:h-10">
+                    <SelectValue placeholder="Select your country" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {countries.map((country) => (
+                      <SelectItem key={country} value={country}>
+                        {country}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 sm:space-y-2">
+                <label htmlFor="languages" className="text-xs sm:text-sm font-medium">
+                  Languages
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {formData.languages.map((lang, index) => (
+                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      {lang}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            languages: formData.languages.filter((_, i) => i !== index),
+                          });
+                        }}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    id="languages"
+                    value={languageInput}
+                    onChange={(e) => setLanguageInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && languageInput.trim()) {
+                        e.preventDefault();
+                        if (!formData.languages.includes(languageInput.trim())) {
+                          setFormData({
+                            ...formData,
+                            languages: [...formData.languages, languageInput.trim()],
+                          });
+                          setLanguageInput("");
+                        }
+                      }
+                    }}
+                    placeholder="Add a language (press Enter)"
+                    className="text-xs sm:text-sm h-9 sm:h-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (languageInput.trim() && !formData.languages.includes(languageInput.trim())) {
+                        setFormData({
+                          ...formData,
+                          languages: [...formData.languages, languageInput.trim()],
+                        });
+                        setLanguageInput("");
+                      }
+                    }}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-1.5 sm:space-y-2">
+                <label htmlFor="skills" className="text-xs sm:text-sm font-medium">
+                  Mastery / Skills
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {formData.skills.map((skill, index) => (
+                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      {skill}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            skills: formData.skills.filter((_, i) => i !== index),
+                          });
+                        }}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    id="skills"
+                    value={skillInput}
+                    onChange={(e) => setSkillInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && skillInput.trim()) {
+                        e.preventDefault();
+                        if (!formData.skills.includes(skillInput.trim())) {
+                          setFormData({
+                            ...formData,
+                            skills: [...formData.skills, skillInput.trim()],
+                          });
+                          setSkillInput("");
+                        }
+                      }
+                    }}
+                    placeholder="Add a skill/mastery (press Enter)"
+                    className="text-xs sm:text-sm h-9 sm:h-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (skillInput.trim() && !formData.skills.includes(skillInput.trim())) {
+                        setFormData({
+                          ...formData,
+                          skills: [...formData.skills, skillInput.trim()],
+                        });
+                        setSkillInput("");
+                      }
+                    }}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+
+              {/* Social Links Section */}
+              <div className="space-y-4 pt-4 border-t border-border">
+                <h3 className="text-sm font-medium">Social Links</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Twitter/X URL */}
+                  <div>
+                    <label className="text-xs sm:text-sm text-muted-foreground mb-1.5 block">
+                      <div className="flex items-center gap-2">
+                        <Twitter className="h-4 w-4" />
+                        X (Twitter) URL
                       </div>
-                    </div>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">
-                      JPG, PNG, GIF or WEBP. Max 5MB.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="space-y-1.5 sm:space-y-2">
-                      <label htmlFor="first_name" className="text-xs sm:text-sm font-medium">
-                        First Name
-                      </label>
-                      <Input
-                        id="first_name"
-                        value={formData.first_name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, first_name: e.target.value })
-                        }
-                        placeholder="Enter your first name"
-                        className="text-xs sm:text-sm h-9 sm:h-10"
-                      />
-                    </div>
-                    <div className="space-y-1.5 sm:space-y-2">
-                      <label htmlFor="last_name" className="text-xs sm:text-sm font-medium">
-                        Last Name
-                      </label>
-                      <Input
-                        id="last_name"
-                        value={formData.last_name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, last_name: e.target.value })
-                        }
-                        placeholder="Enter your last name"
-                        className="text-xs sm:text-sm h-9 sm:h-10"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <label htmlFor="username" className="text-xs sm:text-sm font-medium">
-                      Username
                     </label>
                     <Input
-                      id="username"
-                      value={formData.username}
+                      type="url"
+                      value={formData.twitter_url}
                       onChange={(e) =>
-                        setFormData({ ...formData, username: e.target.value })
+                        setFormData({ ...formData, twitter_url: e.target.value })
                       }
-                      placeholder="Enter your username"
+                      placeholder="https://twitter.com/yourhandle"
                       className="text-xs sm:text-sm h-9 sm:h-10"
                     />
                   </div>
 
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <label htmlFor="bio" className="text-xs sm:text-sm font-medium">
-                      Bio
+                  {/* LinkedIn URL */}
+                  <div>
+                    <label className="text-xs sm:text-sm text-muted-foreground mb-1.5 block">
+                      <div className="flex items-center gap-2">
+                        <Linkedin className="h-4 w-4" />
+                        LinkedIn URL
+                      </div>
                     </label>
-                    <Textarea
-                      id="bio"
-                      value={formData.bio}
+                    <Input
+                      type="url"
+                      value={formData.linkedin_url}
                       onChange={(e) =>
-                        setFormData({ ...formData, bio: e.target.value })
+                        setFormData({ ...formData, linkedin_url: e.target.value })
                       }
-                      placeholder="Tell us about yourself..."
-                      rows={4}
-                      className="text-xs sm:text-sm"
+                      placeholder="https://linkedin.com/in/yourprofile"
+                      className="text-xs sm:text-sm h-9 sm:h-10"
                     />
                   </div>
 
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <label htmlFor="location" className="text-xs sm:text-sm font-medium">
-                      Location (Country)
+                  {/* GitHub URL */}
+                  <div>
+                    <label className="text-xs sm:text-sm text-muted-foreground mb-1.5 block">
+                      <div className="flex items-center gap-2">
+                        <Github className="h-4 w-4" />
+                        GitHub URL
+                      </div>
                     </label>
-                    <Select
-                      value={formData.location || undefined}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, location: value })
+                    <Input
+                      type="url"
+                      value={formData.github_url}
+                      onChange={(e) =>
+                        setFormData({ ...formData, github_url: e.target.value })
                       }
-                    >
-                      <SelectTrigger className="text-xs sm:text-sm h-9 sm:h-10">
-                        <SelectValue placeholder="Select your country" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
-                        {countries.map((country) => (
-                          <SelectItem key={country} value={country}>
-                            {country}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="https://github.com/yourusername"
+                      className="text-xs sm:text-sm h-9 sm:h-10"
+                    />
                   </div>
 
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <label htmlFor="languages" className="text-xs sm:text-sm font-medium">
-                      Languages
+                  {/* Website URL */}
+                  <div>
+                    <label className="text-xs sm:text-sm text-muted-foreground mb-1.5 block">
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4" />
+                        Personal Website
+                      </div>
                     </label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {formData.languages.map((lang, index) => (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                          {lang}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFormData({
-                                ...formData,
-                                languages: formData.languages.filter((_, i) => i !== index),
-                              });
-                            }}
-                            className="ml-1 hover:text-destructive"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        id="languages"
-                        value={languageInput}
-                        onChange={(e) => setLanguageInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && languageInput.trim()) {
-                            e.preventDefault();
-                            if (!formData.languages.includes(languageInput.trim())) {
-                              setFormData({
-                                ...formData,
-                                languages: [...formData.languages, languageInput.trim()],
-                              });
-                              setLanguageInput("");
-                            }
-                          }
-                        }}
-                        placeholder="Add a language (press Enter)"
-                        className="text-xs sm:text-sm h-9 sm:h-10"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (languageInput.trim() && !formData.languages.includes(languageInput.trim())) {
-                            setFormData({
-                              ...formData,
-                              languages: [...formData.languages, languageInput.trim()],
-                            });
-                            setLanguageInput("");
-                          }
-                        }}
-                      >
-                        Add
-                      </Button>
-                    </div>
+                    <Input
+                      type="url"
+                      value={formData.website_url}
+                      onChange={(e) =>
+                        setFormData({ ...formData, website_url: e.target.value })
+                      }
+                      placeholder="https://yourwebsite.com"
+                      className="text-xs sm:text-sm h-9 sm:h-10"
+                    />
                   </div>
+                </div>
+              </div>
 
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <label htmlFor="skills" className="text-xs sm:text-sm font-medium">
-                      Mastery / Skills
-                    </label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {formData.skills.map((skill, index) => (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                          {skill}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFormData({
-                                ...formData,
-                                skills: formData.skills.filter((_, i) => i !== index),
-                              });
-                            }}
-                            className="ml-1 hover:text-destructive"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        id="skills"
-                        value={skillInput}
-                        onChange={(e) => setSkillInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && skillInput.trim()) {
-                            e.preventDefault();
-                            if (!formData.skills.includes(skillInput.trim())) {
-                              setFormData({
-                                ...formData,
-                                skills: [...formData.skills, skillInput.trim()],
-                              });
-                              setSkillInput("");
-                            }
-                          }
-                        }}
-                        placeholder="Add a skill/mastery (press Enter)"
-                        className="text-xs sm:text-sm h-9 sm:h-10"
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-4">
+                <Button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="w-full sm:w-auto min-w-[100px] text-xs sm:text-sm h-9 sm:h-10"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 animate-spin" />
+                      <span className="hidden sm:inline">Saving...</span>
+                      <span className="sm:hidden">Saving</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
+                      <span className="hidden sm:inline">Save Changes</span>
+                      <span className="sm:hidden">Save</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setImagePreview(null);
+                    if (profile) {
+                      setFormData({
+                        username: profile.username || "",
+                        first_name: profile.first_name || "",
+                        last_name: profile.last_name || "",
+                        bio: profile.bio || "",
+                        location: profile.location || "",
+                        languages: profile.languages || [],
+                        skills: [],
+                        twitter_url: profile.twitter_url || "",
+                        linkedin_url: profile.linkedin_url || "",
+                        github_url: profile.github_url || "",
+                        website_url: profile.website_url || "",
+                      });
+                    }
+                  }}
+                  disabled={saving}
+                  className="w-full sm:w-auto text-xs sm:text-sm h-9 sm:h-10"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Profile Header Card */}
+          <Card className="mb-8 overflow-hidden">
+            <CardContent className="p-0">
+              {/* Banner with gradient background */}
+              <div className="relative w-full h-40 bg-gradient-to-r from-transparent to-purple-800/75 rounded-t-lg">
+                {/* Header Section with Avatar, Name, Handle, Share Button */}
+                <div className="absolute inset-0 flex items-start gap-6 pt-6 px-6">
+                <div className="flex-shrink-0">
+                  {displayProfile.image_url ? (
+                    <div className="relative w-24 h-24 rounded-full overflow-hidden border border-border">
+                      <Image
+                        src={displayProfile.image_url}
+                        alt={fullName}
+                        fill
+                        className="object-cover"
+                        unoptimized
                       />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (skillInput.trim() && !formData.skills.includes(skillInput.trim())) {
-                            setFormData({
-                              ...formData,
-                              skills: [...formData.skills, skillInput.trim()],
-                            });
-                            setSkillInput("");
-                          }
-                        }}
-                      >
-                        Add
-                      </Button>
                     </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-4">
-                    <Button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="w-full sm:w-auto min-w-[100px] text-xs sm:text-sm h-9 sm:h-10"
-                    >
-                      {saving ? (
-                        <>
-                          <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 animate-spin" />
-                          <span className="hidden sm:inline">Saving...</span>
-                          <span className="sm:hidden">Saving</span>
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
-                          <span className="hidden sm:inline">Save Changes</span>
-                          <span className="sm:hidden">Save</span>
-                        </>
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-muted border border-border flex items-center justify-center">
+                      <span className="text-3xl font-medium text-muted-foreground">
+                        {fullName.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-3xl font-semibold mb-2">{fullName}</h1>
+                  {displayProfile.username && (
+                    <div>
+                      <p className="text-base text-muted-foreground">@{displayProfile.username}</p>
+                      {userTeams.length > 0 && (
+                        <div className="flex items-center gap-2 mt-2">
+                          {userTeams.slice(0, 5).map((team) => (
+                            team.avatar ? (
+                              <div key={team.id} className="h-6 w-6 rounded-full overflow-hidden border border-border flex-shrink-0">
+                                <Image
+                                  src={team.avatar}
+                                  alt={team.name}
+                                  width={24}
+                                  height={24}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ) : null
+                          ))}
+                        </div>
                       )}
-                    </Button>
+                    </div>
+                  )}
+                </div>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleShare}
+                  className="flex-shrink-0 bg-white text-black hover:bg-white/90"
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+                </div>
+              </div>
+
+              {/* Details and Skills Columns */}
+              <div className="px-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 border-t border-b border-border py-8">
+                {/* Left Column - Details */}
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Details</h3>
+                  <div className="space-y-4 text-base">
+                    {displayProfile.location ? (
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        <MapPin className="h-5 w-5 flex-shrink-0" />
+                        <span>{displayProfile.location}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3 text-muted-foreground/50">
+                        <MapPin className="h-5 w-5 flex-shrink-0" />
+                        <span>No location set</span>
+                      </div>
+                    )}
+                    {(displayProfile.created_at || user?.created_at) ? (
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        <UserPlus className="h-5 w-5 flex-shrink-0" />
+                        <span>Member since {format(new Date(displayProfile.created_at || user?.created_at || new Date()), "MMM yyyy")}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Right Column - Mastery */}
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Mastery</h3>
+                  {collaborationStatus?.skills && collaborationStatus.skills.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {collaborationStatus.skills.map((skill, index) => (
+                        <Badge key={index} variant="secondary" className="rounded-full px-4 py-1.5">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-base text-muted-foreground/50">No skills added yet</p>
+                  )}
+                  <div className="mt-6">
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        setIsEditing(false);
-                        setImagePreview(null);
-                        // Reset form data to current profile
-                        if (profile) {
-                          setFormData({
-                            username: profile.username || "",
-                            first_name: profile.first_name || "",
-                            last_name: profile.last_name || "",
-                            bio: profile.bio || "",
-                            location: profile.location || "",
-                            languages: profile.languages || [],
-                            skills: [], // Will be loaded separately from collaboration status
-                          });
-                        }
-                      }}
-                      disabled={saving}
-                      className="w-full sm:w-auto text-xs sm:text-sm h-9 sm:h-10"
+                      onClick={() => setIsEditing(true)}
                     >
-                      Cancel
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Profile
                     </Button>
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div>
-                      <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">
-                        First Name
-                      </p>
-                      <p className="text-xs sm:text-sm break-words">
-                        {displayProfile.first_name || "Not set"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">
-                        Last Name
-                      </p>
-                      <p className="text-xs sm:text-sm break-words">
-                        {displayProfile.last_name || "Not set"}
-                      </p>
-                    </div>
+              </div>
+
+                {/* Social Links & Statistics Row */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8 border-b border-border pb-8">
+                {/* Social Links */}
+                <div className="flex items-center gap-4">
+                  {displayProfile.twitter_url && (
+                    <a 
+                      href={displayProfile.twitter_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Twitter className="h-5 w-5" />
+                    </a>
+                  )}
+                  {displayProfile.linkedin_url && (
+                    <a 
+                      href={displayProfile.linkedin_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Linkedin className="h-5 w-5" />
+                    </a>
+                  )}
+                  {displayProfile.github_url && (
+                    <a 
+                      href={displayProfile.github_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Github className="h-5 w-5" />
+                    </a>
+                  )}
+                  {displayProfile.website_url && (
+                    <a 
+                      href={displayProfile.website_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Globe className="h-5 w-5" />
+                    </a>
+                  )}
+                </div>
+
+                {/* Statistics */}
+                <div className="flex items-center gap-8">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">{loadingBadgeStats ? "..." : badgeStats.badgesCount}</p>
+                    <p className="text-sm text-muted-foreground mt-1">Badge</p>
                   </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">
-                      Username
-                    </p>
-                    <p className="text-xs sm:text-sm break-words">
-                      {displayProfile.username ? `@${displayProfile.username}` : "Not set"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">
-                      Bio
-                    </p>
-                    <p className="text-xs sm:text-sm break-words whitespace-pre-wrap">
-                      {displayProfile.bio || "No bio added yet."}
-                    </p>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">{loadingBadgeStats ? "..." : badgeStats.achievementsCount}</p>
+                    <p className="text-sm text-muted-foreground mt-1">Achievement</p>
                   </div>
                 </div>
-              )}
+              </div>
+              </div>
+
+              {/* Tab Navigation */}
+              <div className="px-6 flex items-center gap-8 border-b border-border">
+                <button
+                  onClick={() => setActiveTab("proof-of-work")}
+                  className={`pb-4 text-base font-medium transition-colors ${
+                    activeTab === "proof-of-work"
+                      ? "text-foreground border-b-2 border-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Proof of Work
+                </button>
+                <button
+                  onClick={() => setActiveTab("activity-feed")}
+                  className={`pb-4 text-base font-medium transition-colors ${
+                    activeTab === "activity-feed"
+                      ? "text-foreground border-b-2 border-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Activity Feed
+                </button>
+                <button
+                  onClick={() => setActiveTab("personal-projects")}
+                  className={`pb-4 text-base font-medium transition-colors ${
+                    activeTab === "personal-projects"
+                      ? "text-foreground border-b-2 border-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Personal Projects
+                </button>
+              </div>
+
             </CardContent>
           </Card>
 
-          {/* Proof of Attendance Section */}
-          <Card>
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-lg sm:text-xl">Proof of Attendance</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
-                Workshops you&apos;ve attended and verified
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-              {loadingAttendance ? (
-                <div className="text-center py-6 sm:py-8">
-                  <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin mx-auto text-muted-foreground" />
-                </div>
-              ) : attendedWorkshops.length === 0 ? (
-                <div className="text-center py-6 sm:py-8">
-                  <p className="text-xs sm:text-sm text-muted-foreground px-2">
-                    No workshop attendance records yet. Attend a workshop and check in to see your proof of attendance here.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3 sm:space-y-4">
-                  {attendedWorkshops.map((attendance: any) => {
-                    const workshop = attendance.workshops;
-                    if (!workshop) return null;
+          {/* Content Area Based on Active Tab */}
+          <div className="min-h-[300px] mt-8">
+            {activeTab === "proof-of-work" && (
+              <div>
+                {loadingAttendance ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : attendedWorkshops.length === 0 ? (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                      <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                      <p className="text-base text-muted-foreground mb-4">
+                        No proof of work yet. Attend workshops and complete missions to build your portfolio.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {attendedWorkshops.map((attendance: any) => {
+                      const workshop = attendance.workshops;
+                      if (!workshop) return null;
 
-                    return (
-                      <div
-                        key={attendance.id}
-                        className="border rounded-lg p-3 sm:p-4 hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3 sm:gap-4">
-                          <div className="flex-1 min-w-0 w-full">
-                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2">
-                              <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
-                              <h4 className="font-semibold text-sm sm:text-base line-clamp-2 break-words">
-                                {workshop.title || "Workshop"}
-                              </h4>
-                              <span className="px-1.5 sm:px-2 py-0.5 bg-green-500/10 text-green-600 text-[10px] sm:text-xs font-medium rounded whitespace-nowrap">
-                                Verified
-                              </span>
+                      return (
+                        <Card
+                          key={attendance.id}
+                          className="transition-all duration-300 ease-out hover:scale-[1.02] hover:shadow-lg"
+                        >
+                          <CardContent className="pt-6">
+                            <div className="flex items-start gap-4">
+                              <CheckCircle2 className="h-5 w-5 text-foreground flex-shrink-0 mt-0.5" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h4 className="font-semibold text-base">{fullName}</h4>
+                                  <span className="text-base text-muted-foreground">won a bounty</span>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {format(new Date(attendance.checkin_time), "h'h' 'ago'")}
+                                </p>
+                              </div>
                             </div>
-                            <div className="space-y-1 text-xs sm:text-sm text-muted-foreground">
-                              <div className="flex items-start sm:items-center gap-1.5 sm:gap-2">
-                                <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5 sm:mt-0" />
-                                <span className="break-words">
-                                  {format(new Date(workshop.datetime), "MMM d, yyyy 'at' h:mm a")}
-                                </span>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "activity-feed" && (
+              <div>
+                {loadingAttendance ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : attendedWorkshops.length === 0 ? (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                      <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                      <p className="text-base text-muted-foreground">
+                        No activity yet. Your recent activities will appear here.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {attendedWorkshops.slice(0, 5).map((attendance: any) => {
+                      const workshop = attendance.workshops;
+                      if (!workshop) return null;
+
+                      return (
+                        <Card
+                          key={attendance.id}
+                          className="transition-all duration-300 ease-out hover:scale-[1.02] hover:shadow-lg"
+                        >
+                          <CardContent className="pt-6">
+                            <div className="flex items-start gap-4">
+                              {displayProfile.image_url ? (
+                                <div className="relative w-12 h-12 rounded-full overflow-hidden border border-border flex-shrink-0">
+                                  <Image
+                                    src={displayProfile.image_url}
+                                    alt={fullName}
+                                    fill
+                                    className="object-cover"
+                                    unoptimized
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-muted border border-border flex items-center justify-center flex-shrink-0">
+                                  <span className="text-base font-medium text-muted-foreground">
+                                    {fullName.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="font-semibold text-base">{fullName}</span>
+                                  <span className="text-base text-muted-foreground">attended a workshop</span>
+                                </div>
+                                <p className="text-base font-medium mb-1">{workshop.title}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {format(new Date(attendance.checkin_time), "MMM d, yyyy 'at' h:mm a")}
+                                </p>
                               </div>
-                              <div className="flex items-start sm:items-center gap-1.5 sm:gap-2">
-                                {workshop.location_type === "online" ? (
-                                  <>
-                                    <Video className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5 sm:mt-0" />
-                                    <span>Online</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5 sm:mt-0" />
-                                    <span className="break-words">
-                                      {workshop.venue_name || "Offline"}
-                                    </span>
-                                  </>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "personal-projects" && (
+              <div>
+                {loadingProjects ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : userProjects.length === 0 ? (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                      <FolderKanban className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                      <p className="text-base text-muted-foreground mb-4">
+                        No personal projects yet.
+                      </p>
+                      <Button asChild variant="outline">
+                        <Link href="/academy/projects">Browse Projects</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {userProjects.map((project) => (
+                      <Card
+                        key={project.id}
+                        className="transition-all duration-300 ease-out hover:scale-[1.02] hover:shadow-lg"
+                      >
+                        <CardContent className="pt-6">
+                          <div className="flex items-start gap-4">
+                            {project.thumbnail ? (
+                              <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-border flex-shrink-0">
+                                <Image
+                                  src={project.thumbnail}
+                                  alt={project.title}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-16 h-16 rounded-lg bg-muted border border-border flex items-center justify-center flex-shrink-0">
+                                <FolderKanban className="h-8 w-8 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="font-semibold text-base">{project.title}</h4>
+                                <Badge 
+                                  variant={project.status === "completed" ? "default" : "secondary"}
+                                  className="text-xs"
+                                >
+                                  {project.status}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  {project.difficulty}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                                {project.description}
+                              </p>
+                              {project.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mb-2">
+                                  {project.tags.slice(0, 3).map((tag, index) => (
+                                    <Badge key={index} variant="outline" className="text-xs">
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                  {project.tags.length > 3 && (
+                                    <span className="text-xs text-muted-foreground">+{project.tags.length - 3}</span>
+                                  )}
+                                </div>
+                              )}
+                              <div className="flex items-center gap-4 mt-2">
+                                <p className="text-xs text-muted-foreground">
+                                  {format(project.createdAt, "MMM d, yyyy")}
+                                </p>
+                                {project.liveUrl && (
+                                  <a
+                                    href={project.liveUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                  >
+                                    View Live
+                                  </a>
                                 )}
-                              </div>
-                              <div className="flex flex-wrap items-start sm:items-center gap-1 sm:gap-2">
-                                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 mt-0.5 sm:mt-0" />
-                                <span className="break-words">
-                                  Checked in: {format(new Date(attendance.checkin_time), "MMM d, yyyy 'at' h:mm a")}
-                                </span>
-                                <span className="text-[10px] sm:text-xs whitespace-nowrap">
-                                  ({attendance.method === "qr" ? "QR Code" : "Manual"})
-                                </span>
+                                {project.repositoryUrl && (
+                                  <a
+                                    href={project.repositoryUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                  >
+                                    Repository
+                                  </a>
+                                )}
                               </div>
                             </div>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9"
-                          >
-                            <Link href={`/workshops/${workshop.id}`}>
-                              <span className="hidden sm:inline">View Workshop</span>
-                              <span className="sm:hidden">View</span>
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>
   );
 }
-

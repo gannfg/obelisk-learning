@@ -229,11 +229,25 @@ export function NotificationsDropdown({
 
   const handleDeleteNotification = async (notificationId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
+    
+    // Optimistically remove the notification from the UI
+    const notificationToDelete = notifications.find(n => n.id === notificationId);
+    if (notificationToDelete && !notificationToDelete.read) {
+      setNotificationCount((prev) => Math.max(0, prev - 1));
+    }
+    setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+    
     try {
-      await deleteNotification(notificationId, userId, supabase);
+      const success = await deleteNotification(notificationId, userId, supabase);
+      if (!success) {
+        // If deletion failed, restore the notification
       fetchNotifications();
+      }
     } catch (error) {
       console.error("Error deleting notification:", error);
+      // Restore the notification on error
+      fetchNotifications();
     }
   };
 

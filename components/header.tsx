@@ -36,6 +36,7 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -222,6 +223,9 @@ import {
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle>Search</DialogTitle>
+                    <DialogDescription className="sr-only">
+                      Search for content on the platform
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="mt-4">
                     <SearchBar />

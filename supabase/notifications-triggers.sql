@@ -356,7 +356,7 @@ BEGIN
     'message',
     'New Message from ' || sender_name,
     message_preview,
-    '/mentor-chat?conversation=' || conversation_id::TEXT,
+    '/messages/' || conversation_id::TEXT,
     jsonb_build_object(
       'sender_id', sender_id,
       'sender_name', sender_name,
