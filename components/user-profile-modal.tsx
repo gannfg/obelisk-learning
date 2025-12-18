@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -62,6 +63,9 @@ export function UserProfileModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
+          <DialogDescription className="sr-only">
+            User profile information
+          </DialogDescription>
           <div className="flex items-start gap-4">
             <div className="relative flex-shrink-0">
               {avatarSrc ? (

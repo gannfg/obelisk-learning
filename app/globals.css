@@ -398,3 +398,61 @@ html * {
   ring: 2px;
   ring-color: var(--ring);
 }
+
+/* Custom Scrollbar Styling */
+/* Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a; /* Dark gray track (almost black) */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4a4a4a; /* Lighter gray thumb */
+  border-radius: 7px; /* Rounded ends */
+  border: 2px solid #1a1a1a; /* Dark border to create separation */
+  min-height: 40px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5a5a5a; /* Slightly lighter on hover */
+}
+
+::-webkit-scrollbar-button {
+  background: #1a1a1a; /* Dark gray buttons */
+  border: none;
+  height: 14px;
+  width: 14px;
+  display: block;
+}
+
+::-webkit-scrollbar-button:single-button:vertical:decrement {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23a3a3a3' d='M5 3L2.5 5.5h5L5 3z'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 10px 10px;
+}
+
+::-webkit-scrollbar-button:single-button:vertical:increment {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23a3a3a3' d='M5 7L2.5 4.5h5L5 7z'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 10px 10px;
+}
+
+::-webkit-scrollbar-button:hover {
+  background-color: #2a2a2a; /* Slightly lighter on hover */
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4a4a4a #1a1a1a; /* thumb track */
+}
