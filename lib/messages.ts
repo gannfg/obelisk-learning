@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import { notifyNewMessage } from "@/lib/notifications-helpers";
+// Notifications are sent via server route to avoid client RLS
 
 /**
  * Ensure the current user has a profile row (FK target for participants)
@@ -428,7 +428,7 @@ export async function getConversations(
             .eq("conversation_id", conv.id)
             .order("created_at", { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
           // Get unread count (messages after last_read_at)
           const participant = conv.conversation_participants.find(
@@ -674,7 +674,7 @@ export async function sendMessage(
       .update({ updated_at: new Date().toISOString() })
       .eq("id", conversationId);
 
-    // Fire notifications to other participants (best-effort, non-blocking)
+    // Fire notifications to other participants (best-effort, non-blocking, via server API)
     (async () => {
       try {
         // Fetch participants excluding sender
@@ -708,20 +708,24 @@ export async function sendMessage(
             ? `${trimmedContent.slice(0, 117)}...`
             : trimmedContent;
 
+        const recipients = participants
+          .map((p: any) => p.user_id)
+          .filter((id: string) => id !== user.id);
+
         await Promise.all(
-          participants
-            .map((p: any) => p.user_id)
-            .filter((id: string) => id !== user.id)
-            .map((recipientId: string) =>
-              notifyNewMessage(
+          recipients.map((recipientId: string) =>
+            fetch("/api/notifications/message", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
                 recipientId,
-                user.id,
+                senderId: user.id,
                 senderName,
                 messagePreview,
                 conversationId,
-                supabase
-              ).catch(() => null)
-            )
+              }),
+            }).catch(() => null)
+          )
         );
       } catch (notifyErr) {
         console.warn("Notification send skipped/error:", notifyErr);

@@ -103,13 +103,27 @@ export async function createAd(
       .single();
 
     if (error) {
-      console.error("Error creating advertisement:", error);
+      // Log error details in a way that preserves information
+      const errorInfo = {
+        message: error.message || "Unknown error",
+        details: error.details || null,
+        hint: error.hint || null,
+        code: error.code || null,
+      };
+      console.error("Error creating advertisement:", errorInfo);
+      console.error("Full error object:", error);
+      console.error("Error object stringified:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      console.error("Data being inserted:", JSON.stringify(ad, null, 2));
+      console.error("Table: advertisements");
+      console.error("Operation: INSERT");
       return null;
     }
 
     return data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Unexpected error creating advertisement:", error);
+    console.error("Error type:", typeof error);
+    console.error("Error keys:", error ? Object.keys(error) : "null");
     return null;
   }
 }
