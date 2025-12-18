@@ -440,25 +440,25 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Projects */}
+              {/* Missions (moved from sidebar) */}
               <div className="mb-2">
-                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Projects</h3>
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Missions</h3>
               </div>
               
-              {loadingProjects ? (
+              {loadingMissions ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              ) : projects.length > 0 ? (
+              ) : missions.length > 0 ? (
                 <>
                   <div className="space-y-2 lg:space-y-3 mb-4">
-                    {projects.slice(0, 4).map((project) => (
-                      <HorizontalProjectCard key={project.id} project={project} />
+                    {missions.slice(0, 4).map((mission) => (
+                      <HorizontalMissionCard key={mission.id} mission={mission} />
                     ))}
                   </div>
-                  {projects.length > 4 && (
+                  {missions.length > 4 && (
                     <Button variant="outline" className="w-full rounded-lg group" asChild>
-                      <Link href="/academy?tab=projects" className="flex items-center justify-center gap-2">
+                      <Link href="/missions" className="flex items-center justify-center gap-2">
                         <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
                         <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
                       </Link>
@@ -468,10 +468,10 @@ export default function Home() {
               ) : (
                 <div className="py-6 text-center">
                   <p className="text-sm text-muted-foreground mb-3">
-                    No projects yet
+                    No missions available yet
                   </p>
                   <Button variant="outline" size="sm" asChild>
-                    <Link href="/academy/projects/new">Create Project</Link>
+                    <Link href="/missions">Browse Missions</Link>
                   </Button>
                 </div>
               )}
@@ -630,25 +630,25 @@ export default function Home() {
                 </div>
               </Card>
 
-              {/* Missions */}
+              {/* Projects (moved from main column) */}
               <div className="mb-2">
-                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Missions</h3>
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Projects</h3>
               </div>
               
-              {loadingMissions ? (
+              {loadingProjects ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              ) : missions.length > 0 ? (
+              ) : projects.length > 0 ? (
                 <>
                   <div className="space-y-2 lg:space-y-3 mb-4">
-                    {missions.slice(0, 4).map((mission) => (
-                      <HorizontalMissionCard key={mission.id} mission={mission} />
+                    {projects.slice(0, 4).map((project) => (
+                      <HorizontalProjectCard key={project.id} project={project} />
                     ))}
                   </div>
-                  {missions.length > 4 && (
+                  {projects.length > 4 && (
                     <Button variant="outline" className="w-full rounded-lg group" asChild>
-                      <Link href="/missions" className="flex items-center justify-center gap-2">
+                      <Link href="/academy?tab=projects" className="flex items-center justify-center gap-2">
                         <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
                         <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
                       </Link>
@@ -658,10 +658,10 @@ export default function Home() {
               ) : (
                 <div className="py-6 text-center">
                   <p className="text-sm text-muted-foreground mb-3">
-                    No missions available yet
+                    No projects yet
                   </p>
                   <Button variant="outline" size="sm" asChild>
-                    <Link href="/missions">Browse Missions</Link>
+                    <Link href="/academy/projects/new">Create Project</Link>
                   </Button>
                 </div>
               )}

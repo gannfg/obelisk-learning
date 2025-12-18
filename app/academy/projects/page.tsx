@@ -11,6 +11,37 @@ import { getUserProfile } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
 
+function getShortDescription(description: string, maxLength: number = 220) {
+  if (!description) return "";
+
+  // Try to keep whole sentences when possible
+  const sentences = description.split(/(?<=[.!?])\s+/);
+  let result = "";
+
+  for (const sentence of sentences) {
+    const tentative = result ? `${result} ${sentence}` : sentence;
+    if (tentative.length > maxLength) {
+      break;
+    }
+    result = tentative;
+    if (result.length >= maxLength * 0.7) {
+      // Already a good length with at least one full sentence
+      break;
+    }
+  }
+
+  // Fallback to simple character trim if we didn't add anything
+  if (!result) {
+    result = description.slice(0, maxLength);
+  }
+
+  if (result.length < description.length) {
+    result = result.replace(/\s+$/, "") + "…";
+  }
+
+  return result;
+}
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<ProjectWithMembers[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,7 +176,9 @@ export default function ProjectsPage() {
                       {project.status}
                     </span>
                   </div>
-                  <CardDescription>{project.description}</CardDescription>
+                  <CardDescription className="text-sm text-muted-foreground">
+                    {getShortDescription(project.description || "")}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2 mb-4">
