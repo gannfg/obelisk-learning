@@ -10,7 +10,6 @@ import { MissionCardSkeleton } from "@/components/mission-card-skeleton";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createLearningClient } from "@/lib/supabase/learning-client";
 import type { Mission, MissionProgress, MissionSubmission } from "@/types";
-import { getMissionPrerequisites, canAccessMission, getMissionPrerequisitesWithDetails } from "@/lib/mission-prerequisites";
 
 export default function MissionBoardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -23,8 +22,6 @@ export default function MissionBoardPage() {
   const [joinFilter, setJoinFilter] = useState<"all" | "joined" | "not_joined">("all");
   const [featuredMissions, setFeaturedMissions] = useState<Mission[]>([]);
   const [currentFeaturedIndex, setCurrentFeaturedIndex] = useState(0);
-  const [missionAccessMap, setMissionAccessMap] = useState<Record<string, { canAccess: boolean; missingClasses: string[] }>>({});
-  const [prerequisiteDetailsMap, setPrerequisiteDetailsMap] = useState<Record<string, Array<{ id: string; title: string; thumbnail?: string }>>>({});
   
   // Refs for filter button containers
   const difficultyFilterRef = useRef<HTMLDivElement>(null);
@@ -78,46 +75,6 @@ export default function MissionBoardPage() {
         })) || [];
 
       setMissions(normalizedMissions);
-
-      // Fetch prerequisites and check access for each mission
-      if (user) {
-        const accessMap: Record<string, { canAccess: boolean; missingClasses: string[] }> = {};
-        const detailsMap: Record<string, Array<{ id: string; title: string; thumbnail?: string }>> = {};
-
-        await Promise.all(
-          normalizedMissions.map(async (mission) => {
-            // Get prerequisite details
-            const prerequisites = await getMissionPrerequisitesWithDetails(mission.id, supabase);
-            detailsMap[mission.id] = prerequisites;
-
-            // Check if user can access this mission
-            const access = await canAccessMission(mission.id, user.id, supabase);
-            accessMap[mission.id] = access;
-          })
-        );
-
-        setPrerequisiteDetailsMap(detailsMap);
-        setMissionAccessMap(accessMap);
-      } else {
-        // For non-authenticated users, check prerequisites but mark all as locked if they have prerequisites
-        const detailsMap: Record<string, Array<{ id: string; title: string; thumbnail?: string }>> = {};
-        const accessMap: Record<string, { canAccess: boolean; missingClasses: string[] }> = {};
-
-        await Promise.all(
-          normalizedMissions.map(async (mission) => {
-            const prerequisites = await getMissionPrerequisitesWithDetails(mission.id, supabase);
-            detailsMap[mission.id] = prerequisites;
-            // If mission has prerequisites, non-authenticated users can't access
-            accessMap[mission.id] = {
-              canAccess: prerequisites.length === 0,
-              missingClasses: prerequisites.map(p => p.id),
-            };
-          })
-        );
-
-        setPrerequisiteDetailsMap(detailsMap);
-        setMissionAccessMap(accessMap);
-      }
 
       // Randomly pick 4 missions for featured hero card
       if (normalizedMissions.length > 0) {
@@ -330,28 +287,29 @@ export default function MissionBoardPage() {
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
       {/* Hero Mission Card */}
       {featuredMission && (
-        <Link href={`/missions/${featuredMission.id}`} className="block mb-6 group">
-          <Card className="overflow-hidden border shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer relative">
-            {/* Background Image - Full box with transparency and fade */}
-            {featuredMission.imageUrl ? (
-              <div className="absolute inset-0 z-0">
-                <Image
-                  src={featuredMission.imageUrl}
-                  alt={featuredMission.title}
-                  fill
-                  className="object-cover opacity-60 transition-opacity duration-300 group-hover:opacity-70"
-                  sizes="100vw"
-                  priority
-                />
-                {/* Fade overlay gradient - stronger at top, transparent at bottom */}
-                <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background/10" />
-              </div>
-            ) : (
-              <div 
-                className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none z-0 bg-cover bg-center bg-no-repeat opacity-40"
-                style={{ backgroundImage: 'url(/superteam_color.svg)' }}
-              />
-            )}
+        <div className="mb-6 group relative">
+          <Link href={`/missions/${featuredMission.id}`} className="block">
+            <Card className="overflow-hidden border shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer relative">
+              {/* Background Image - Full box with black fade */}
+              {featuredMission.imageUrl ? (
+                <div className="absolute inset-0 z-0">
+                  <Image
+                    src={featuredMission.imageUrl}
+                    alt={featuredMission.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 1200px"
+                    priority
+                  />
+                  {/* Black fade overlay gradient - stronger at top, transparent at bottom */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-transparent" />
+                </div>
+              ) : (
+            <div 
+              className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none z-0 bg-cover bg-center bg-no-repeat"
+              style={{ backgroundImage: 'url(/superteam_color.svg)' }}
+            />
+              )}
             
             {/* Left Navigation Button - Only visible on hover */}
             {featuredMissions.length >= 2 && (
@@ -361,7 +319,7 @@ export default function MissionBoardPage() {
                   e.stopPropagation();
                   goToPrevious();
                 }}
-                className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white dark:bg-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:scale-110"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white dark:bg-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:scale-110"
                 aria-label="Previous mission"
               >
                 <ChevronLeft className="h-5 w-5 text-black" />
@@ -376,7 +334,7 @@ export default function MissionBoardPage() {
                   e.stopPropagation();
                   goToNext();
                 }}
-                className="absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white dark:bg-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:scale-110"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white dark:bg-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:scale-110"
                 aria-label="Next mission"
               >
                 <ChevronRight className="h-5 w-5 text-black" />
@@ -387,19 +345,19 @@ export default function MissionBoardPage() {
               {/* Left Side - Mission Info */}
               <div className="flex-1 flex flex-col justify-between min-h-[200px]">
                 <div>
-                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 text-foreground drop-shadow-lg">
+                    <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 text-white drop-shadow-lg">
                     {featuredMission.title}
                   </h2>
                   
                   {/* Stats */}
-                  <div className="flex flex-wrap gap-4 text-base md:text-lg text-foreground drop-shadow-md">
+                    <div className="flex flex-wrap gap-4 text-base md:text-lg text-white drop-shadow-md">
                     <div className="flex items-center gap-1.5">
-                      <Users className="h-5 w-5" />
+                      <Users className="h-5 w-5 text-white" />
                       <span>{joinCounts[featuredMission.id] || 0} joined</span>
                     </div>
                     {featuredDaysRemaining !== null && (
                       <div className="flex items-center gap-1.5">
-                        <Clock className="h-5 w-5" />
+                        <Clock className="h-5 w-5 text-white" />
                         <span>
                           {featuredDaysRemaining < 0
                             ? "Closed"
@@ -425,7 +383,7 @@ export default function MissionBoardPage() {
                             setCurrentFeaturedIndex(i);
                           }}
                           className={`h-1.5 rounded-full transition-all ${
-                            i === currentFeaturedIndex ? "w-6 bg-foreground" : "w-1.5 bg-foreground/50"
+                            i === currentFeaturedIndex ? "w-6 bg-white" : "w-1.5 bg-white/50"
                           }`}
                           aria-label={`Go to mission ${i + 1}`}
                         />
@@ -435,15 +393,15 @@ export default function MissionBoardPage() {
                 </div>
               </div>
 
-              {/* Right Side - Small Mission Image Box */}
-              <div className="relative w-full md:w-48 h-48 md:h-48 bg-background/20 backdrop-blur-sm rounded-lg overflow-hidden flex-shrink-0 border border-foreground/10 shadow-lg">
+                {/* Right Side - Small Mission Image Box */}
+                <div className="relative w-full md:w-48 h-48 md:h-48 bg-background/20 backdrop-blur-sm rounded-lg overflow-hidden flex-shrink-0 border border-foreground/10 shadow-lg">
                 {featuredMission.imageUrl ? (
                   <Image
                     src={featuredMission.imageUrl}
                     alt={featuredMission.title}
                     fill
                     className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 192px"
+                      sizes="(max-width: 768px) 100vw, 192px"
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -454,6 +412,7 @@ export default function MissionBoardPage() {
             </div>
           </Card>
         </Link>
+        </div>
       )}
 
       {/* Filters */}
@@ -573,9 +532,6 @@ export default function MissionBoardPage() {
             const progress = progressMap[mission.id];
             const submission = submissionMap[mission.id];
             const isJoined = !!progress;
-            const access = missionAccessMap[mission.id] || { canAccess: true, missingClasses: [] };
-            const isLocked = !access.canAccess;
-            const prerequisiteDetails = prerequisiteDetailsMap[mission.id] || [];
             
             // Calculate progress percentage based on submission status
             let progressPercentage = 0;
