@@ -17,10 +17,13 @@ import { Loader2 } from "lucide-react";
 import { HorizontalClassCard } from "@/components/horizontal-class-card";
 import { HorizontalProjectCard } from "@/components/horizontal-project-card";
 import { HorizontalMissionCard } from "@/components/horizontal-mission-card";
+import { HorizontalWorkshopCard } from "@/components/horizontal-workshop-card";
 import { TeamsTicker } from "@/components/teams-ticker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Class, Mission } from "@/types";
+import { Workshop } from "@/types/workshops";
+import { getAllWorkshops } from "@/lib/workshops";
 import Image from "next/image";
 
 /**
@@ -36,6 +39,8 @@ export default function Home() {
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [loadingMissions, setLoadingMissions] = useState(true);
+  const [workshops, setWorkshops] = useState<Workshop[]>([]);
+  const [loadingWorkshops, setLoadingWorkshops] = useState(true);
   const [badgesCount, setBadgesCount] = useState(0);
   const [xpCount, setXpCount] = useState(0);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -178,6 +183,23 @@ export default function Home() {
     return () => {
       learningSupabase.removeChannel(channel);
     };
+  }, [learningSupabase]);
+
+  // Load workshops
+  useEffect(() => {
+    if (!learningSupabase) {
+      setWorkshops([]);
+      setLoadingWorkshops(false);
+      return;
+    }
+    setLoadingWorkshops(true);
+    getAllWorkshops({ upcomingOnly: true, limit: 4 }, learningSupabase)
+      .then(setWorkshops)
+      .catch((error) => {
+        console.error("Error loading workshops:", error);
+        setWorkshops([]);
+      })
+      .finally(() => setLoadingWorkshops(false));
   }, [learningSupabase]);
 
   // Load advertisements
@@ -416,11 +438,11 @@ export default function Home() {
               ) : classes.length > 0 ? (
                 <>
                   <div className="space-y-2 lg:space-y-3 mb-4">
-                    {classes.slice(0, 10).map((classItem) => (
+                    {classes.slice(0, 4).map((classItem) => (
                       <HorizontalClassCard key={classItem.id} classItem={classItem} />
                     ))}
                   </div>
-                  {classes.length > 10 && (
+                  {classes.length > 4 && (
                     <Button variant="outline" className="w-full rounded-lg group" asChild>
                       <Link href="/academy?tab=classes" className="flex items-center justify-center gap-2">
                         <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
@@ -472,6 +494,42 @@ export default function Home() {
                   </p>
                   <Button variant="outline" size="sm" asChild>
                     <Link href="/missions">Browse Missions</Link>
+                  </Button>
+                </div>
+              )}
+
+              {/* Workshops */}
+              <div className="mb-2">
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Workshops</h3>
+              </div>
+              
+              {loadingWorkshops ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : workshops.length > 0 ? (
+                <>
+                  <div className="space-y-2 lg:space-y-3 mb-4">
+                    {workshops.map((workshop) => (
+                      <HorizontalWorkshopCard key={workshop.id} workshop={workshop} />
+                    ))}
+                  </div>
+                  {workshops.length >= 4 && (
+                    <Button variant="outline" className="w-full rounded-lg group" asChild>
+                      <Link href="/workshops" className="flex items-center justify-center gap-2">
+                        <span className="opacity-40 group-hover:opacity-80 group-hover:font-bold transition-all">View All</span>
+                        <ArrowRight className="h-4 w-4 opacity-40 group-hover:opacity-80 transition-all" />
+                      </Link>
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <div className="py-6 text-center">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    No upcoming workshops yet
+                  </p>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/workshops">Browse Workshops</Link>
                   </Button>
                 </div>
               )}
