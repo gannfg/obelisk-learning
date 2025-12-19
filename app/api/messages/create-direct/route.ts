@@ -21,6 +21,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if this is an AI instructor - redirect to mentor chat instead
+    if (otherUserId === "ai-instructor-1" || otherUserId.startsWith("ai-instructor-")) {
+      return NextResponse.json(
+        { error: "AI instructors use the mentor chat system", redirectTo: "/mentor-chat" },
+        { status: 400 }
+      );
+    }
+
     const admin = createAuthAdminClient();
     const currentUserId = user.id;
 

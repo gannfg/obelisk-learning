@@ -7,6 +7,7 @@ import Image from "next/image";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -47,6 +48,9 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Search Classes</DialogTitle>
+          <DialogDescription className="sr-only">
+            Search for classes by title, description, or category
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="relative">

@@ -230,32 +230,30 @@ export default function MissionBoardPage() {
 
   if (loading || authLoading) {
     return (
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6 pb-6">
         {/* Hero Card Skeleton */}
-        <div className="mb-6">
-          <Card className="overflow-hidden border">
-            <div className="flex flex-col md:flex-row gap-4 p-6 md:p-8">
-              <div className="flex-1 min-h-[200px] flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="h-8 w-3/4 bg-muted rounded animate-pulse" />
-                  <div className="h-4 w-full bg-muted rounded animate-pulse" />
-                  <div className="h-4 w-2/3 bg-muted rounded animate-pulse" />
-                  <div className="flex gap-4 mt-4">
-                    <div className="h-4 w-20 bg-muted rounded animate-pulse" />
-                    <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+        <div className="mb-4 sm:mb-6">
+          <Card className="overflow-hidden border border-border/50 rounded-lg">
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6 p-4 sm:p-5 md:p-8 min-h-[160px] sm:min-h-[180px] md:min-h-[220px]">
+              <div className="flex-1 flex flex-col justify-between">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="h-7 sm:h-8 w-3/4 bg-muted/50 rounded-lg animate-pulse" />
+                  <div className="flex gap-2 sm:gap-3">
+                    <div className="h-7 w-24 bg-muted/50 rounded-full animate-pulse" />
+                    <div className="h-7 w-28 bg-muted/50 rounded-full animate-pulse" />
                   </div>
                 </div>
-                <div className="flex gap-2 mt-4">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="h-1.5 w-6 bg-muted rounded-full animate-pulse" />
+                <div className="flex gap-1.5 mt-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-1 w-6 bg-muted/50 rounded-full animate-pulse" />
                   ))}
                 </div>
               </div>
-              <div className="w-full md:w-48 h-48 bg-muted rounded-lg animate-pulse flex-shrink-0" />
+              <div className="hidden md:flex w-56 lg:w-64 h-56 lg:h-64 bg-muted/50 rounded-xl animate-pulse flex-shrink-0" />
             </div>
           </Card>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3 md:gap-4">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <MissionCardSkeleton key={i} />
           ))}
@@ -284,12 +282,12 @@ export default function MissionBoardPage() {
   const featuredDaysRemaining = getDaysRemaining(featuredMission);
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+    <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6 pb-6">
       {/* Hero Mission Card */}
       {featuredMission && (
-        <div className="mb-6 group relative">
+        <div className="mb-4 sm:mb-6 group relative">
           <Link href={`/missions/${featuredMission.id}`} className="block">
-            <Card className="overflow-hidden border shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer relative">
+            <Card className="overflow-hidden border border-border/50 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer relative rounded-lg">
               {/* Background Image - Full box with black fade */}
               {featuredMission.imageUrl ? (
                 <div className="absolute inset-0 z-0">
@@ -301,111 +299,110 @@ export default function MissionBoardPage() {
                     sizes="(max-width: 768px) 100vw, 1200px"
                     priority
                   />
-                  {/* Black fade overlay gradient - stronger at top, transparent at bottom */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-transparent" />
+                  {/* Black fade overlay gradient - mobile optimized */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/60 to-black/30 md:from-black/80 md:via-black/40 md:to-transparent" />
                 </div>
               ) : (
             <div 
-              className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none z-0 bg-cover bg-center bg-no-repeat"
+              className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none z-0 bg-cover bg-center bg-no-repeat opacity-30"
               style={{ backgroundImage: 'url(/superteam_color.svg)' }}
             />
               )}
             
-            {/* Left Navigation Button - Only visible on hover */}
+            {/* Navigation Arrows */}
             {featuredMissions.length >= 2 && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  goToPrevious();
-                }}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white dark:bg-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:scale-110"
-                aria-label="Previous mission"
-              >
-                <ChevronLeft className="h-5 w-5 text-black" />
-              </button>
+              <>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    goToPrevious();
+                  }}
+                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-background/80 backdrop-blur-sm border border-border hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Previous slide"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    goToNext();
+                  }}
+                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-background/80 backdrop-blur-sm border border-border hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Next slide"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </>
             )}
 
-            {/* Right Navigation Button - Only visible on hover */}
-            {featuredMissions.length >= 2 && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  goToNext();
-                }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white dark:bg-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:scale-110"
-                aria-label="Next mission"
-              >
-                <ChevronRight className="h-5 w-5 text-black" />
-              </button>
-            )}
-
-            <div className="relative z-10 flex flex-col md:flex-row gap-4 p-6 md:p-8">
-              {/* Left Side - Mission Info */}
-              <div className="flex-1 flex flex-col justify-between min-h-[200px]">
-                <div>
-                    <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 text-white drop-shadow-lg">
+            <div className="relative z-10 flex flex-col md:flex-row gap-4 md:gap-6 p-4 sm:p-5 md:p-8 pb-12 min-h-[160px] sm:min-h-[180px] md:min-h-[220px]">
+              {/* Mission Info - Takes full width on mobile */}
+              <div className="flex-1 flex flex-col justify-between">
+                <div className="space-y-3 sm:space-y-4">
+                  {/* Title */}
+                    <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white drop-shadow-lg leading-tight">
                     {featuredMission.title}
                   </h2>
                   
-                  {/* Stats */}
-                    <div className="flex flex-wrap gap-4 text-base md:text-lg text-white drop-shadow-md">
-                    <div className="flex items-center gap-1.5">
-                      <Users className="h-5 w-5 text-white" />
-                      <span>{joinCounts[featuredMission.id] || 0} joined</span>
+                  {/* Stats Row */}
+                    <div className="flex flex-wrap gap-2.5 sm:gap-3 text-xs sm:text-sm md:text-base text-white/95 drop-shadow-md">
+                    <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                      <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+                      <span className="font-medium">{joinCounts[featuredMission.id] || 0} joined</span>
                     </div>
                     {featuredDaysRemaining !== null && (
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="h-5 w-5 text-white" />
-                        <span>
+                      <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                        <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+                        <span className="font-medium">
                           {featuredDaysRemaining < 0
                             ? "Closed"
                             : featuredDaysRemaining === 0
                             ? "Due today"
-                            : `Due in ${featuredDaysRemaining} day${featuredDaysRemaining !== 1 ? 's' : ''}`}
+                            : `${featuredDaysRemaining} day${featuredDaysRemaining !== 1 ? 's' : ''} left`}
                         </span>
                       </div>
                     )}
                   </div>
                 </div>
                 
-                {/* Pagination */}
-                <div className="flex items-center gap-2 mt-4">
-                  {featuredMissions.length > 1 && (
-                    <div className="flex items-center gap-2">
-                      {featuredMissions.slice(0, 4).map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setCurrentFeaturedIndex(i);
-                          }}
-                          className={`h-1.5 rounded-full transition-all ${
-                            i === currentFeaturedIndex ? "w-6 bg-white" : "w-1.5 bg-white/50"
-                          }`}
-                          aria-label={`Go to mission ${i + 1}`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
+            {/* Dot Indicators */}
+            {featuredMissions.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+                {featuredMissions.slice(0, 4).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setCurrentFeaturedIndex(i);
+                    }}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      i === currentFeaturedIndex
+                        ? "bg-primary w-6"
+                        : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                    }`}
+                    aria-label={`Go to slide ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
               </div>
 
-                {/* Right Side - Small Mission Image Box */}
-                <div className="relative w-full md:w-48 h-48 md:h-48 bg-background/20 backdrop-blur-sm rounded-lg overflow-hidden flex-shrink-0 border border-foreground/10 shadow-lg">
+              {/* Right Side - Mission Image Box (Hidden on mobile, shown on desktop) */}
+                <div className="hidden md:flex relative md:w-56 lg:w-64 h-56 lg:h-64 bg-white/10 backdrop-blur-md rounded-xl overflow-hidden flex-shrink-0 border border-white/20 shadow-xl">
                 {featuredMission.imageUrl ? (
                   <Image
                     src={featuredMission.imageUrl}
                     alt={featuredMission.title}
                     fill
                     className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 192px"
+                      sizes="256px"
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Target className="h-12 w-12 text-muted-foreground/50" />
+                    <Target className="h-16 w-16 text-white/30" />
                   </div>
                 )}
               </div>
@@ -416,20 +413,20 @@ export default function MissionBoardPage() {
       )}
 
       {/* Filters */}
-      <Card className="p-2 sm:p-3 mb-4">
-          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
+      <Card className="p-2.5 sm:p-3 mb-3 sm:mb-4 border-border/50">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="flex items-center gap-1.5">
               <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Difficulty:</span>
+              <span className="text-xs sm:text-sm font-semibold whitespace-nowrap">Difficulty:</span>
             </div>
             <div 
               ref={difficultyFilterRef}
-              className="relative flex flex-wrap gap-1.5"
+              className="relative flex flex-wrap gap-1.5 sm:gap-2"
             >
               {/* Sliding indicator */}
               <div
-                className="absolute h-7 bg-foreground rounded-md z-0"
+                className="absolute h-8 sm:h-7 bg-foreground rounded-md z-0"
                 style={{
                   left: `${difficultyIndicatorStyle.left}px`,
                   width: `${difficultyIndicatorStyle.width}px`,
@@ -444,7 +441,7 @@ export default function MissionBoardPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setFilter(level as typeof filter)}
-                  className={`text-xs h-7 px-2.5 relative z-10 transition-colors duration-300 ${
+                  className={`text-xs h-8 sm:h-7 px-3 sm:px-2.5 relative z-10 transition-colors duration-300 border-border/50 ${
                     filter === level 
                       ? "bg-transparent border-transparent text-background" 
                       : ""
@@ -455,15 +452,15 @@ export default function MissionBoardPage() {
               ))}
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
-            <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Joined:</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <span className="text-xs sm:text-sm font-semibold whitespace-nowrap">Joined:</span>
             <div 
               ref={joinFilterRef}
-              className="relative flex flex-wrap gap-1.5"
+              className="relative flex flex-wrap gap-1.5 sm:gap-2"
             >
               {/* Sliding indicator */}
               <div
-                className="absolute h-7 bg-foreground rounded-md z-0"
+                className="absolute h-8 sm:h-7 bg-foreground rounded-md z-0"
                 style={{
                   left: `${joinIndicatorStyle.left}px`,
                   width: `${joinIndicatorStyle.width}px`,
@@ -476,7 +473,7 @@ export default function MissionBoardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setJoinFilter("all")}
-                className={`text-xs h-7 px-2.5 relative z-10 transition-colors duration-300 ${
+                className={`text-xs h-8 sm:h-7 px-3 sm:px-2.5 relative z-10 transition-colors duration-300 border-border/50 ${
                   joinFilter === "all" 
                     ? "bg-transparent border-transparent text-background" 
                     : ""
@@ -488,7 +485,7 @@ export default function MissionBoardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setJoinFilter("joined")}
-                className={`text-xs h-7 px-2.5 relative z-10 transition-colors duration-300 ${
+                className={`text-xs h-8 sm:h-7 px-3 sm:px-2.5 relative z-10 transition-colors duration-300 border-border/50 ${
                   joinFilter === "joined" 
                     ? "bg-transparent border-transparent text-background" 
                     : ""
@@ -500,7 +497,7 @@ export default function MissionBoardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setJoinFilter("not_joined")}
-                className={`text-xs h-7 px-2.5 relative z-10 transition-colors duration-300 ${
+                className={`text-xs h-8 sm:h-7 px-3 sm:px-2.5 relative z-10 transition-colors duration-300 border-border/50 ${
                   joinFilter === "not_joined" 
                     ? "bg-transparent border-transparent text-background" 
                     : ""
@@ -515,11 +512,11 @@ export default function MissionBoardPage() {
 
       {/* Mission Grid */}
       {missions.length === 0 ? (
-        <Card className="p-12 text-center">
-          <p className="text-base text-muted-foreground">No missions found. Check back later!</p>
+        <Card className="p-8 sm:p-12 text-center border-border/50">
+          <p className="text-sm sm:text-base text-muted-foreground">No missions found. Check back later!</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3 md:gap-4">
           {missions
             .filter((mission) => {
               const progress = progressMap[mission.id];
@@ -570,23 +567,23 @@ export default function MissionBoardPage() {
 
             const cardContent = (
                 <Card
-                  className={`overflow-hidden transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] hover:shadow-lg ${
+                  className={`overflow-hidden transition-all duration-200 ease-out cursor-pointer hover:scale-[1.02] hover:shadow-lg border-border/50 rounded-lg ${
                     progressPercentage === 100
                       ? "border-green-500/50 bg-green-500/5"
                       : status === "changes_requested"
-                      ? "border-amber-400/60 bg-amber-50"
+                      ? "border-amber-400/60 bg-amber-50 dark:bg-amber-950/20"
                       : isJoined
                       ? "border-blue-500/30 bg-blue-500/5"
                       : ""
                   }`}
                 >
-                  <div className="p-4">
+                  <div className="p-3 sm:p-4">
                     {/* Top Section - Icon and Title */}
-                    <div className="flex items-start gap-2 mb-2">
+                    <div className="flex items-start gap-2 sm:gap-2.5 mb-2 sm:mb-2.5">
                       {/* Small Icon/Image on Left */}
                       <div className="flex-shrink-0">
                         {mission.imageUrl ? (
-                          <div className="relative w-16 h-16 rounded-lg overflow-hidden">
+                          <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden">
                             <Image
                               src={mission.imageUrl}
                               alt={mission.title}
@@ -596,19 +593,19 @@ export default function MissionBoardPage() {
                             />
                           </div>
                         ) : (
-                          <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                            <Target className="h-8 w-8 text-primary" />
+                          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                            <Target className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
                           </div>
                         )}
                       </div>
 
                       {/* Title and Level */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-base md:text-lg font-bold mb-0.5 leading-tight line-clamp-2">
+                        <h3 className="text-sm sm:text-base md:text-lg font-bold mb-0.5 sm:mb-1 leading-tight line-clamp-2">
                           {mission.title}
                         </h3>
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`text-xs font-medium capitalize ${
+                          <span className={`text-[11px] sm:text-xs font-medium capitalize ${
                             mission.difficulty === "beginner"
                               ? "text-green-600 dark:text-green-400"
                               : mission.difficulty === "intermediate"
@@ -622,16 +619,16 @@ export default function MissionBoardPage() {
                     </div>
 
                     {/* Statistics Row */}
-                    <div className="space-y-1 mb-2">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="space-y-1 mb-2 sm:mb-2.5">
+                      <div className="flex items-center gap-2 sm:gap-2.5 text-[11px] sm:text-xs text-muted-foreground">
                         {mission.submissionDeadline && (
-                          <div className="flex items-center gap-0.5">
-                            <Clock className="h-4 w-4" />
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             <span>{mission.submissionDeadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                           </div>
                         )}
-                        <div className="flex items-center gap-0.5">
-                          <Users className="h-4 w-4" />
+                        <div className="flex items-center gap-1">
+                          <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           <span>{joinCounts[mission.id] || 0}</span>
                         </div>
                       </div>
@@ -669,8 +666,8 @@ export default function MissionBoardPage() {
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="mb-1.5">
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="mb-1.5 sm:mb-2">
+                      <div className="h-1.5 sm:h-2 bg-muted/50 rounded-full overflow-hidden">
                         <div
                           className={`h-full transition-all duration-300 ${
                             progressPercentage === 100 
@@ -687,7 +684,7 @@ export default function MissionBoardPage() {
                     </div>
 
                     {/* Completion Status */}
-                    <div className={`text-xs font-medium ${
+                    <div className={`text-[11px] sm:text-xs font-medium ${
                       progressPercentage === 100
                         ? "text-green-600 dark:text-green-400"
                         : status === "changes_requested"

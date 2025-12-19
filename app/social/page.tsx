@@ -84,6 +84,12 @@ export default function SocialPage() {
       return;
     }
     
+    // Check if this is an AI instructor - redirect to mentor chat
+    if (userId === "ai-instructor-1" || userId.startsWith("ai-instructor-")) {
+      router.push('/mentor-chat');
+      return;
+    }
+    
     try {
       // Create or get conversation
       const convId = await createDirectConversation(userId);
