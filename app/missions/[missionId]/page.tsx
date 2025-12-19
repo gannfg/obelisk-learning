@@ -760,24 +760,12 @@ export default function MissionPage() {
 
             {/* Date & Time */}
             {(mission.submissionDeadline || mission.endDate) && (
-              <div className="space-y-1">
                 <div className="text-lg font-semibold">
                     {mission.submissionDeadline
                     ? format(mission.submissionDeadline, "yyyy/MM/dd")
                     : "No start date"}
                   {mission.endDate &&
                     ` - ${format(mission.endDate, "yyyy/MM/dd")}`}
-                </div>
-                {(mission.submissionDeadline || mission.endDate) && (
-                  <div className="text-muted-foreground">
-                    {mission.submissionDeadline
-                      ? format(mission.submissionDeadline, "PPP")
-                      : null}
-                    {mission.endDate
-                      ? ` • Ends: ${format(mission.endDate, "PPP")}`
-                      : null}
-                  </div>
-                )}
               </div>
             )}
 
@@ -802,16 +790,16 @@ export default function MissionPage() {
                   </p>
                 </div>
               ) : (
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "overview" | "checklist" | "submission")} className="w-full">
-                  <TabsList>
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    {checklist.length > 0 && (
-                      <TabsTrigger value="checklist">Checklist</TabsTrigger>
-                    )}
-                    {(progress || submission) && (
-                      <TabsTrigger value="submission">Submission</TabsTrigger>
-                    )}
-                  </TabsList>
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "overview" | "checklist" | "submission")} className="w-full">
+                <TabsList>
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  {checklist.length > 0 && (
+                    <TabsTrigger value="checklist">Checklist</TabsTrigger>
+                  )}
+                  {(progress || submission) && (
+                    <TabsTrigger value="submission">Submission</TabsTrigger>
+                  )}
+                </TabsList>
                 
                 <TabsContent value="overview" className="space-y-4 pt-4">
                   <h2 className="text-2xl font-bold">About This Mission</h2>
