@@ -18,13 +18,14 @@ import { useAdmin } from "@/lib/hooks/use-admin";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { createClient } from "@/lib/supabase/client";
 import { uploadWorkshopImage } from "@/lib/storage";
-import { Calendar, Plus, Trash2, Edit, Users, QrCode, Download, Image as ImageIcon, X, ExternalLink, MapPin, List, FilePlus, ClipboardCheck, BarChart3, CheckCircle2, Filter, Search } from "lucide-react";
+import { Calendar, Clock, Plus, Trash2, Edit, Users, QrCode, Download, Image as ImageIcon, X, ExternalLink, MapPin, List, FilePlus, ClipboardCheck, BarChart3, CheckCircle2, Filter, Search } from "lucide-react";
 import type { Workshop } from "@/types/workshops";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
 import { getCheckInUrl } from "@/lib/qr-utils";
 import { VenuePicker, type VenueData } from "@/components/venue-picker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 export default function AdminWorkshopsPage() {
   const router = useRouter();
@@ -52,7 +53,8 @@ export default function AdminWorkshopsPage() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    datetime: "",
+    date: "",
+    time: "",
     locationType: "online" as "online" | "offline",
     venueName: "",
     venueAddress: "",
@@ -226,17 +228,8 @@ export default function AdminWorkshopsPage() {
         }
       }
 
-      // Convert local datetime to ISO string for storage (handles timezone conversion)
-      // datetime-local input provides YYYY-MM-DDTHH:mm in local time
-      // We need to convert it to ISO string for database storage
-      let datetimeISO = formData.datetime;
-      if (formData.datetime) {
-        // Create Date object from local datetime string
-        // This will be interpreted in the user's local timezone
-        const localDate = new Date(formData.datetime);
-        // Convert to ISO string for database (stored as UTC)
-        datetimeISO = localDate.toISOString();
-      }
+      // Convert date and time to ISO string
+      const datetimeISO = new Date(`${formData.date}T${formData.time}`).toISOString();
 
       const payload: any = {
         title: formData.title,
@@ -290,7 +283,8 @@ export default function AdminWorkshopsPage() {
         setFormData({
           title: "",
           description: "",
-          datetime: "",
+          date: "",
+          time: "",
           locationType: "online",
           venueName: "",
           venueAddress: "",
@@ -350,19 +344,17 @@ export default function AdminWorkshopsPage() {
     setEditingId(workshop.id);
     // Switch to create tab when editing
     setActiveTab("create");
+    
+    // Split datetime into date and time
+    const workshopDate = new Date(workshop.datetime);
+    const dateStr = format(workshopDate, "yyyy-MM-dd");
+    const timeStr = format(workshopDate, "HH:mm");
+    
     setFormData({
       title: workshop.title,
       description: workshop.description || "",
-      datetime: (() => {
-        // Convert UTC datetime from database to local datetime for datetime-local input
-        const workshopDate = new Date(workshop.datetime);
-        const year = workshopDate.getFullYear();
-        const month = String(workshopDate.getMonth() + 1).padStart(2, '0');
-        const day = String(workshopDate.getDate()).padStart(2, '0');
-        const hours = String(workshopDate.getHours()).padStart(2, '0');
-        const minutes = String(workshopDate.getMinutes()).padStart(2, '0');
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
-      })(),
+      date: dateStr,
+      time: timeStr,
       locationType: workshop.locationType,
       venueName: workshop.venueName || "",
       venueAddress: (workshop as any).venueAddress || "",
@@ -697,8 +689,8 @@ export default function AdminWorkshopsPage() {
               <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
             </div>
           )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Title *</label>
                 <Input
@@ -707,6 +699,8 @@ export default function AdminWorkshopsPage() {
                     setFormData({ ...formData, title: e.target.value })
                   }
                   required
+                  className="h-11"
+                  placeholder="Enter workshop title"
                 />
               </div>
 
@@ -718,6 +712,8 @@ export default function AdminWorkshopsPage() {
                     setFormData({ ...formData, hostName: e.target.value })
                   }
                   required
+                  className="h-11"
+                  placeholder="Enter host name"
                 />
               </div>
             </div>
@@ -729,8 +725,13 @@ export default function AdminWorkshopsPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
-                rows={3}
+                rows={8}
+                className="resize-none text-base min-h-[200px]"
+                placeholder="Describe the workshop, its objectives, what participants will learn, and any prerequisites..."
               />
+              <p className="text-xs text-muted-foreground">
+                Provide a detailed description to help participants understand what to expect
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -787,22 +788,48 @@ export default function AdminWorkshopsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Date & Time *</label>
-                <Input
-                  type="datetime-local"
-                  value={formData.datetime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, datetime: e.target.value })
-                  }
-                  required
-                  step="60"
-                  min={new Date().toISOString().slice(0, 16)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Select the date and time for the workshop (in your local timezone)
-                </p>
+                <label className="text-sm font-medium">Workshop Date *</label>
+                <div className="relative">
+                  <Input
+                    type="date"
+                    id="workshop-date-input"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    required
+                    className="h-11"
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                  <Calendar 
+                    className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" 
+                    onClick={() => {
+                      const input = document.getElementById('workshop-date-input') as HTMLInputElement;
+                      input?.showPicker?.();
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Workshop Time *</label>
+                <div className="relative">
+                  <Input
+                    type="time"
+                    id="workshop-time-input"
+                    value={formData.time}
+                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                    required
+                    className="h-11"
+                  />
+                  <Clock 
+                    className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" 
+                    onClick={() => {
+                      const input = document.getElementById('workshop-time-input') as HTMLInputElement;
+                      input?.showPicker?.();
+                    }}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -813,7 +840,7 @@ export default function AdminWorkshopsPage() {
                     setFormData({ ...formData, locationType: value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -834,7 +861,11 @@ export default function AdminWorkshopsPage() {
                     setFormData({ ...formData, meetingLink: e.target.value })
                   }
                   placeholder="https://meet.google.com/..."
+                  className="h-11"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Provide the video conference link for participants to join
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -906,7 +937,10 @@ export default function AdminWorkshopsPage() {
                       }
                     }}
                     placeholder="maps.google.com/... or maps.app.goo.gl/..."
-                    className={formData.googleMapsUrl && !isValidGoogleMapsUrl(formData.googleMapsUrl) ? "border-red-500" : ""}
+                    className={cn(
+                      "h-11",
+                      formData.googleMapsUrl && !isValidGoogleMapsUrl(formData.googleMapsUrl) && "border-red-500"
+                    )}
                   />
                   <p className="text-xs text-muted-foreground">
                     Use this if you can&apos;t find the venue above. Accepts URLs from maps.google.com, google.com/maps, goo.gl/maps, or maps.app.goo.gl. Location name will be extracted automatically if available.
@@ -925,6 +959,7 @@ export default function AdminWorkshopsPage() {
                           setFormData({ ...formData, venueName: e.target.value })
                         }
                         placeholder="Venue name will be extracted from URL if available"
+                        className="h-11"
                       />
                     </div>
                   )}
@@ -994,11 +1029,15 @@ export default function AdminWorkshopsPage() {
                 }
                 placeholder="Leave empty for unlimited"
                 min="1"
+                className="h-11"
               />
+              <p className="text-xs text-muted-foreground">
+                Set a maximum number of participants or leave empty for unlimited capacity
+              </p>
             </div>
 
-            <div className="flex gap-4">
-              <Button type="submit" disabled={creating}>
+            <div className="flex gap-4 pt-4 border-t">
+              <Button type="submit" disabled={creating} size="lg" className="h-11 px-8">
                 {creating
                   ? "Saving..."
                   : editingId
@@ -1009,12 +1048,15 @@ export default function AdminWorkshopsPage() {
                 <Button
                   type="button"
                   variant="outline"
+                  size="lg"
+                  className="h-11"
                   onClick={() => {
                     setEditingId(null);
                     setFormData({
                       title: "",
                       description: "",
-                      datetime: "",
+                      date: "",
+                      time: "",
                       locationType: "online",
                       venueName: "",
                       venueAddress: "",
@@ -1029,6 +1071,7 @@ export default function AdminWorkshopsPage() {
                     setSelectedVenue(null);
                     setImageFile(null);
                     setImagePreview(null);
+                    setError(null);
                   }}
                 >
                   Cancel

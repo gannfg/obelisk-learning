@@ -202,7 +202,7 @@ export default function WorkshopsPage() {
         </div>
 
         {/* Mobile: Tabs | Desktop: Side-by-side */}
-        <div className="lg:grid lg:grid-cols-[1fr_320px]" style={{ gap: 0 }}>
+        <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-6">
           {/* Mobile Tabs */}
           <Tabs defaultValue="discover" className="lg:hidden w-full">
             <TabsList className="grid w-full grid-cols-3 mb-3">
@@ -499,9 +499,9 @@ export default function WorkshopsPage() {
           </Tabs>
 
           {/* Desktop: Side-by-side layout */}
-          <div className="hidden lg:grid" style={{ gridTemplateColumns: '1fr 320px', gap: 0 }}>
+          <div className="hidden lg:grid" style={{ gridTemplateColumns: '1fr 280px', gap: '1.5rem' }}>
             {/* Left Panel - Workshop List */}
-            <div className="space-y-4" style={{ marginRight: 0 }}>
+            <div className="space-y-4">
               {/* Filters and View Toggles - Same Line */}
               <div className="flex items-center justify-between gap-3">
                 {/* Location Filters */}
@@ -654,7 +654,7 @@ export default function WorkshopsPage() {
           </div>
 
           {/* Right Panel - Calendar & My Workshops */}
-          <div className="hidden lg:block space-y-4" style={{ marginLeft: 0 }}>
+          <div className="hidden lg:block space-y-4">
             <WorkshopCalendar
               workshops={workshops}
               selectedDate={selectedDate}
