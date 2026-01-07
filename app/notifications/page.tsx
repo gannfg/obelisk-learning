@@ -220,7 +220,7 @@ export default function NotificationsPage() {
       case "message":
         return <MessageSquare className="h-5 w-5 text-purple-500" />;
       case "invitation":
-        return <UserPlus className="h-5 w-5 text-green-500" />;
+        return <UserPlus className="h-5 w-5 text-green-700 dark:text-green-500" />;
       case "submission":
         return <FileText className="h-5 w-5 text-blue-500" />;
       case "assignment":
@@ -230,7 +230,7 @@ export default function NotificationsPage() {
       case "achievement":
         return <Award className="h-5 w-5 text-yellow-500" />;
       case "feedback":
-        return <MessageSquare className="h-5 w-5 text-green-500" />;
+        return <MessageSquare className="h-5 w-5 text-green-700 dark:text-green-500" />;
       case "team":
         return <Users className="h-5 w-5 text-cyan-500" />;
       case "project":

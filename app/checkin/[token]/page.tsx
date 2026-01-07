@@ -19,6 +19,7 @@ export default function CheckInPage() {
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
   const [status, setStatus] = useState<CheckInStatus>("idle");
+  const statusRef = useRef<CheckInStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [workshopTitle, setWorkshopTitle] = useState<string | null>(null);
   const scannerRef = useRef<Html5QrcodeType | null>(null);
@@ -26,6 +27,12 @@ export default function CheckInPage() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scannerStarted, setScannerStarted] = useState(false);
   const initAttemptedRef = useRef(false);
+  const isProcessingRef = useRef(false);
+
+  // Keep statusRef in sync with status
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
 
   const loadWorkshopInfo = async () => {
     try {
@@ -58,7 +65,10 @@ export default function CheckInPage() {
   }, []);
 
   const handleQRScan = useCallback(async (scannedData: string) => {
-    if (status !== "scanning") return;
+    if (statusRef.current !== "scanning" || isProcessingRef.current) return;
+
+    // Prevent multiple simultaneous scans
+    isProcessingRef.current = true;
 
     // Stop scanning immediately
     await stopScanner();
@@ -118,21 +128,44 @@ export default function CheckInPage() {
         body: JSON.stringify({ token: checkInToken }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || "Failed to check in");
+      let data: any;
+      try {
+        const text = await response.text();
+        if (!text) {
+          throw new Error("Empty response from server");
+        }
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error("Error parsing response:", parseError);
+        setError("Invalid response from server. Please try again.");
         setStatus("error");
         return;
       }
 
-      setStatus("success");
+      if (!response.ok) {
+        const errorMessage = data?.error || `Failed to check in (${response.status})`;
+        console.error("Check-in failed:", errorMessage, data);
+        setError(errorMessage);
+        setStatus("error");
+        return;
+      }
+
+      // Verify success response
+      if (data?.success && data?.attendance) {
+        setStatus("success");
+      } else {
+        console.error("Unexpected response format:", data);
+        setError("Check-in completed but confirmation failed. Please verify your attendance.");
+        setStatus("error");
+      }
     } catch (error: any) {
       console.error("Error processing QR scan:", error);
       setError(error.message || "Failed to process check-in");
       setStatus("error");
+    } finally {
+      isProcessingRef.current = false;
     }
-  }, [status, stopScanner]);
+  }, [stopScanner]);
 
   const startScanner = useCallback(async () => {
     if (!user || scannerRef.current || initAttemptedRef.current) return;
@@ -195,7 +228,10 @@ export default function CheckInPage() {
           disableFlip: false,
         },
         (decodedText: string) => {
-          handleQRScan(decodedText);
+          // Only process if not already processing and scanner is still active
+          if (!isProcessingRef.current && statusRef.current === "scanning") {
+            handleQRScan(decodedText);
+          }
         },
         () => {
           // Ignore scanning errors (they're frequent and normal)
@@ -325,8 +361,8 @@ export default function CheckInPage() {
                 </div>
                 {error && (
                   <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-2">
-                    <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-500">{error}</p>
+                    <AlertCircle className="h-5 w-5 text-red-700 dark:text-red-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700 dark:text-red-500">{error}</p>
                   </div>
                 )}
               </div>
@@ -378,7 +414,7 @@ export default function CheckInPage() {
             {status === "success" && (
               <div className="text-center py-12">
                 <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle2 className="h-12 w-12 text-green-500" />
+                  <CheckCircle2 className="h-12 w-12 text-green-700 dark:text-green-500" />
                 </div>
                 <h2 className="text-2xl font-bold mb-2">Check-In Successful!</h2>
                 <p className="text-muted-foreground mb-6">
@@ -398,7 +434,7 @@ export default function CheckInPage() {
             {status === "error" && (
               <div className="text-center py-12">
                 <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <XCircle className="h-12 w-12 text-red-500" />
+                  <XCircle className="h-12 w-12 text-red-700 dark:text-red-500" />
                 </div>
                 <h2 className="text-2xl font-bold mb-2">
                   {isAdmin ? "Check-In Not Available" : "Check-In Failed"}
@@ -414,6 +450,7 @@ export default function CheckInPage() {
                       setCameraError(null);
                       setScannerStarted(false);
                       initAttemptedRef.current = false;
+                      isProcessingRef.current = false;
                       if (scannerRef.current) {
                         scannerRef.current.stop().catch(() => {});
                         scannerRef.current = null;
