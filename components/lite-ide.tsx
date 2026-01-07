@@ -351,9 +351,9 @@ Please provide helpful, step-by-step guidance. Speak clearly and concisely. Pref
                     >
                       <div className="flex items-center gap-2">
                         {result.passed ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          <CheckCircle2 className="h-4 w-4 text-green-700 dark:text-green-500" />
                         ) : (
-                          <XCircle className="h-4 w-4 text-red-500" />
+                          <XCircle className="h-4 w-4 text-red-700 dark:text-red-500" />
                         )}
                         <span className="font-medium text-sm">{result.name}</span>
                       </div>

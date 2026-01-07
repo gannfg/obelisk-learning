@@ -1609,7 +1609,7 @@ export default function AdminCoursesPage() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <label htmlFor="module-title" className="text-sm font-medium">
-                Module Title <span className="text-red-500">*</span>
+                Module Title <span className="text-red-700 dark:text-red-500">*</span>
               </label>
               <Input
                 id="module-title"
@@ -1667,7 +1667,7 @@ export default function AdminCoursesPage() {
           <div className="space-y-6 py-4">
             <div className="space-y-2">
               <label htmlFor="lesson-title" className="text-sm font-medium">
-                Lesson Title <span className="text-red-500">*</span>
+                Lesson Title <span className="text-red-700 dark:text-red-500">*</span>
               </label>
               <Input
                 id="lesson-title"
@@ -1680,7 +1680,7 @@ export default function AdminCoursesPage() {
 
             <div className="space-y-2">
               <label htmlFor="lesson-type" className="text-sm font-medium">
-                Lesson Type <span className="text-red-500">*</span>
+                Lesson Type <span className="text-red-700 dark:text-red-500">*</span>
               </label>
               <Select value={lessonType} onValueChange={(value) => setLessonType(value as LessonType)}>
                 <SelectTrigger>
@@ -1740,7 +1740,7 @@ export default function AdminCoursesPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="video-url" className="text-sm font-medium">
-                    Video URL <span className="text-red-500">*</span>
+                    Video URL <span className="text-red-700 dark:text-red-500">*</span>
                   </label>
                   <Input
                     id="video-url"

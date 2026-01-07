@@ -177,7 +177,7 @@ export function ClassroomAssignments({
                         </div>
                       )}
                       {isPastDue && (
-                        <span className="text-red-600">Past Due</span>
+                        <span className="text-red-700 dark:text-red-600">Past Due</span>
                       )}
                     </div>
                   </div>
@@ -227,7 +227,7 @@ export function ClassroomAssignments({
                             <span
                               className={`text-xs px-2 py-1 rounded ${
                                 submission.status === "approved"
-                                  ? "bg-green-500/10 text-green-600"
+                                  ? "bg-green-500/10 text-green-700 dark:text-green-600"
                                   : submission.status === "changes_requested"
                                   ? "bg-orange-500/10 text-orange-600"
                                   : "bg-blue-500/10 text-blue-600"
@@ -467,7 +467,7 @@ function SubmissionCard({
             Submitted: {format(submission.submittedAt, "MMM d, yyyy 'at' h:mm a")}
           </p>
           {submission.isLate && (
-            <span className="text-xs text-red-600">Late Submission</span>
+            <span className="text-xs text-red-700 dark:text-red-600">Late Submission</span>
           )}
         </div>
         {submission.grade !== null && (

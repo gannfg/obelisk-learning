@@ -1227,7 +1227,7 @@ export default function AdminClassesPage() {
                                     {module.locked ? (
                                       <Lock className="h-4 w-4 text-muted-foreground" />
                                     ) : (
-                                      <Unlock className="h-4 w-4 text-green-600" />
+                                      <Unlock className="h-4 w-4 text-green-700 dark:text-green-600" />
                                     )}
                                   </div>
                                   {module.description && (
@@ -1506,7 +1506,7 @@ export default function AdminClassesPage() {
                               <span
                                 className={`text-xs px-2 py-1 rounded ${
                                   enrollment.status === "active"
-                                    ? "bg-green-500/10 text-green-600"
+                                    ? "bg-green-500/10 text-green-700 dark:text-green-600"
                                     : "bg-muted text-muted-foreground"
                                 }`}
                               >

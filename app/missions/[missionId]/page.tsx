@@ -876,7 +876,7 @@ export default function MissionPage() {
                               onClick={() => user && handleChecklistToggle(index)}
                             >
                               {item.completed ? (
-                                <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+                                <CheckCircle2 className="h-5 w-5 text-green-700 dark:text-green-600 flex-shrink-0" />
                               ) : (
                                 <Circle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                               )}
@@ -921,7 +921,7 @@ export default function MissionPage() {
                               <div
                                 className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-[11px] font-semibold ${
                                   isCompleted
-                                    ? "border-green-500 bg-green-500/10 text-green-600"
+                                    ? "border-green-500 bg-green-500/10 text-green-700 dark:text-green-600"
                                     : isCurrent
                                     ? "border-primary bg-primary/10 text-primary"
                                     : "border-muted text-muted-foreground"
@@ -1100,9 +1100,9 @@ export default function MissionPage() {
                                 <span
                                   className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
                                     sub.status === "approved"
-                                      ? "bg-green-500/10 text-green-600 border border-green-500/40"
+                                      ? "bg-green-500/10 text-green-700 dark:text-green-600 border border-green-500/40"
                                       : sub.status === "changes_requested"
-                                      ? "bg-red-500/10 text-red-600 border border-red-500/40"
+                                      ? "bg-red-500/10 text-red-700 dark:text-red-600 border border-red-500/40"
                                       : sub.status === "under_review"
                                       ? "bg-amber-500/10 text-amber-600 border border-amber-500/40"
                                       : "bg-muted text-muted-foreground border border-border"

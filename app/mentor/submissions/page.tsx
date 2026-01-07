@@ -260,7 +260,7 @@ export default function MentorSubmissionsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{approvedCount}</div>
+            <div className="text-2xl font-bold text-green-700 dark:text-green-600">{approvedCount}</div>
           </CardContent>
         </Card>
       </div>

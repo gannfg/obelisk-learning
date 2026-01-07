@@ -258,7 +258,7 @@ export function NotificationsDropdown({
       case "message":
         return <MessageSquare className="h-4 w-4 text-purple-500" />;
       case "invitation":
-        return <UserPlus className="h-4 w-4 text-green-500" />;
+        return <UserPlus className="h-4 w-4 text-green-700 dark:text-green-500" />;
       case "submission":
         return <FileText className="h-4 w-4 text-blue-500" />;
       case "assignment":
@@ -268,7 +268,7 @@ export function NotificationsDropdown({
       case "achievement":
         return <Award className="h-4 w-4 text-yellow-500" />;
       case "feedback":
-        return <MessageSquare className="h-4 w-4 text-green-500" />;
+        return <MessageSquare className="h-4 w-4 text-green-700 dark:text-green-500" />;
       case "team":
         return <Users className="h-4 w-4 text-cyan-500" />;
       case "project":

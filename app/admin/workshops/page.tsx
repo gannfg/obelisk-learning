@@ -1117,12 +1117,12 @@ export default function AdminWorkshopsPage() {
                             <div className="flex items-center gap-3 mb-2">
                               <h3 className="font-semibold text-lg">{workshop.title}</h3>
                               {isExpired && (
-                                <span className="px-2 py-1 bg-red-500/10 text-red-600 text-xs font-medium rounded">
+                                <span className="px-2 py-1 bg-red-500/10 text-red-700 dark:text-red-600 text-xs font-medium rounded">
                                   Expired
                                 </span>
                               )}
                               {!isExpired && (
-                                <span className="px-2 py-1 bg-green-500/10 text-green-600 text-xs font-medium rounded">
+                                <span className="px-2 py-1 bg-green-500/10 text-green-700 dark:text-green-600 text-xs font-medium rounded">
                                   Active
                                 </span>
                               )}
@@ -1303,7 +1303,7 @@ export default function AdminWorkshopsPage() {
                                       className="border rounded-lg p-3 flex items-center gap-3"
                                     >
                                       <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                        <CheckCircle2 className="h-5 w-5 text-green-700 dark:text-green-600" />
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <p className="font-medium text-sm truncate">
