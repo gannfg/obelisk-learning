@@ -185,12 +185,12 @@ export default function WorkshopQRPage() {
                   QR Code expires: {format(new Date(workshop.qrExpiresAt), "MMM d, yyyy 'at' h:mm a")}
                 </span>
                 {isExpired && (
-                  <span className="text-xs bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200 px-2 py-1 rounded">
+                  <span className="text-xs bg-red-100 dark:bg-red-900/20 text-red-900 dark:text-red-200 px-2 py-1 rounded">
                     Expired
                   </span>
                 )}
                 {!isExpired && isExpiringSoon && (
-                  <span className="text-xs bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded">
+                  <span className="text-xs bg-yellow-100 dark:bg-yellow-900/20 text-yellow-900 dark:text-yellow-200 px-2 py-1 rounded">
                     Expiring Soon
                   </span>
                 )}
@@ -281,14 +281,14 @@ export default function WorkshopQRPage() {
             {/* Status Warning */}
             {isExpired && (
               <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                <p className="text-sm text-red-800 dark:text-red-200">
+                <p className="text-sm text-red-900 dark:text-red-200">
                   ⚠️ This QR code has expired and can no longer be used for check-in.
                 </p>
               </div>
             )}
             {!isExpired && isExpiringSoon && (
               <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <p className="text-sm text-yellow-900 dark:text-yellow-200">
                   ⚠️ This QR code will expire soon. Make sure to use it before the expiration time.
                 </p>
               </div>

@@ -345,7 +345,7 @@ export function ClassroomModules({
                       </h3>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         {isModuleCompleted(module.id) && (
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          <CheckCircle2 className="h-4 w-4 text-green-700 dark:text-green-500" />
                         )}
                         {!isInstructor && isLocked && !isModuleCompleted(module.id) ? (
                           <>
@@ -353,7 +353,7 @@ export function ClassroomModules({
                             <span>Locked</span>
                           </>
                         ) : isModuleCompleted(module.id) ? (
-                          <span className="text-green-500">Completed</span>
+                          <span className="text-green-700 dark:text-green-500">Completed</span>
                         ) : (
                           <span>In progress</span>
                         )}

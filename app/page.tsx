@@ -594,7 +594,7 @@ export default function Home() {
                           : "bg-background border-border"
                       }`}>
                         {stepCompletion.profile ? (
-                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-700 dark:text-green-500" />
                         ) : (
                           <UserPlus className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                         )}
@@ -619,7 +619,7 @@ export default function Home() {
                           : "bg-background border-border"
                       }`}>
                         {stepCompletion.learning ? (
-                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-700 dark:text-green-500" />
                         ) : (
                           <User className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                         )}
@@ -644,7 +644,7 @@ export default function Home() {
                           : "bg-background border-border"
                       }`}>
                         {stepCompletion.projects ? (
-                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-700 dark:text-green-500" />
                         ) : (
                           <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                         )}
@@ -669,7 +669,7 @@ export default function Home() {
                           : "bg-background border-border"
                       }`}>
                         {stepCompletion.rewards ? (
-                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-700 dark:text-green-500" />
                         ) : (
                           <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                         )}

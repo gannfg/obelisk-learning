@@ -203,11 +203,11 @@ export function ClassroomAttendance({
                     >
                       <div className="flex items-center gap-3">
                         {attendance ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
+                          <CheckCircle2 className="h-5 w-5 text-green-700 dark:text-green-600" />
                         ) : isFutureWeek ? (
                           <Clock className="h-5 w-5 text-muted-foreground" />
                         ) : (
-                          <XCircle className="h-5 w-5 text-red-600" />
+                          <XCircle className="h-5 w-5 text-red-700 dark:text-red-600" />
                         )}
                         <div>
                           <p className="font-medium">Week {week}</p>
@@ -218,7 +218,7 @@ export function ClassroomAttendance({
                           ) : isCurrentWeek ? (
                             <p className="text-sm text-muted-foreground">Not checked in yet</p>
                           ) : isPastWeek ? (
-                            <p className="text-sm text-red-600">Absent</p>
+                            <p className="text-sm text-red-700 dark:text-red-600">Absent</p>
                           ) : (
                             <p className="text-sm text-muted-foreground">Upcoming</p>
                           )}

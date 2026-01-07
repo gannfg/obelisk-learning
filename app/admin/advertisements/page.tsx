@@ -233,7 +233,7 @@ export default function AdminAdvertisementsPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">
-                Link (href) <span className="text-red-500">*</span>
+                Link (href) <span className="text-red-700 dark:text-red-500">*</span>
               </label>
               <Input
                 value={href}
@@ -248,7 +248,7 @@ export default function AdminAdvertisementsPage() {
 
             <div>
               <label className="block text-sm font-medium mb-2">
-                Advertisement Image <span className="text-red-500">*</span>
+                Advertisement Image <span className="text-red-700 dark:text-red-500">*</span>
               </label>
               <Input
                 type="file"

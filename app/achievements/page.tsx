@@ -265,7 +265,7 @@ export default function AchievementsPage() {
                     <p className="text-sm text-muted-foreground">Courses Completed</p>
                     <p className="text-2xl font-bold">{stats.coursesCompleted}</p>
                   </div>
-                  <BookOpen className="h-8 w-8 text-green-500" />
+                  <BookOpen className="h-8 w-8 text-green-700 dark:text-green-500" />
                 </div>
               </CardContent>
             </Card>
@@ -415,7 +415,7 @@ export default function AchievementsPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <BookOpen className="h-5 w-5 text-green-500" />
+                      <BookOpen className="h-5 w-5 text-green-700 dark:text-green-500" />
                       Course Badges ({badgeCategories.course.length})
                     </CardTitle>
                   </CardHeader>

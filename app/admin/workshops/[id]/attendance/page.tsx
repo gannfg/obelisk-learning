@@ -269,7 +269,7 @@ export default function WorkshopAttendancePage() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        <CheckCircle2 className="h-5 w-5 text-green-700 dark:text-green-600" />
                       </div>
                       <div>
                         <p className="font-medium">
