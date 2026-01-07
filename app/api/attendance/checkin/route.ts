@@ -44,22 +44,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify token hasn't expired
-    if (workshop.qr_expires_at && new Date(workshop.qr_expires_at) < new Date()) {
-      return NextResponse.json(
-        { error: "Check-in window has closed" },
-        { status: 400 }
-      );
-    }
-
-    // Check if workshop has started (allow check-in 30 minutes before start)
-    const workshopStart = new Date(workshop.datetime);
-    const checkInStart = new Date(workshopStart.getTime() - 30 * 60 * 1000);
+    // Allow check-in only on the workshop day (UTC)
+    const workshopDate = new Date(workshop.datetime);
     const now = new Date();
 
-    if (now < checkInStart) {
+    const startOfDay = new Date(workshopDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(workshopDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    if (now < startOfDay || now > endOfDay) {
       return NextResponse.json(
-        { error: "Check-in opens 30 minutes before the workshop starts" },
+        { error: "Check-in is only available on the day of the workshop" },
         { status: 400 }
       );
     }

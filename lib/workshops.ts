@@ -336,7 +336,7 @@ export async function checkInWithQR(
   try {
     const supabase = ensureSupabaseClient(supabaseClient);
 
-    // Verify QR token matches workshop and hasn't expired
+    // Verify QR token matches workshop
     const { data: workshop, error: workshopError } = await supabase
       .from("workshops")
       .select("id, qr_token, qr_expires_at, datetime")
@@ -348,9 +348,18 @@ export async function checkInWithQR(
       throw new Error("Invalid QR code");
     }
 
-    // Check if QR expired
-    if (workshop.qr_expires_at && new Date(workshop.qr_expires_at) < new Date()) {
-      throw new Error("QR code has expired");
+    // Enforce check-in only on the workshop day (UTC)
+    const workshopDate = new Date(workshop.datetime);
+    const now = new Date();
+
+    const startOfDay = new Date(workshopDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(workshopDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    if (now < startOfDay || now > endOfDay) {
+      throw new Error("Check-in is only available on the day of the workshop");
     }
 
     // Check if already attended
