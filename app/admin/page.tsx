@@ -121,6 +121,23 @@ export default function AdminPage() {
         <Card className="flex flex-col">
           <CardHeader className="flex-1">
             <CardTitle className="flex items-center gap-2">
+              <UsersIcon className="h-5 w-5" />
+              Mentors
+            </CardTitle>
+            <CardDescription>
+              Assign mentor roles to users. Mentors can create and manage their own classes.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="mt-auto">
+            <Button asChild className="w-full">
+              <Link href="/admin/mentors">Manage Mentors</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="flex flex-col">
+          <CardHeader className="flex-1">
+            <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
               Workshops
             </CardTitle>

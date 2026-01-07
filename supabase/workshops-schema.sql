@@ -132,7 +132,7 @@ BEGIN
   ON CONFLICT (workshop_id, user_id) DO NOTHING;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS create_proof_of_attendance ON workshop_attendance;
 CREATE TRIGGER create_proof_of_attendance
@@ -160,6 +160,8 @@ DROP POLICY IF EXISTS "Users can check in via QR" ON workshop_attendance;
 DROP POLICY IF EXISTS "Admins can manage attendance" ON workshop_attendance;
 DROP POLICY IF EXISTS "Users can view own POA" ON proof_of_attendance;
 DROP POLICY IF EXISTS "Public can view POA" ON proof_of_attendance;
+DROP POLICY IF EXISTS "Admins can insert POA" ON proof_of_attendance;
+DROP POLICY IF EXISTS "Trigger can insert POA" ON proof_of_attendance;
 
 -- Workshops: Public can view, admins can manage
 CREATE POLICY "Public can view workshops" ON workshops
@@ -213,6 +215,16 @@ CREATE POLICY "Users can view own POA" ON proof_of_attendance
 CREATE POLICY "Public can view POA" ON proof_of_attendance
   FOR SELECT USING (true);
 
+-- POA: Allow admins to insert (for manual check-ins)
+CREATE POLICY "Admins can insert POA" ON proof_of_attendance
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM users
+      WHERE users.id = auth.uid()
+      AND users.is_admin = TRUE
+    )
+  );
+
 -- ============================================
 -- GRANTS
 -- ============================================
@@ -222,6 +234,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON workshops TO authenticated;
 GRANT SELECT, INSERT ON workshop_registrations TO authenticated;
 GRANT SELECT, INSERT ON workshop_attendance TO authenticated;
 GRANT SELECT ON proof_of_attendance TO anon, authenticated;
+GRANT INSERT ON proof_of_attendance TO authenticated;
 
 -- ============================================
 -- HELPER FUNCTIONS

@@ -792,15 +792,15 @@ export default function AdminWorkshopsPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Workshop Date *</label>
                 <div className="relative">
-                  <Input
+                <Input
                     type="date"
                     id="workshop-date-input"
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    required
+                  required
                     className="h-11"
                     min={new Date().toISOString().split('T')[0]}
-                  />
+                />
                   <Calendar 
                     className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" 
                     onClick={() => {
