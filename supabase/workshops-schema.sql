@@ -109,17 +109,17 @@ BEGIN
   IF NEW.qr_token IS NULL THEN
     NEW.qr_token := encode(gen_random_bytes(32), 'hex');
   END IF;
-  -- Set QR expiration to 2 hours after workshop end time
-  IF NEW.qr_expires_at IS NULL THEN
-    NEW.qr_expires_at := NEW.datetime + INTERVAL '2 hours';
-  END IF;
+
+  -- Always align QR expiration with the workshop day (00:00–23:59:59 UTC)
+  NEW.qr_expires_at := date_trunc('day', NEW.datetime) + INTERVAL '1 day' - INTERVAL '1 millisecond';
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS generate_workshop_qr_token ON workshops;
 CREATE TRIGGER generate_workshop_qr_token
-  BEFORE INSERT ON workshops
+  BEFORE INSERT OR UPDATE ON workshops
   FOR EACH ROW
   EXECUTE FUNCTION generate_workshop_qr_token();
 
