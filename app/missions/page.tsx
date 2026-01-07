@@ -312,28 +312,28 @@ export default function MissionBoardPage() {
             {/* Navigation Arrows */}
             {featuredMissions.length >= 2 && (
               <>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    goToPrevious();
-                  }}
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  goToPrevious();
+                }}
                   className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-background/80 backdrop-blur-sm border border-border hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity"
                   aria-label="Previous slide"
-                >
+              >
                   <ChevronLeft className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    goToNext();
-                  }}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  goToNext();
+                }}
                   className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-background/80 backdrop-blur-sm border border-border hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity"
                   aria-label="Next slide"
-                >
+              >
                   <ChevronRight className="h-5 w-5" />
-                </button>
+              </button>
               </>
             )}
 
@@ -368,26 +368,26 @@ export default function MissionBoardPage() {
                 </div>
                 
             {/* Dot Indicators */}
-            {featuredMissions.length > 1 && (
+                  {featuredMissions.length > 1 && (
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
-                {featuredMissions.slice(0, 4).map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setCurrentFeaturedIndex(i);
-                    }}
+                      {featuredMissions.slice(0, 4).map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setCurrentFeaturedIndex(i);
+                          }}
                     className={`w-2 h-2 rounded-full transition-all duration-300 ${
                       i === currentFeaturedIndex
                         ? "bg-primary w-6"
                         : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
-                    }`}
+                          }`}
                     aria-label={`Go to slide ${i + 1}`}
-                  />
-                ))}
-              </div>
-            )}
+                        />
+                      ))}
+                    </div>
+                  )}
               </div>
 
               {/* Right Side - Mission Image Box (Hidden on mobile, shown on desktop) */}

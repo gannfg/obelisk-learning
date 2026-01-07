@@ -199,7 +199,7 @@ export default function WorkshopDetailPage() {
               <ArrowLeft className="h-4 w-4 mr-2 opacity-70 group-hover:opacity-100 transition-opacity" />
               <span className="opacity-70 group-hover:opacity-100 transition-opacity">Back to Workshops</span>
             </Link>
-          </Button>
+            </Button>
         </div>
       </div>
     );
@@ -238,7 +238,7 @@ export default function WorkshopDetailPage() {
                 <Rocket className="h-16 w-16 text-white/30" />
               </div>
             )}
-            
+
             {/* Host Information - Desktop only */}
             <div className="mt-6 space-y-3 p-5 rounded-lg border border-border/50 bg-card/50">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Hosted By</h3>
@@ -376,7 +376,7 @@ export default function WorkshopDetailPage() {
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <MapPin className="h-4 w-4" />
                   <span className="text-sm font-medium">Location</span>
-                </div>
+            </div>
                 <div>
                   {workshop.locationType === "online" ? (
                     <>
@@ -452,7 +452,7 @@ export default function WorkshopDetailPage() {
               <div className="p-5 rounded-lg border border-border/50 bg-muted/30">
                 <p className="text-sm text-muted-foreground text-center">
                   This workshop has ended. Check out our upcoming workshops!
-                </p>
+                    </p>
               </div>
             )}
 
@@ -516,25 +516,25 @@ export default function WorkshopDetailPage() {
                 <p className="text-base text-muted-foreground whitespace-pre-wrap leading-relaxed">
                   {workshop.description}
                 </p>
-              </div>
-            )}
+                  </div>
+                )}
 
             {/* Check-in Action - Desktop only */}
             {isUpcoming && isRegistered && !hasAttended && (
-              <Button
-                variant="outline"
-                onClick={handleCheckIn}
-                disabled={!user || !workshop?.qrToken}
+                  <Button
+                    variant="outline"
+                    onClick={handleCheckIn}
+                    disabled={!user || !workshop?.qrToken}
                 className="w-full hidden md:flex h-12 text-base font-semibold group transition-all border-border/50"
-                size="lg"
-              >
+                    size="lg"
+                  >
                 <QrCode className="h-4 w-4 mr-2 opacity-70 group-hover:opacity-100 transition-opacity" />
                 <span className="opacity-70 group-hover:opacity-100 transition-opacity">Check In with QR Code</span>
-              </Button>
-            )}
+                  </Button>
+                )}
 
             {/* Attendance Confirmation */}
-            {hasAttended && (
+                {hasAttended && (
               <div className="flex items-center gap-3 p-5 bg-green-500/5 rounded-lg border border-green-500/20">
                 <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
                 <span className="text-sm font-medium text-green-600 dark:text-green-400">
@@ -562,7 +562,7 @@ export default function WorkshopDetailPage() {
                 <Flag className="h-4 w-4 mr-2 opacity-70 group-hover:opacity-100 transition-opacity" />
                 <span className="opacity-70 group-hover:opacity-100 transition-opacity">Report Event</span>
               </Button>
-            </div>
+              </div>
           </div>
         </div>
 
@@ -579,15 +579,15 @@ export default function WorkshopDetailPage() {
             
             {/* Button container */}
             <div className="relative px-4 pb-2 pointer-events-auto">
-              <Button
-                onClick={handleCheckIn}
-                disabled={!user || !workshop?.qrToken}
+            <Button
+              onClick={handleCheckIn}
+              disabled={!user || !workshop?.qrToken}
                 className="w-full h-14 text-base font-semibold rounded-lg shadow-md group transition-all disabled:opacity-50 disabled:cursor-not-allowed border-border/50 bg-background/95 backdrop-blur-sm text-black dark:text-white"
-                size="lg"
-              >
-                <QrCode className="h-5 w-5 mr-2" />
-                Check In with QR Code
-              </Button>
+              size="lg"
+            >
+              <QrCode className="h-5 w-5 mr-2" />
+              Check In with QR Code
+            </Button>
             </div>
           </div>
         )}

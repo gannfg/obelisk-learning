@@ -18,8 +18,10 @@ import {
   BookOpen,
   Trophy,
   FolderKanban,
+  GraduationCap,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
+import { useMentor } from "@/lib/hooks/use-mentor";
 import { getUserProfile } from "@/lib/profile";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -29,6 +31,7 @@ export function UserMenu() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const supabase = createClient();
+  const { isMentor, loading: mentorLoading } = useMentor();
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
   // Fetch synced profile to get the latest profile picture
@@ -146,6 +149,15 @@ export function UserMenu() {
             Project
           </Link>
         </DropdownMenuItem>
+        {/* Mentor option - only visible to mentors */}
+        {isMentor && (
+          <DropdownMenuItem asChild>
+            <Link href="/mentor" className="flex items-center w-full">
+              <GraduationCap className="mr-2 h-4 w-4" />
+              Mentor
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/mentor-chat" className="flex items-center w-full">
