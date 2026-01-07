@@ -27,6 +27,30 @@ import type {
   LearningMaterial,
 } from "@/types/classes";
 
+// Re-export types for convenience
+export type {
+  Class,
+  ClassModule,
+  LiveSession,
+  ClassEnrollment,
+  SessionAttendance,
+  ClassAssignment,
+  AssignmentSubmission,
+  ClassAnnouncement,
+  ClassMentor,
+  ClassXPConfig,
+  CreateClassInput,
+  UpdateClassInput,
+  CreateModuleInput,
+  CreateSessionInput,
+  CreateAssignmentInput,
+  CreateAnnouncementInput,
+  ClassStats,
+  SubmissionStatus,
+  XPActionType,
+  LearningMaterial,
+};
+
 // Helper function to ensure supabase client is not null
 function ensureSupabaseClient(
   supabaseClient?: SupabaseClient<any>
@@ -118,6 +142,7 @@ export async function getAllClasses(
     status?: string;
     mentorId?: string;
     publishedOnly?: boolean;
+    createdBy?: string;
   },
   supabaseClient?: SupabaseClient<any>
 ): Promise<Class[]> {
@@ -130,6 +155,9 @@ export async function getAllClasses(
     }
     if (options?.mentorId) {
       query = query.eq("instructor_id", options.mentorId);
+    }
+    if (options?.createdBy) {
+      query = query.eq("created_by", options.createdBy);
     }
     if (options?.publishedOnly) {
       query = query.eq("published", true);

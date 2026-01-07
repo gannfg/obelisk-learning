@@ -91,7 +91,7 @@ export function UserProfileModal({
               )}
             </div>
 
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 flex flex-col">
               <DialogTitle className="flex items-center gap-2 flex-wrap mb-2">
                 <span>{displayName}</span>
                 {isAIMentor && (
@@ -104,8 +104,9 @@ export function UserProfileModal({
                   </Badge>
                 )}
               </DialogTitle>
+              {/* Username positioned to align with bottom of profile picture (where badge would be) */}
               {user.username && (
-                <p className="text-sm text-muted-foreground mb-2">@{user.username}</p>
+                <p className="text-xs text-muted-foreground mt-auto">@{user.username}</p>
               )}
             </div>
           </div>

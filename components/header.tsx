@@ -25,6 +25,7 @@ import {
   Trophy,
   FolderKanban,
   MessageSquare,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -32,6 +33,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getUserProfile } from "@/lib/profile";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAdmin } from "@/lib/hooks/use-admin";
+import { useMentor } from "@/lib/hooks/use-mentor";
 import { NotificationsDropdown } from "@/components/notifications-dropdown";
 import {
   Dialog,
@@ -46,6 +48,7 @@ import {
   const pathname = usePathname();
   const supabase = createClient();
   const { isAdmin } = useAdmin();
+  const { isMentor, loading: mentorLoading } = useMentor();
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -307,6 +310,15 @@ import {
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
+                      {/* Mentor option - only visible to mentors */}
+                      {isMentor && (
+                        <DropdownMenuItem asChild>
+                          <Link href="/mentor" className="flex items-center w-full">
+                            <GraduationCap className="mr-2 h-4 w-4" />
+                            Mentor
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem asChild>
                         <Link href="/social" className="flex items-center w-full">
                           <UsersIcon className="mr-2 h-4 w-4" />

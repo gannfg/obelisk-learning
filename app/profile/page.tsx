@@ -1125,12 +1125,12 @@ export default function ProfilePage() {
           <Card className="mb-8 overflow-hidden">
             <CardContent className="p-0">
               {/* Banner with gradient background */}
-              <div className="relative w-full h-40 bg-gradient-to-r from-transparent to-purple-800/75 rounded-t-lg">
+              <div className="relative w-full h-32 sm:h-40 bg-gradient-to-r from-transparent to-purple-800/75 rounded-t-lg">
                 {/* Header Section with Avatar, Name, Handle, Share Button */}
-                <div className="absolute inset-0 flex items-start gap-6 pt-6 px-6">
+                <div className="absolute inset-0 flex items-start gap-3 sm:gap-6 pt-4 sm:pt-6 px-4 sm:px-6">
                 <div className="flex-shrink-0">
                   {displayProfile.image_url ? (
-                    <div className="relative w-24 h-24 rounded-full overflow-hidden border border-border">
+                    <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden border border-border">
                       <Image
                         src={displayProfile.image_url}
                         alt={fullName}
@@ -1140,23 +1140,23 @@ export default function ProfilePage() {
                       />
                     </div>
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-muted border border-border flex items-center justify-center">
-                      <span className="text-3xl font-medium text-muted-foreground">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-muted border border-border flex items-center justify-center">
+                      <span className="text-xl sm:text-2xl md:text-3xl font-medium text-muted-foreground">
                         {fullName.charAt(0).toUpperCase()}
                       </span>
                     </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-3xl font-semibold mb-2">{fullName}</h1>
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold mb-1 sm:mb-2">{fullName}</h1>
                   {displayProfile.username && (
                     <div>
-                      <p className="text-base text-muted-foreground">@{displayProfile.username}</p>
+                      <p className="text-sm sm:text-base text-muted-foreground">@{displayProfile.username}</p>
                       {userTeams.length > 0 && (
-                        <div className="flex items-center gap-2 mt-2">
+                        <div className="flex items-center gap-2 mt-1.5 sm:mt-2">
                           {userTeams.slice(0, 5).map((team) => (
                             team.avatar ? (
-                              <div key={team.id} className="h-6 w-6 rounded-full overflow-hidden border border-border flex-shrink-0">
+                              <div key={team.id} className="h-5 w-5 sm:h-6 sm:w-6 rounded-full overflow-hidden border border-border flex-shrink-0">
                                 <Image
                                   src={team.avatar}
                                   alt={team.name}
@@ -1176,10 +1176,10 @@ export default function ProfilePage() {
                   variant="default"
                   size="sm"
                   onClick={handleShare}
-                  className="flex-shrink-0 bg-white text-black hover:bg-white/90"
+                  className="flex-shrink-0 bg-white text-black hover:bg-white/90 h-9 w-9 p-0 sm:h-auto sm:w-auto sm:px-3 sm:p-2 flex items-center justify-center"
                 >
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
+                  <Share2 className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Share</span>
                 </Button>
                 </div>
               </div>
