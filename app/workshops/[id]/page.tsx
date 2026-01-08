@@ -582,7 +582,7 @@ export default function WorkshopDetailPage() {
             <Button
               onClick={handleCheckIn}
               disabled={!user || !workshop?.qrToken}
-                className="w-full h-14 text-base font-semibold rounded-lg shadow-md group transition-all disabled:opacity-50 disabled:cursor-not-allowed border-border/50 bg-background/95 backdrop-blur-sm text-black dark:text-white"
+                className="w-full h-14 text-base font-semibold rounded-lg shadow-lg group transition-all disabled:opacity-50 disabled:cursor-not-allowed border-2 border-primary/20 bg-primary text-primary-foreground hover:bg-primary/90 backdrop-blur-sm"
               size="lg"
             >
               <QrCode className="h-5 w-5 mr-2" />
