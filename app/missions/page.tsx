@@ -435,21 +435,27 @@ export default function MissionBoardPage() {
                   willChange: 'left, width',
                 }}
               />
-              {["all", "beginner", "intermediate", "advanced"].map((level) => (
-                <Button
-                  key={level}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setFilter(level as typeof filter)}
-                  className={`text-xs h-8 sm:h-7 px-3 sm:px-2.5 relative z-10 transition-colors duration-300 border-border/50 ${
-                    filter === level 
-                      ? "bg-transparent border-transparent text-background" 
-                      : ""
-                  }`}
-                >
-                  {level.charAt(0).toUpperCase() + level.slice(1)}
-                </Button>
-              ))}
+              {["all", "beginner", "intermediate", "advanced"].map((level) => {
+                const isActive = filter === level;
+                const indicatorReady = difficultyIndicatorStyle.width > 0;
+                return (
+                  <Button
+                    key={level}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFilter(level as typeof filter)}
+                    className={`text-xs h-8 sm:h-7 px-3 sm:px-2.5 relative z-10 transition-colors duration-300 ${
+                      isActive 
+                        ? indicatorReady
+                          ? "bg-transparent border-transparent text-background hover:bg-transparent hover:border-transparent hover:shadow-none hover:scale-100 hover:translate-y-0"
+                          : "bg-foreground text-background border-transparent hover:bg-foreground hover:border-transparent hover:shadow-none hover:scale-100 hover:translate-y-0"
+                        : "border-border/50 text-foreground"
+                    }`}
+                  >
+                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  </Button>
+                );
+              })}
             </div>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -473,10 +479,12 @@ export default function MissionBoardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setJoinFilter("all")}
-                className={`text-xs h-8 sm:h-7 px-3 sm:px-2.5 relative z-10 transition-colors duration-300 border-border/50 ${
+                className={`text-xs h-8 sm:h-7 px-3 sm:px-2.5 relative z-10 transition-colors duration-300 ${
                   joinFilter === "all" 
-                    ? "bg-transparent border-transparent text-background" 
-                    : ""
+                    ? joinIndicatorStyle.width > 0
+                      ? "bg-transparent border-transparent text-background hover:bg-transparent hover:border-transparent hover:shadow-none hover:scale-100 hover:translate-y-0"
+                      : "bg-foreground text-background border-transparent hover:bg-foreground hover:border-transparent hover:shadow-none hover:scale-100 hover:translate-y-0"
+                    : "border-border/50 text-foreground"
                 }`}
               >
                 All
@@ -485,10 +493,12 @@ export default function MissionBoardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setJoinFilter("joined")}
-                className={`text-xs h-8 sm:h-7 px-3 sm:px-2.5 relative z-10 transition-colors duration-300 border-border/50 ${
+                className={`text-xs h-8 sm:h-7 px-3 sm:px-2.5 relative z-10 transition-colors duration-300 ${
                   joinFilter === "joined" 
-                    ? "bg-transparent border-transparent text-background" 
-                    : ""
+                    ? joinIndicatorStyle.width > 0
+                      ? "bg-transparent border-transparent text-background hover:bg-transparent hover:border-transparent hover:shadow-none hover:scale-100 hover:translate-y-0"
+                      : "bg-foreground text-background border-transparent hover:bg-foreground hover:border-transparent hover:shadow-none hover:scale-100 hover:translate-y-0"
+                    : "border-border/50 text-foreground"
                 }`}
               >
                 Joined
@@ -497,10 +507,12 @@ export default function MissionBoardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setJoinFilter("not_joined")}
-                className={`text-xs h-8 sm:h-7 px-3 sm:px-2.5 relative z-10 transition-colors duration-300 border-border/50 ${
+                className={`text-xs h-8 sm:h-7 px-3 sm:px-2.5 relative z-10 transition-colors duration-300 ${
                   joinFilter === "not_joined" 
-                    ? "bg-transparent border-transparent text-background" 
-                    : ""
+                    ? joinIndicatorStyle.width > 0
+                      ? "bg-transparent border-transparent text-background hover:bg-transparent hover:border-transparent hover:shadow-none hover:scale-100 hover:translate-y-0"
+                      : "bg-foreground text-background border-transparent hover:bg-foreground hover:border-transparent hover:shadow-none hover:scale-100 hover:translate-y-0"
+                    : "border-border/50 text-foreground"
                 }`}
               >
                 Not Joined

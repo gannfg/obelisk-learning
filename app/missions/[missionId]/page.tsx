@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
-import { CheckCircle2, Circle, Target, Clock, Trophy, ChevronLeft, Code2, X, Calendar, BookOpen, ArrowLeft, UserPlus, Loader2, Lock } from "lucide-react";
+import { CheckCircle2, Circle, Target, Clock, Trophy, ChevronLeft, Code2, X, Calendar, BookOpen, ArrowLeft, UserPlus, Loader2, Lock, Users } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ExpandableText } from "@/components/expandable-text";
 import { MarkdownContent } from "@/components/markdown-content";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useAdmin } from "@/lib/hooks/use-admin";
@@ -552,8 +554,8 @@ export default function MissionPage() {
         }} />
       </div>
 
-      <div className="relative container mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        <Button variant="ghost" asChild className="mb-6">
+      <div className="relative container mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24 md:pb-6">
+        <Button variant="ghost" asChild className="mb-4 sm:mb-6">
           <Link href="/missions">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Mission Board
@@ -562,215 +564,98 @@ export default function MissionPage() {
 
         {/* Locked Message */}
         {isLocked && prerequisiteDetails.length > 0 && (
-          <p className="mb-6 text-red-600 dark:text-red-400 font-medium">
+          <p className="mb-4 sm:mb-6 text-sm sm:text-base text-red-600 dark:text-red-400 font-medium">
             Mission Locked
           </p>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8 lg:gap-12">
-          {/* Left Panel - Mission Image & Core Information */}
-          <div className="space-y-6">
-            {/* Mission Image */}
+        {/* Mobile Layout: Title -> Compact Info -> Image -> Main Content -> Collapsible Details */}
+        <div className="flex flex-col lg:grid lg:grid-cols-[400px_1fr] gap-4 lg:gap-12">
+          {/* Title - First on Mobile */}
+          <div className="order-1 lg:hidden">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2 leading-tight">
+              {mission.title}
+            </h1>
+            {/* Date - Right below title on Mobile */}
+            {(mission.submissionDeadline || mission.endDate) && (
+              <div className="text-sm font-semibold text-muted-foreground mb-3">
+                {mission.submissionDeadline
+                  ? format(mission.submissionDeadline, "yyyy/MM/dd")
+                  : "No start date"}
+                {mission.endDate &&
+                  ` - ${format(mission.endDate, "yyyy/MM/dd")}`}
+              </div>
+            )}
+          </div>
+
+          {/* Compact Info Bar - Second on Mobile (Quick Stats) */}
+          <div className="order-2 lg:hidden flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+            <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 bg-card">
+              <Target className="h-3.5 w-3.5" />
+              <span className="capitalize">{mission.difficulty}</span>
+            </span>
+            {mission.stackType && mission.stackType !== "none" && (
+              <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 bg-card">
+                <Code2 className="h-3.5 w-3.5" />
+                <span className="capitalize">{mission.stackType}</span>
+              </span>
+            )}
+            {mission.estimatedTime && (
+              <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 bg-card">
+                <Clock className="h-3.5 w-3.5" />
+                {mission.estimatedTime}m
+              </span>
+            )}
+            {progress?.completed && (
+              <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 bg-green-500/10 border-green-500/20">
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                <span className="text-green-700 dark:text-green-300 font-medium">Completed</span>
+              </span>
+            )}
+          </div>
+
+          {/* Image - Third on Mobile (Smaller) */}
+          <div className="order-3 lg:hidden">
             {mission.imageUrl ? (
-              <div className="relative w-full aspect-square rounded-2xl overflow-hidden">
+              <div className="relative w-full aspect-video rounded-lg overflow-hidden">
                 <Image
                   src={mission.imageUrl}
                   alt={mission.title}
                   fill
                   className="object-cover"
-                  sizes="400px"
+                  sizes="100vw"
                   priority
                 />
               </div>
             ) : (
-              <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 flex items-center justify-center">
-                <Target className="h-16 w-16 text-white" />
-              </div>
-            )}
-
-            {/* Core Information & Quick Information */}
-            <div className="bg-card rounded-lg p-4 border border-border space-y-4">
-              {/* Status */}
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Status</p>
-                <p className="font-medium">
-                  {progress?.completed ? (
-                    <span className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      <span className="text-green-700 dark:text-green-300">Completed</span>
-                    </span>
-                  ) : submission?.status === "under_review" ? (
-                    <span className="text-amber-600 dark:text-amber-400">Under Review</span>
-                  ) : submission?.status === "approved" ? (
-                    <span className="text-green-600 dark:text-green-400">Approved</span>
-                  ) : submission?.status === "changes_requested" ? (
-                    <span className="text-red-600 dark:text-red-400">Changes Requested</span>
-                  ) : (
-                    <span className="text-muted-foreground">In Progress</span>
-                  )}
-                </p>
-              </div>
-
-              {/* Difficulty */}
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Difficulty</p>
-                <p className="font-medium capitalize">{mission.difficulty}</p>
-              </div>
-
-              {/* Stack Type */}
-              {mission.stackType && mission.stackType !== "none" && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Stack</p>
-                  <p className="font-medium capitalize">{mission.stackType}</p>
-                </div>
-              )}
-
-              {/* Category */}
-              {mission.category && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Category</p>
-                  <p className="font-medium">{mission.category}</p>
-                </div>
-              )}
-
-              {/* Submission Start */}
-              {mission.submissionDeadline && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Submission Start</p>
-                  <p className="font-medium">
-                    {format(mission.submissionDeadline, "yyyy/MM/dd")}
-                  </p>
-                </div>
-              )}
-
-              {/* End Date */}
-              {mission.endDate && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">End Date</p>
-                  <p className="font-medium">
-                    {format(mission.endDate, "MMM d, yyyy")}
-                  </p>
-                </div>
-              )}
-
-              {/* Estimated Time */}
-              {mission.estimatedTime && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Estimated Time</p>
-                  <p className="font-medium">{mission.estimatedTime} minutes</p>
-                </div>
-              )}
-
-              {/* Progress */}
-              {checklist.length > 0 && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Progress</p>
-                  <p className="font-medium">
-                    {completedCount} / {checklist.length} completed
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Requirements Section */}
-            {prerequisiteDetails.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold">Requirements</h3>
-                <div className="space-y-2">
-                  {prerequisiteDetails.map((prereq) => {
-                    // Check if this specific class is completed (not in missingClasses)
-                    const isCompleted = canAccess ? !canAccess.missingClasses.includes(prereq.id) : false;
-                    return (
-                      <Link
-                        key={prereq.id}
-                        href={`/academy/classes/${prereq.id}`}
-                        className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        {prereq.thumbnail ? (
-                          <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
-                            <Image
-                              src={prereq.thumbnail}
-                              alt={prereq.title}
-                              fill
-                              sizes="40px"
-                              className="object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
-                            <BookOpen className="h-5 w-5 text-primary" />
-                          </div>
-                        )}
-                        <span className="text-sm font-medium flex-1 line-clamp-2">{prereq.title}</span>
-                        {isCompleted ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
-                        ) : (
-                          <Circle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Join Mission Button - Always show, but disable after joining */}
-            {user && (
-              <div>
-                <Button
-                  size="lg"
-                  className="w-full"
-                  onClick={handleJoinMission}
-                  disabled={isJoining || !!progress || isLocked}
-                >
-                  {isJoining ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Joining...
-                    </>
-                  ) : progress ? (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Joined
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Join Mission
-                    </>
-                  )}
-                </Button>
-                {!progress && (
-                  <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Join this mission to start working on it and submit your project
-                  </p>
-                )}
+              <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 flex items-center justify-center">
+                <Target className="h-12 w-12 text-white" />
               </div>
             )}
           </div>
 
-          {/* Right Panel - Main Content */}
-          <div className="space-y-6">
-            {/* Title */}
-            <div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 leading-tight">
+          {/* Right Panel - Main Content (Mobile: Order 4) */}
+          <div className="space-y-4 sm:space-y-6 order-4 lg:order-2">
+            {/* Title - Desktop */}
+            <div className="hidden lg:block">
+              <h1 className="text-5xl font-bold mb-4 leading-tight">
                 {mission.title}
               </h1>
             </div>
 
-            {/* Date & Time */}
+            {/* Date & Time - Desktop only */}
             {(mission.submissionDeadline || mission.endDate) && (
-                <div className="text-lg font-semibold">
-                    {mission.submissionDeadline
-                    ? format(mission.submissionDeadline, "yyyy/MM/dd")
-                    : "No start date"}
-                  {mission.endDate &&
-                    ` - ${format(mission.endDate, "yyyy/MM/dd")}`}
+              <div className="hidden lg:block text-lg font-semibold">
+                {mission.submissionDeadline
+                  ? format(mission.submissionDeadline, "yyyy/MM/dd")
+                  : "No start date"}
+                {mission.endDate &&
+                  ` - ${format(mission.endDate, "yyyy/MM/dd")}`}
               </div>
             )}
 
-            {/* Difficulty Badge */}
-            <div className="flex items-center gap-2">
+            {/* Difficulty Badge - Desktop */}
+            <div className="hidden lg:flex items-center gap-2">
               <div className="px-3 py-1 rounded-md bg-muted text-sm font-medium capitalize">
                 {mission.difficulty}
               </div>
@@ -804,14 +689,14 @@ export default function MissionPage() {
                 <TabsContent value="overview" className="space-y-4 pt-4">
                   <h2 className="text-2xl font-bold">About This Mission</h2>
                   <div className="prose prose-invert max-w-none">
-                    <div className="p-4 bg-muted/50 rounded-lg mb-4">
-                      <p className="font-semibold text-lg mb-1">Mission Goal:</p>
-                      <p className="text-foreground">{mission.goal}</p>
+                    <div className="p-3 sm:p-4 bg-muted/50 rounded-lg mb-4">
+                      <p className="font-semibold text-base sm:text-lg mb-1">Mission Goal:</p>
+                      <p className="text-foreground text-sm sm:text-base">{mission.goal}</p>
                     </div>
                     {mission.description && (
-                      <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed mb-6">
-                        {mission.description}
-                      </p>
+                      <div className="text-muted-foreground whitespace-pre-wrap leading-relaxed mb-6 text-sm sm:text-base">
+                        <ExpandableText text={mission.description} maxChars={300} />
+                      </div>
                     )}
                     {missionContent?.markdownContent && (
                       <div className="mt-6">
@@ -834,7 +719,8 @@ export default function MissionPage() {
                         )}
                       </div>
                     )}
-                    <div className="mt-6 space-y-4">
+                    {/* Mission Details - Desktop only (mobile shows in accordion) */}
+                    <div className="hidden lg:block mt-6 space-y-4">
                       <div>
                         <h3 className="font-semibold mb-2">Mission Details</h3>
                         <ul className="list-disc list-inside space-y-1 text-muted-foreground">
@@ -1128,6 +1014,351 @@ export default function MissionPage() {
               </Tabs>
               )}
             </div>
+          </div>
+
+          {/* Left Panel - Desktop Sidebar + Mobile Collapsible Details */}
+          <div className="space-y-4 sm:space-y-6 order-5 lg:order-1">
+            {/* Mission Image - Desktop only */}
+            <div className="hidden lg:block">
+              {mission.imageUrl ? (
+                <div className="relative w-full aspect-square rounded-2xl overflow-hidden">
+                  <Image
+                    src={mission.imageUrl}
+                    alt={mission.title}
+                    fill
+                    className="object-cover"
+                    sizes="400px"
+                    priority
+                  />
+                </div>
+              ) : (
+                <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 flex items-center justify-center">
+                  <Target className="h-16 w-16 text-white" />
+                </div>
+              )}
+            </div>
+
+            {/* Mobile: Collapsible Details Accordion - Hidden on Submission Tab */}
+            {activeTab !== "submission" && (
+              <Accordion type="multiple" className="lg:hidden w-full" defaultValue={[]}>
+                {/* Mission Information */}
+                <AccordionItem value="info" className="border-b border-border">
+                  <AccordionTrigger className="text-sm font-medium py-3">
+                    Mission Details
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4">
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">Status</p>
+                        <p className="font-medium">
+                          {progress?.completed ? (
+                            <span className="flex items-center gap-1.5">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                              <span className="text-green-700 dark:text-green-300">Completed</span>
+                            </span>
+                          ) : submission?.status === "under_review" ? (
+                            <span className="text-amber-600 dark:text-amber-400">Under Review</span>
+                          ) : submission?.status === "approved" ? (
+                            <span className="text-green-600 dark:text-green-400">Approved</span>
+                          ) : submission?.status === "changes_requested" ? (
+                            <span className="text-red-600 dark:text-red-400">Changes Requested</span>
+                          ) : (
+                            <span className="text-muted-foreground">In Progress</span>
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">Difficulty</p>
+                        <p className="font-medium capitalize">{mission.difficulty}</p>
+                      </div>
+                      {mission.stackType && mission.stackType !== "none" && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-0.5">Stack</p>
+                          <p className="font-medium capitalize">{mission.stackType}</p>
+                        </div>
+                      )}
+                      {mission.category && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-0.5">Category</p>
+                          <p className="font-medium">{mission.category}</p>
+                        </div>
+                      )}
+                      {mission.estimatedTime && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-0.5">Time</p>
+                          <p className="font-medium">{mission.estimatedTime} min</p>
+                        </div>
+                      )}
+                      {checklist.length > 0 && (
+                        <div className="col-span-2">
+                          <p className="text-xs text-muted-foreground mb-0.5">Progress</p>
+                          <p className="font-medium">
+                            {completedCount} / {checklist.length} completed
+                          </p>
+                        </div>
+                      )}
+                      {mission.submissionDeadline && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-0.5">Start Date</p>
+                          <p className="font-medium text-xs">
+                            {format(mission.submissionDeadline, "MMM d, yyyy")}
+                          </p>
+                        </div>
+                      )}
+                      {mission.endDate && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-0.5">End Date</p>
+                          <p className="font-medium text-xs">
+                            {format(mission.endDate, "MMM d, yyyy")}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Requirements */}
+                {prerequisiteDetails.length > 0 && (
+                  <AccordionItem value="requirements" className="border-b border-border">
+                    <AccordionTrigger className="text-sm font-medium py-3">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4" />
+                        Requirements ({prerequisiteDetails.length})
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4">
+                      <div className="space-y-2">
+                        {prerequisiteDetails.map((prereq) => {
+                          const isCompleted = canAccess ? !canAccess.missingClasses.includes(prereq.id) : false;
+                          return (
+                            <Link
+                              key={prereq.id}
+                              href={`/academy/classes/${prereq.id}`}
+                              className="flex items-center gap-3 p-2 border rounded-lg hover:bg-muted/50 transition-colors"
+                            >
+                              {prereq.thumbnail ? (
+                                <div className="relative w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
+                                  <Image
+                                    src={prereq.thumbnail}
+                                    alt={prereq.title}
+                                    fill
+                                    sizes="32px"
+                                    className="object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
+                                  <BookOpen className="h-4 w-4 text-primary" />
+                                </div>
+                              )}
+                              <span className="text-xs font-medium flex-1 line-clamp-2">{prereq.title}</span>
+                              {isCompleted ? (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                              ) : (
+                                <Circle className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              )}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
+              </Accordion>
+            )}
+
+            {/* Join Mission Button - Mobile (after accordion) */}
+            {user && (
+              <div className="lg:hidden">
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={handleJoinMission}
+                  disabled={isJoining || !!progress || isLocked}
+                >
+                  {isJoining ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Joining...
+                    </>
+                  ) : progress ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Joined
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Join Mission
+                    </>
+                  )}
+                </Button>
+                {!progress && (
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Join this mission to start working on it and submit your project
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Desktop: Full Details (unchanged) */}
+            <div className="hidden lg:block bg-card rounded-lg p-4 border border-border space-y-4">
+              {/* Status */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Status</p>
+                <p className="font-medium">
+                  {progress?.completed ? (
+                    <span className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <span className="text-green-700 dark:text-green-300">Completed</span>
+                    </span>
+                  ) : submission?.status === "under_review" ? (
+                    <span className="text-amber-600 dark:text-amber-400">Under Review</span>
+                  ) : submission?.status === "approved" ? (
+                    <span className="text-green-600 dark:text-green-400">Approved</span>
+                  ) : submission?.status === "changes_requested" ? (
+                    <span className="text-red-600 dark:text-red-400">Changes Requested</span>
+                  ) : (
+                    <span className="text-muted-foreground">In Progress</span>
+                  )}
+                </p>
+              </div>
+
+              {/* Difficulty */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Difficulty</p>
+                <p className="font-medium capitalize">{mission.difficulty}</p>
+              </div>
+
+              {/* Stack Type */}
+              {mission.stackType && mission.stackType !== "none" && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Stack</p>
+                  <p className="font-medium capitalize">{mission.stackType}</p>
+                </div>
+              )}
+
+              {/* Category */}
+              {mission.category && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Category</p>
+                  <p className="font-medium">{mission.category}</p>
+                </div>
+              )}
+
+              {/* Submission Start */}
+              {mission.submissionDeadline && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Submission Start</p>
+                  <p className="font-medium">
+                    {format(mission.submissionDeadline, "yyyy/MM/dd")}
+                  </p>
+                </div>
+              )}
+
+              {/* End Date */}
+              {mission.endDate && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">End Date</p>
+                  <p className="font-medium">
+                    {format(mission.endDate, "MMM d, yyyy")}
+                  </p>
+                </div>
+              )}
+
+              {/* Estimated Time */}
+              {mission.estimatedTime && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Estimated Time</p>
+                  <p className="font-medium">{mission.estimatedTime} minutes</p>
+                </div>
+              )}
+
+              {/* Progress */}
+              {checklist.length > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Progress</p>
+                  <p className="font-medium">
+                    {completedCount} / {checklist.length} completed
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Requirements Section - Desktop */}
+            {prerequisiteDetails.length > 0 && (
+              <div className="hidden lg:block space-y-3">
+                <h3 className="text-sm font-semibold">Requirements</h3>
+                <div className="space-y-2">
+                  {prerequisiteDetails.map((prereq) => {
+                    const isCompleted = canAccess ? !canAccess.missingClasses.includes(prereq.id) : false;
+                    return (
+                      <Link
+                        key={prereq.id}
+                        href={`/academy/classes/${prereq.id}`}
+                        className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        {prereq.thumbnail ? (
+                          <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+                            <Image
+                              src={prereq.thumbnail}
+                              alt={prereq.title}
+                              fill
+                              sizes="40px"
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
+                            <BookOpen className="h-5 w-5 text-primary" />
+                          </div>
+                        )}
+                        <span className="text-sm font-medium flex-1 line-clamp-2">{prereq.title}</span>
+                        {isCompleted ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        ) : (
+                          <Circle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Join Mission Button - Desktop */}
+            {user && (
+              <div className="hidden lg:block">
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={handleJoinMission}
+                  disabled={isJoining || !!progress || isLocked}
+                >
+                  {isJoining ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Joining...
+                    </>
+                  ) : progress ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Joined
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Join Mission
+                    </>
+                  )}
+                </Button>
+                {!progress && (
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Join this mission to start working on it and submit your project
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
