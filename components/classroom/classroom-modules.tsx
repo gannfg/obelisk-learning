@@ -14,11 +14,14 @@ import {
   Lock as LockIcon,
 } from "lucide-react";
 import { format } from "date-fns";
-import type { ClassModule, AssignmentSubmission } from "@/types/classes";
+import type { ClassModule, AssignmentSubmission, ModuleProgress } from "@/types/classes";
 import type { ClassWithModules } from "@/lib/classes";
 import { getModuleAssignments, getClassModules } from "@/lib/classes";
 import { createLearningClient } from "@/lib/supabase/learning-client";
-import { markWeekAttendance } from "@/lib/classroom";
+import { markWeekAttendance, getModuleProgress } from "@/lib/classroom";
+import { StatusBadge } from "./status-badge";
+import { ProgressBar } from "./progress-bar";
+import { CompletionChecklist } from "./completion-checklist";
 
 interface ClassroomModulesProps {
   classId: string;
@@ -87,6 +90,7 @@ export function ClassroomModules({
   const [submissionsByAssignment, setSubmissionsByAssignment] = useState<Record<string, AssignmentSubmission[]>>({});
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
+  const [moduleProgress, setModuleProgress] = useState<Record<string, ModuleProgress | null>>({});
 
   useEffect(() => {
     // Always refresh modules from backend to avoid stale/empty data
@@ -181,6 +185,27 @@ export function ClassroomModules({
 
     loadSubmissions();
   }, [assignmentsByModule, userId]);
+
+  // Load module progress for each module
+  useEffect(() => {
+    if (isInstructor) return; // Only for students
+
+    const loadModuleProgress = async () => {
+      const supabase = createLearningClient();
+      if (!supabase) return;
+
+      const progressMap: Record<string, ModuleProgress | null> = {};
+      for (const module of modules) {
+        const progress = await getModuleProgress(classId, userId, module.id, supabase);
+        progressMap[module.id] = progress;
+      }
+      setModuleProgress(progressMap);
+    };
+
+    if (modules.length > 0) {
+      loadModuleProgress();
+    }
+  }, [modules, classId, userId, isInstructor]);
 
   // Determine if a module is completed: all assignments approved/reviewed, or no assignments
   const isModuleCompleted = (moduleId: string) => {
@@ -324,8 +349,22 @@ export function ClassroomModules({
               });
             };
 
+          const progress = moduleProgress[module.id];
+          const completed = isModuleCompleted(module.id);
+          const progressValue = progress?.progress || 0;
+          
+          // Determine status
+          let status: "completed" | "in-progress" | "pending" | "locked" = "pending";
+          if (isLocked && !isInstructor) {
+            status = "locked";
+          } else if (completed) {
+            status = "completed";
+          } else if (progressValue > 0) {
+            status = "in-progress";
+          }
+
           return (
-              <Card key={module.id} className="overflow-hidden">
+              <Card key={module.id} className={`overflow-hidden ${completed ? "border-green-500/20" : ""}`}>
                 <button
                   type="button"
                   onClick={toggleExpand}
@@ -334,30 +373,23 @@ export function ClassroomModules({
                 >
                   <CardContent className="p-4">
                     {/* Module Header - Always Visible */}
-                    <div className="flex items-center gap-2">
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      )}
-                      <h3 className="font-semibold text-base sm:text-lg flex-1">
-                        Week {module.weekNumber}: {module.title}
-                      </h3>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        {isModuleCompleted(module.id) && (
-                          <CheckCircle2 className="h-4 w-4 text-green-700 dark:text-green-500" />
-                        )}
-                        {!isInstructor && isLocked && !isModuleCompleted(module.id) ? (
-                          <>
-                            <LockIcon className="h-4 w-4" />
-                            <span>Locked</span>
-                          </>
-                        ) : isModuleCompleted(module.id) ? (
-                          <span className="text-green-700 dark:text-green-500">Completed</span>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         ) : (
-                          <span>In progress</span>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         )}
+                        <h3 className="font-semibold text-base sm:text-lg flex-1">
+                          Week {module.weekNumber}: {module.title}
+                        </h3>
+                        <StatusBadge status={status} size="sm" />
+                      </div>
+                      {!isInstructor && progress && (
+                        <div className="pl-6">
+                          <ProgressBar value={progressValue} max={100} size="sm" showLabel={true} />
                         </div>
+                      )}
                     </div>
                   </CardContent>
                 </button>
@@ -366,6 +398,33 @@ export function ClassroomModules({
                 {isExpanded && (
                   <CardContent className="pt-0 px-4 pb-4">
                     <div className="space-y-4 pl-6">
+                      {/* Completion Checklist */}
+                      {!isInstructor && progress && (
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                          <CompletionChecklist
+                            requirements={[
+                              {
+                                label: `Attend session (Week ${module.weekNumber})`,
+                                completed: progress.requirements.attendance,
+                              },
+                              ...progress.requirements.assignments.map((req) => {
+                                const assignment = assignments.find((a) => a.id === req.assignmentId);
+                                return {
+                                  label: assignment ? `Complete assignment: ${assignment.title}` : "Complete assignments",
+                                  completed: req.completed,
+                                };
+                              }),
+                            ]}
+                            showProgress={true}
+                          />
+                          {progress.completedAt && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Completed on {format(progress.completedAt, "MMM d, yyyy")}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       {/* Structured sections: description + YouTube URL pairs */}
                       {getModuleSections(module).map((section, idx) => {
                         const embed = getEmbedUrl(section.youtubeUrl);

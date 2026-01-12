@@ -360,6 +360,49 @@ export async function uploadWorkshopImage(
 }
 
 /**
+ * Upload a badge image to Supabase Storage (Learning Supabase)
+ * Stored in the public "course-images" bucket under "badges/" path
+ * @param file - The file to upload
+ * @param classId - The class ID (for organizing files)
+ * @param supabaseClient - Authenticated Supabase client (from learning database)
+ * @returns The public URL of the uploaded image, or null if upload failed
+ */
+export async function uploadBadgeImage(
+  file: File,
+  classId: string,
+  supabaseClient: any
+): Promise<string | null> {
+  try {
+    const fileExt = file.name.split(".").pop();
+    const timestamp = Date.now();
+    const fileName = `${classId}/${timestamp}.${fileExt}`;
+
+    const filePath = `badges/${fileName}`;
+
+    const { error } = await supabaseClient.storage
+      .from("course-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("Error uploading badge image:", error);
+      return null;
+    }
+
+    const { data: urlData } = await supabaseClient.storage
+      .from("course-images")
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error("Error in uploadBadgeImage:", error);
+    return null;
+  }
+}
+
+/**
  * Generic file upload function for assignments and other files
  * @param filePath - Full path including bucket (e.g., "assignments/class-id/user-id/file.pdf")
  * @param file - The file to upload

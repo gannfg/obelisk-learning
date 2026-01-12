@@ -15,6 +15,7 @@ import type {
   ClassAnnouncement,
   ClassMentor,
   ClassXPConfig,
+  ClassBadgeConfig,
   CreateClassInput,
   UpdateClassInput,
   CreateModuleInput,
@@ -39,6 +40,7 @@ export type {
   ClassAnnouncement,
   ClassMentor,
   ClassXPConfig,
+  ClassBadgeConfig,
   CreateClassInput,
   UpdateClassInput,
   CreateModuleInput,
@@ -1366,6 +1368,17 @@ export async function updateSubmissionStatus(
       return null;
     }
 
+    // Check if class is completed after updating submission status (only if approved/reviewed)
+    if (data && (status === "approved" || status === "reviewed")) {
+      try {
+        const { checkAndMarkClassCompletion } = await import("@/lib/classroom");
+        await checkAndMarkClassCompletion(data.class_id, data.user_id, supabase);
+      } catch (completionError) {
+        // Don't fail status update if completion check fails
+        console.error("Error checking class completion:", completionError);
+      }
+    }
+
     return {
       id: data.id,
       assignmentId: data.assignment_id,
@@ -1569,6 +1582,279 @@ export async function updateModuleLearningMaterials(
   } catch (error) {
     console.error("Error in updateModuleLearningMaterials:", error);
     return null;
+  }
+}
+
+/**
+ * Get all badge configs for a class
+ */
+export async function getClassBadgeConfig(
+  classId: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<ClassBadgeConfig[]> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const { data, error } = await supabase
+      .from("class_badge_config")
+      .select("*")
+      .eq("class_id", classId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching badge config:", error);
+      return [];
+    }
+
+    return (data || []).map((item: any) => ({
+      id: item.id,
+      classId: item.class_id,
+      badgeName: item.badge_name,
+      badgeDescription: item.badge_description,
+      badgeImageUrl: item.badge_image_url,
+      enabled: item.enabled,
+      createdAt: new Date(item.created_at),
+      updatedAt: new Date(item.updated_at),
+    }));
+  } catch (error) {
+    console.error("Error in getClassBadgeConfig:", error);
+    return [];
+  }
+}
+
+/**
+ * Create or update badge config
+ */
+export async function upsertBadgeConfig(
+  classId: string,
+  badgeName: string,
+  badgeDescription?: string,
+  badgeImageUrl?: string,
+  enabled?: boolean,
+  configId?: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<ClassBadgeConfig | null> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const configData: any = {
+      class_id: classId,
+      badge_name: badgeName,
+      badge_description: badgeDescription || null,
+      badge_image_url: badgeImageUrl || null,
+      enabled: enabled !== undefined ? enabled : true,
+    };
+
+    let data, error;
+    if (configId) {
+      // Update existing
+      const result = await supabase
+        .from("class_badge_config")
+        .update(configData)
+        .eq("id", configId)
+        .select()
+        .single();
+      data = result.data;
+      error = result.error;
+    } else {
+      // Insert new
+      const result = await supabase
+        .from("class_badge_config")
+        .insert(configData)
+        .select()
+        .single();
+      data = result.data;
+      error = result.error;
+    }
+
+    if (error) {
+      console.error("Error upserting badge config:", error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      classId: data.class_id,
+      badgeName: data.badge_name,
+      badgeDescription: data.badge_description,
+      badgeImageUrl: data.badge_image_url,
+      enabled: data.enabled,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+    };
+  } catch (error) {
+    console.error("Error in upsertBadgeConfig:", error);
+    return null;
+  }
+}
+
+/**
+ * Delete badge config
+ */
+export async function deleteBadgeConfig(
+  configId: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<boolean> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    const { error } = await supabase
+      .from("class_badge_config")
+      .delete()
+      .eq("id", configId);
+
+    if (error) {
+      console.error("Error deleting badge config:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error in deleteBadgeConfig:", error);
+    return false;
+  }
+}
+
+/**
+ * Check if user has completed all modules in a class
+ * A module is considered completed if the user has attendance for that week
+ */
+export async function checkClassCompletion(
+  classId: string,
+  userId: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<boolean> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    
+    // Get all modules for the class
+    const { data: modules, error: modulesError } = await supabase
+      .from("class_modules")
+      .select("id, week_number")
+      .eq("class_id", classId);
+
+    if (modulesError || !modules || modules.length === 0) {
+      return false;
+    }
+
+    // Get user's attendance for all weeks
+    const { data: attendance, error: attendanceError } = await supabase
+      .from("class_attendance")
+      .select("week_number")
+      .eq("class_id", classId)
+      .eq("user_id", userId);
+
+    if (attendanceError) {
+      console.error("Error checking attendance:", attendanceError);
+      return false;
+    }
+
+    // Check if user has attendance for all modules
+    const attendedWeeks = new Set((attendance || []).map((a: any) => a.week_number));
+    const allModulesCompleted = modules.every((module: any) => 
+      attendedWeeks.has(module.week_number)
+    );
+
+    return allModulesCompleted;
+  } catch (error) {
+    console.error("Error in checkClassCompletion:", error);
+    return false;
+  }
+}
+
+/**
+ * Award badges to a user when they complete a class
+ * Only awards enabled badges configured for the class
+ */
+export async function awardClassBadges(
+  classId: string,
+  userId: string,
+  supabaseClient?: SupabaseClient<any>
+): Promise<boolean> {
+  try {
+    const supabase = ensureSupabaseClient(supabaseClient);
+    
+    // Check if class is completed
+    const isCompleted = await checkClassCompletion(classId, userId, supabase);
+    if (!isCompleted) {
+      return false;
+    }
+
+    // Get class info
+    const { data: classData, error: classError } = await supabase
+      .from("classes")
+      .select("title")
+      .eq("id", classId)
+      .single();
+
+    if (classError || !classData) {
+      console.error("Error fetching class:", classError);
+      return false;
+    }
+
+    // Get all enabled badge configs for this class
+    const badgeConfigs = await getClassBadgeConfig(classId, supabase);
+    const enabledConfigs = badgeConfigs.filter((config) => config.enabled);
+
+    if (enabledConfigs.length === 0) {
+      return true; // No badges to award, but completion is valid
+    }
+
+    // Award each badge
+    let allAwarded = true;
+    let awardedAny = false;
+    for (const config of enabledConfigs) {
+      // Check if user already has this badge
+      const { data: existingBadge } = await supabase
+        .from("badges")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("badge_name", config.badgeName)
+        .maybeSingle();
+
+      if (existingBadge) {
+        continue; // Already has this badge
+      }
+
+      // Award the badge
+      const { error: badgeError } = await supabase
+        .from("badges")
+        .insert({
+          user_id: userId,
+          course_id: null, // Class badges don't have course_id
+          badge_name: config.badgeName,
+          badge_type: "class",
+          description: config.badgeDescription || `Completed ${classData.title}`,
+          metadata: {
+            class_id: classId,
+            class_title: classData.title,
+            badge_image_url: config.badgeImageUrl,
+          },
+        });
+
+      if (badgeError) {
+        console.error("Error awarding badge:", badgeError);
+        allAwarded = false;
+      } else {
+        awardedAny = true;
+      }
+    }
+
+    // If at least one badge was newly awarded, send a completion notification
+    if (awardedAny) {
+      try {
+        const { createClient } = await import("@/lib/supabase/client");
+        const authSupabase = createClient();
+        if (authSupabase) {
+          const { notifyClassCompletion } = await import("@/lib/classroom-notifications");
+          await notifyClassCompletion(userId, classId, classData.title, authSupabase);
+        }
+      } catch (notifError) {
+        console.error("Error sending class completion notification:", notifError);
+      }
+    }
+
+    return allAwarded;
+  } catch (error) {
+    console.error("Error in awardClassBadges:", error);
+    return false;
   }
 }
 

@@ -3,9 +3,19 @@ import { SupabaseClient } from "@supabase/supabase-js";
 export interface Badge {
   id: string;
   user_id: string;
-  course_id: string;
+  course_id: string | null;
   badge_name: string;
+  badge_type?: string;
+  description?: string;
   earned_at: string;
+  metadata?: {
+    class_id?: string;
+    class_title?: string;
+    badge_image_url?: string;
+    workshop_id?: string;
+    mission_id?: string;
+    [key: string]: any;
+  };
 }
 
 /**
