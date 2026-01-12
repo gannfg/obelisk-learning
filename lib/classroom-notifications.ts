@@ -265,3 +265,30 @@ export async function notifyAssignmentReminder(
   return notification !== null;
 }
 
+/**
+ * Notify a user that they have completed a class
+ */
+export async function notifyClassCompletion(
+  userId: string,
+  classId: string,
+  classTitle: string,
+  authSupabase: SupabaseClient
+): Promise<boolean> {
+  const notification = await createNotification(
+    {
+      userId,
+      type: "class",
+      title: `Class Completed: ${classTitle}`,
+      message: `You have successfully completed "${classTitle}". Great job!`,
+      link: `/class/${classId}?tab=overview`,
+      metadata: {
+        class_id: classId,
+        class_title: classTitle,
+      },
+    },
+    authSupabase
+  );
+
+  return notification !== null;
+}
+

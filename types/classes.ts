@@ -167,6 +167,17 @@ export interface ClassXPConfig {
   updatedAt: Date;
 }
 
+export interface ClassBadgeConfig {
+  id: string;
+  classId: string;
+  badgeName: string;
+  badgeDescription?: string;
+  badgeImageUrl?: string;
+  enabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface CreateClassInput {
   title: string;
   description?: string;
@@ -240,5 +251,33 @@ export interface ClassStats {
   attendanceRate: number;
   assignmentCompletionRate: number;
   averageXP: number;
+}
+
+export interface ModuleProgress {
+  moduleId: string;
+  completed: boolean;
+  progress: number; // 0-100
+  requirements: {
+    attendance: boolean;
+    assignments: Array<{ assignmentId: string; completed: boolean }>;
+    materials?: boolean; // Phase 2
+  };
+  completedAt?: Date;
+}
+
+export interface ClassProgress {
+  overall: number; // 0-100
+  modules: { completed: number; total: number; percentage: number };
+  assignments: { completed: number; total: number; percentage: number };
+  attendance: { attended: number; total: number; percentage: number };
+}
+
+export interface AttendanceStats {
+  totalWeeks: number;
+  attendedWeeks: number;
+  percentage: number;
+  currentStreak: number;
+  longestStreak: number;
+  perfectAttendance: boolean;
 }
 

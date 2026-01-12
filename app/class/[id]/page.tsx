@@ -1,14 +1,10 @@
 import { notFound, redirect } from "next/navigation";
+import { Suspense } from "react";
 import { getClassByIdWithModules, getClassEnrollments } from "@/lib/classes";
 import { createLearningServerClient, createAuthServerClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/server";
 import { getUserProfile } from "@/lib/profile";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ClassroomOverview } from "@/components/classroom/classroom-overview";
-import { ClassroomModules } from "@/components/classroom/classroom-modules";
-import { ClassroomAttendance } from "@/components/classroom/classroom-attendance";
-import { ClassroomAssignments } from "@/components/classroom/classroom-assignments";
-import { ClassroomAnnouncements } from "@/components/classroom/classroom-announcements";
+import { ClassroomTabs } from "@/components/classroom/classroom-tabs";
 import { ArrowLeft, CheckCircle2, ExternalLink, Calendar, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -21,10 +17,12 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 interface ClassPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }
 
-export default async function ClassPage({ params }: ClassPageProps) {
+export default async function ClassPage({ params, searchParams }: ClassPageProps) {
   const { id } = await params;
+  const { tab } = await searchParams;
   const learningSupabase = await createLearningServerClient();
   const classItem = await getClassByIdWithModules(id, learningSupabase);
 
@@ -425,18 +423,8 @@ export default async function ClassPage({ params }: ClassPageProps) {
             </div>
           </div>
 
-          {/* Modules - Fifth on Mobile (after collapsible details) */}
-          <div className="order-5 lg:hidden">
-            <ClassroomModules
-              classId={id}
-              classItem={classItem}
-              userId={user.id}
-              isInstructor={isInstructor}
-            />
-          </div>
-
-          {/* Right Panel - Desktop Main Content */}
-          <div className="hidden lg:block space-y-6 order-2">
+          {/* Right Panel - Desktop Main Content with Tabs */}
+          <div className="hidden lg:block space-y-6 order-2 lg:col-span-1">
             {/* Title - Desktop */}
             <div>
               <h1 className="text-5xl font-bold mb-4 leading-tight">
@@ -444,15 +432,27 @@ export default async function ClassPage({ params }: ClassPageProps) {
               </h1>
             </div>
 
-            {/* Modules - Desktop */}
-            <div className="mt-6">
-              <ClassroomModules
+            {/* Tabs */}
+            <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+              <ClassroomTabs
                 classId={id}
                 classItem={classItem}
                 userId={user.id}
                 isInstructor={isInstructor}
               />
-            </div>
+            </Suspense>
+          </div>
+
+          {/* Mobile: Tabs */}
+          <div className="lg:hidden order-5 space-y-4">
+            <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+              <ClassroomTabs
+                classId={id}
+                classItem={classItem}
+                userId={user.id}
+                isInstructor={isInstructor}
+              />
+            </Suspense>
           </div>
         </div>
       </div>

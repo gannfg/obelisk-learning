@@ -98,6 +98,12 @@ export default function ProfilePage() {
     achievementsCount: 0,
   });
   const [loadingBadgeStats, setLoadingBadgeStats] = useState(true);
+  const [featuredBadges, setFeaturedBadges] = useState<Array<{
+    id: string;
+    badge_name: string;
+    badge_image_url?: string;
+    earned_at: string;
+  }>>([]);
   const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
   const [loadingTeams, setLoadingTeams] = useState(true);
   const [userProjects, setUserProjects] = useState<Array<{
@@ -330,9 +336,33 @@ export default function ProfilePage() {
           return;
         }
 
-        // Get badges count
+        // Get badges
         const badges = await getUserBadges(learningSupabase, user.id);
         const badgesCount = badges.length;
+
+        // Get featured badges (top 3 most recent, with image if available)
+        // First try to get badges with images, then fill with others
+        const badgesWithImages = badges.filter((b: any) => b.metadata?.badge_image_url);
+        const otherBadges = badges.filter((b: any) => !b.metadata?.badge_image_url);
+        
+        // Sort by earned_at (most recent first)
+        const sortedBadges = [
+          ...badgesWithImages.sort((a: any, b: any) => 
+            new Date(b.earned_at).getTime() - new Date(a.earned_at).getTime()
+          ),
+          ...otherBadges.sort((a: any, b: any) => 
+            new Date(b.earned_at).getTime() - new Date(a.earned_at).getTime()
+          )
+        ];
+
+        const featured = sortedBadges.slice(0, 3).map((badge: any) => ({
+          id: badge.id,
+          badge_name: badge.badge_name,
+          badge_image_url: badge.metadata?.badge_image_url,
+          earned_at: badge.earned_at,
+        }));
+
+        setFeaturedBadges(featured);
 
         // Get achievements count (missions completed)
         const { count: achievementsCount } = await learningSupabase
@@ -1283,12 +1313,55 @@ export default function ProfilePage() {
                   )}
                 </div>
 
-                {/* Statistics */}
+                {/* Statistics & Featured Badges */}
                 <div className="flex items-center gap-8">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{loadingBadgeStats ? "..." : badgeStats.badgesCount}</p>
-                    <p className="text-sm text-muted-foreground mt-1">Badge</p>
+                  {/* Featured Badges Showcase */}
+                  <div className="flex items-center gap-3">
+                    {loadingBadgeStats ? (
+                      <div className="flex gap-2">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="w-12 h-12 rounded-lg bg-muted animate-pulse" />
+                        ))}
+                      </div>
+                    ) : featuredBadges.length > 0 ? (
+                      <>
+                        {featuredBadges.map((badge) => (
+                          <div
+                            key={badge.id}
+                            className="relative w-12 h-12 rounded-lg overflow-hidden border border-border flex-shrink-0 group cursor-pointer"
+                            title={badge.badge_name}
+                          >
+                            {badge.badge_image_url ? (
+                              <Image
+                                src={badge.badge_image_url}
+                                alt={badge.badge_name}
+                                fill
+                                className="object-cover group-hover:scale-110 transition-transform"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
+                                <Trophy className="h-6 w-6 text-white" />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {badgeStats.badgesCount > 3 && (
+                          <Link
+                            href="/achievements"
+                            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            +{badgeStats.badgesCount - 3} more
+                          </Link>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">
+                        No badges yet
+                      </div>
+                    )}
                   </div>
+                  {/* Achievement Count */}
                   <div className="text-center">
                     <p className="text-2xl font-bold">{loadingBadgeStats ? "..." : badgeStats.achievementsCount}</p>
                     <p className="text-sm text-muted-foreground mt-1">Achievement</p>

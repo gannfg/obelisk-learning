@@ -36,6 +36,9 @@ import {
   updateSubmissionStatus,
   getClassXPConfig,
   upsertXPConfig,
+  getClassBadgeConfig,
+  upsertBadgeConfig,
+  deleteBadgeConfig,
   updateModuleLearningMaterials,
 } from "@/lib/classes";
 import { getUserProfile } from "@/lib/profile";
@@ -50,6 +53,7 @@ import type {
   SessionAttendance,
   AssignmentSubmission,
   ClassXPConfig,
+  ClassBadgeConfig,
   LearningMaterial,
   SubmissionStatus,
   XPActionType,
@@ -104,17 +108,21 @@ import {
   Unlock,
   QrCode,
   Download,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
-import { uploadCourseImage } from "@/lib/storage";
+import { uploadCourseImage, uploadBadgeImage } from "@/lib/storage";
 import { COURSE_CATEGORIES } from "@/lib/categories";
 import Image from "next/image";
 import Cropper from "react-easy-crop";
 import type { Area, Point } from "react-easy-crop";
+import { useToast } from "@/components/ui/toaster";
 
 export default function AdminClassesPage() {
   const router = useRouter();
   const { isAdmin, loading: adminLoading } = useAdmin();
+  const toast = useToast();
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [modules, setModules] = useState<ClassModule[]>([]);
@@ -128,13 +136,12 @@ export default function AdminClassesPage() {
   >({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [attendanceRecords, setAttendanceRecords] = useState<SessionAttendance[]>([]);
   const [selectedSession, setSelectedSession] = useState<LiveSession | null>(null);
   const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<ClassAssignment | null>(null);
   const [xpConfigs, setXpConfigs] = useState<ClassXPConfig[]>([]);
+  const [badgeConfigs, setBadgeConfigs] = useState<ClassBadgeConfig[]>([]);
 
   // Dialog states
   const [classDialogOpen, setClassDialogOpen] = useState(false);
@@ -148,6 +155,7 @@ export default function AdminClassesPage() {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [submissionsDialogOpen, setSubmissionsDialogOpen] = useState(false);
   const [xpConfigDialogOpen, setXpConfigDialogOpen] = useState(false);
+  const [badgeConfigDialogOpen, setBadgeConfigDialogOpen] = useState(false);
   const [learningMaterialsDialogOpen, setLearningMaterialsDialogOpen] = useState(false);
 
   // Form states
@@ -343,6 +351,18 @@ export default function AdminClassesPage() {
     enabled: true,
   });
 
+  // Badge Config form
+  const [badgeConfigForm, setBadgeConfigForm] = useState({
+    badgeName: "",
+    badgeDescription: "",
+    badgeImageUrl: "",
+    enabled: true,
+  });
+  const [editingBadgeConfig, setEditingBadgeConfig] = useState<ClassBadgeConfig | null>(null);
+  const [badgeImageFile, setBadgeImageFile] = useState<File | null>(null);
+  const [badgeImagePreview, setBadgeImagePreview] = useState<string | null>(null);
+  const [uploadingBadgeImage, setUploadingBadgeImage] = useState(false);
+
   // Learning materials form
   const [learningMaterialsForm, setLearningMaterialsForm] = useState<LearningMaterial[]>([]);
   const [editingModuleForMaterials, setEditingModuleForMaterials] = useState<ClassModule | null>(null);
@@ -360,6 +380,7 @@ export default function AdminClassesPage() {
     if (selectedClass) {
       loadClassData(selectedClass.id);
       loadXPConfigs(selectedClass.id);
+      loadBadgeConfigs(selectedClass.id);
     }
   }, [selectedClass]);
 
@@ -368,7 +389,7 @@ export default function AdminClassesPage() {
       setLoading(true);
       const supabase = createLearningClient();
       if (!supabase) {
-        setError("Supabase client not configured.");
+        toast.error("Configuration Error", "Supabase client not configured.");
         setLoading(false);
         return;
       }
@@ -376,7 +397,7 @@ export default function AdminClassesPage() {
       setClasses(data);
     } catch (error) {
       console.error("Error loading classes:", error);
-      setError("Failed to load classes.");
+      toast.error("Load Error", "Failed to load classes.");
     } finally {
       setLoading(false);
     }
@@ -512,7 +533,7 @@ export default function AdminClassesPage() {
       );
 
       if (newClass) {
-        setSuccess("Class created successfully!");
+        toast.success("Class Created", "Class created successfully!");
         setClassDialogOpen(false);
         setClassDialogError(null);
         resetClassForm();
@@ -576,7 +597,7 @@ export default function AdminClassesPage() {
       );
 
       if (updated) {
-        setSuccess("Class updated successfully!");
+        toast.success("Class Updated", "Class updated successfully!");
         setClassDialogOpen(false);
         setClassDialogError(null);
         setEditingClass(null);
@@ -604,22 +625,22 @@ export default function AdminClassesPage() {
     try {
       const supabase = createLearningClient();
       if (!supabase) {
-        setError("Supabase client not configured.");
+        toast.error("Configuration Error", "Supabase client not configured.");
         return;
       }
       const success = await deleteClass(classId, supabase);
       if (success) {
-        setSuccess("Class deleted successfully!");
+        toast.success("Class Deleted", "Class deleted successfully!");
         await loadClasses();
         if (selectedClass?.id === classId) {
           setSelectedClass(null);
         }
       } else {
-        setError("Failed to delete class.");
+        toast.error("Delete Failed", "Failed to delete class.");
       }
     } catch (error: any) {
       console.error("Error deleting class:", error);
-      setError(error.message || "Failed to delete class.");
+      toast.error("Delete Error", error.message || "Failed to delete class.");
     }
   };
 
@@ -627,19 +648,18 @@ export default function AdminClassesPage() {
     if (!selectedClass) return;
 
     setSaving(true);
-    setError(null);
 
     try {
       // Use Auth Supabase for authentication and user lookup
       const authSupabase = createClient();
       if (!authSupabase) {
-        setError("Supabase client not configured.");
+        toast.error("Configuration Error", "Supabase client not configured.");
         setSaving(false);
         return;
       }
       const { data: { user: currentUser } } = await authSupabase.auth.getUser();
       if (!currentUser) {
-        setError("Not authenticated.");
+        toast.error("Authentication Error", "Not authenticated.");
         setSaving(false);
         return;
       }
@@ -665,7 +685,7 @@ export default function AdminClassesPage() {
       }
 
       if (!userId) {
-        setError("User not found. Please check the user ID or email.");
+        toast.error("User Not Found", "Please check the user ID or email.");
         setSaving(false);
         return;
       }
@@ -673,14 +693,14 @@ export default function AdminClassesPage() {
       // Check if already enrolled
       const existing = enrollments.find((e) => e.userId === userId);
       if (existing) {
-        setError("User is already enrolled in this class.");
+        toast.warning("Already Enrolled", "User is already enrolled in this class.");
         setSaving(false);
         return;
       }
 
       // Check capacity
       if (selectedClass.maxCapacity && enrollments.length >= selectedClass.maxCapacity) {
-        setError("Class is at maximum capacity.");
+        toast.warning("Capacity Reached", "Class is at maximum capacity.");
         setSaving(false);
         return;
       }
@@ -688,25 +708,25 @@ export default function AdminClassesPage() {
       // Use Learning Supabase for enrollment operations
       const learningSupabase = createLearningClient();
       if (!learningSupabase) {
-        setError("Supabase client not configured.");
+        toast.error("Configuration Error", "Supabase client not configured.");
         setSaving(false);
         return;
       }
       const enrollment = await enrollUser(selectedClass.id, userId, currentUser.id, learningSupabase);
 
       if (enrollment) {
-        setSuccess("Student enrolled successfully!");
+        toast.success("Student Enrolled", "Student enrolled successfully!");
         setEnrollmentDialogOpen(false);
         await loadClassData(selectedClass.id);
         // Clear input
         const input = document.getElementById("enrollment-user-input") as HTMLInputElement;
         if (input) input.value = "";
       } else {
-        setError("Failed to enroll student.");
+        toast.error("Enrollment Failed", "Failed to enroll student.");
       }
     } catch (error: any) {
       console.error("Error enrolling user:", error);
-      setError(error.message || "Failed to enroll student.");
+      toast.error("Enrollment Error", error.message || "Failed to enroll student.");
     } finally {
       setSaving(false);
     }
@@ -723,19 +743,30 @@ export default function AdminClassesPage() {
     }
   };
 
+  const loadBadgeConfigs = async (classId: string) => {
+    try {
+      const supabase = createLearningClient();
+      if (!supabase) return;
+      const configs = await getClassBadgeConfig(classId, supabase);
+      setBadgeConfigs(configs);
+    } catch (error) {
+      console.error("Error loading badge configs:", error);
+    }
+  };
+
   const handleGenerateQR = async (sessionId: string) => {
     try {
       const supabase = createLearningClient();
       if (!supabase) return;
       const qrToken = await generateSessionQR(sessionId, supabase);
       if (qrToken) {
-        setSuccess("QR code generated successfully!");
+        toast.success("QR Code Generated", "QR code generated successfully!");
         await loadClassData(selectedClass!.id);
         setQrDialogOpen(true);
       }
     } catch (error) {
       console.error("Error generating QR:", error);
-      setError("Failed to generate QR code.");
+      toast.error("QR Generation Failed", "Failed to generate QR code.");
     }
   };
 
@@ -750,7 +781,7 @@ export default function AdminClassesPage() {
       setAttendanceDialogOpen(true);
     } catch (error) {
       console.error("Error loading attendance:", error);
-      setError("Failed to load attendance.");
+      toast.error("Load Error", "Failed to load attendance.");
     }
   };
 
@@ -765,12 +796,12 @@ export default function AdminClassesPage() {
       const learningSupabase = createLearningClient();
       if (!learningSupabase) return;
       await markAttendance(selectedSession.id, attendanceUserId, selectedClass.id, user.id, learningSupabase);
-      setSuccess("Attendance marked successfully!");
+      toast.success("Attendance Marked", "Attendance marked successfully!");
       setAttendanceUserId("");
       await handleLoadAttendance(selectedSession.id);
     } catch (error) {
       console.error("Error marking attendance:", error);
-      setError("Failed to mark attendance.");
+      toast.error("Mark Attendance Failed", "Failed to mark attendance.");
     }
   };
 
@@ -780,13 +811,13 @@ export default function AdminClassesPage() {
       const supabase = createLearningClient();
       if (!supabase) return;
       await removeAttendance(attendanceId, supabase);
-      setSuccess("Attendance removed successfully!");
+      toast.success("Attendance Removed", "Attendance removed successfully!");
       if (selectedSession) {
         await handleLoadAttendance(selectedSession.id);
       }
     } catch (error) {
       console.error("Error removing attendance:", error);
-      setError("Failed to remove attendance.");
+      toast.error("Remove Attendance Failed", "Failed to remove attendance.");
     }
   };
 
@@ -807,7 +838,7 @@ export default function AdminClassesPage() {
         user.id,
         learningSupabase
       );
-      setSuccess("Submission updated successfully!");
+      toast.success("Submission Updated", "Submission updated successfully!");
       setSubmissionsDialogOpen(false);
       if (selectedAssignment) {
         const subs = await getAssignmentSubmissions(selectedAssignment.id, learningSupabase);
@@ -815,7 +846,7 @@ export default function AdminClassesPage() {
       }
     } catch (error) {
       console.error("Error updating submission:", error);
-      setError("Failed to update submission.");
+      toast.error("Update Failed", "Failed to update submission.");
     }
   };
 
@@ -831,12 +862,81 @@ export default function AdminClassesPage() {
         xpConfigForm.enabled,
         supabase
       );
-      setSuccess("XP config updated successfully!");
+      toast.success("XP Config Updated", "XP config updated successfully!");
       setXpConfigDialogOpen(false);
       await loadXPConfigs(selectedClass.id);
     } catch (error) {
       console.error("Error updating XP config:", error);
-      setError("Failed to update XP config.");
+      toast.error("Update Failed", "Failed to update XP config.");
+    }
+  };
+
+  const handleUpsertBadgeConfig = async () => {
+    if (!selectedClass) return;
+    try {
+      setSaving(true);
+      const supabase = createLearningClient();
+      if (!supabase) return;
+
+      let badgeImageUrl = badgeConfigForm.badgeImageUrl;
+
+      // Upload badge image if a new file was selected
+      if (badgeImageFile) {
+        setUploadingBadgeImage(true);
+        const uploadedUrl = await uploadBadgeImage(badgeImageFile, selectedClass.id, supabase);
+        if (uploadedUrl) {
+          badgeImageUrl = uploadedUrl;
+        } else {
+          toast.error("Upload Failed", "Failed to upload badge image.");
+          setSaving(false);
+          setUploadingBadgeImage(false);
+          return;
+        }
+        setUploadingBadgeImage(false);
+      }
+
+      await upsertBadgeConfig(
+        selectedClass.id,
+        badgeConfigForm.badgeName,
+        badgeConfigForm.badgeDescription,
+        badgeImageUrl,
+        badgeConfigForm.enabled,
+        editingBadgeConfig?.id,
+        supabase
+      );
+      toast.success("Badge Config Saved", "Badge config saved successfully!");
+      setBadgeConfigDialogOpen(false);
+      setBadgeImageFile(null);
+      setBadgeImagePreview(null);
+      setEditingBadgeConfig(null);
+      setBadgeConfigForm({
+        badgeName: "",
+        badgeDescription: "",
+        badgeImageUrl: "",
+        enabled: true,
+      });
+      await loadBadgeConfigs(selectedClass.id);
+    } catch (error) {
+      console.error("Error updating badge config:", error);
+      toast.error("Save Failed", "Failed to update badge config.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteBadgeConfig = async (configId: string) => {
+    if (!confirm("Delete this badge configuration?")) return;
+    try {
+      const supabase = createLearningClient();
+      if (!supabase) return;
+      await deleteBadgeConfig(configId, supabase);
+      toast.success("Badge Config Deleted", "Badge config deleted successfully!");
+      if (selectedClass) {
+        await loadBadgeConfigs(selectedClass.id);
+      }
+    } catch (error) {
+      console.error("Error deleting badge config:", error);
+      toast.error("Delete Failed", "Failed to delete badge config.");
     }
   };
 
@@ -846,13 +946,13 @@ export default function AdminClassesPage() {
       const supabase = createLearningClient();
       if (!supabase) return;
       await updateAnnouncement(editingAnnouncement.id, announcementForm, supabase);
-      setSuccess("Announcement updated successfully!");
+      toast.success("Announcement Updated", "Announcement updated successfully!");
       setAnnouncementDialogOpen(false);
       setEditingAnnouncement(null);
       await loadClassData(selectedClass!.id);
     } catch (error) {
       console.error("Error updating announcement:", error);
-      setError("Failed to update announcement.");
+      toast.error("Update Failed", "Failed to update announcement.");
     }
   };
 
@@ -862,11 +962,11 @@ export default function AdminClassesPage() {
       const supabase = createLearningClient();
       if (!supabase) return;
       await deleteAnnouncement(id, supabase);
-      setSuccess("Announcement deleted successfully!");
+      toast.success("Announcement Deleted", "Announcement deleted successfully!");
       await loadClassData(selectedClass!.id);
     } catch (error) {
       console.error("Error deleting announcement:", error);
-      setError("Failed to delete announcement.");
+      toast.error("Delete Failed", "Failed to delete announcement.");
     }
   };
 
@@ -876,13 +976,13 @@ export default function AdminClassesPage() {
       const supabase = createLearningClient();
       if (!supabase) return;
       await updateModuleLearningMaterials(editingModuleForMaterials.id, learningMaterialsForm, supabase);
-      setSuccess("Learning materials updated successfully!");
+      toast.success("Learning Materials Updated", "Learning materials updated successfully!");
       setLearningMaterialsDialogOpen(false);
       setEditingModuleForMaterials(null);
       await loadClassData(selectedClass!.id);
     } catch (error) {
       console.error("Error updating learning materials:", error);
-      setError("Failed to update learning materials.");
+      toast.error("Update Failed", "Failed to update learning materials.");
     }
   };
 
@@ -961,17 +1061,6 @@ export default function AdminClassesPage() {
         </p>
       </div>
 
-      {error && (
-        <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="mb-4 p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-green-600 dark:text-green-400">
-          {success}
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
         {/* Left Sidebar - Classes List */}
@@ -1738,6 +1827,105 @@ export default function AdminClassesPage() {
                     </div>
                   </CardContent>
                 </Card>
+
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Badge Rewards Configuration</CardTitle>
+                        <CardDescription>
+                          Configure custom badges awarded when students complete all modules
+                        </CardDescription>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          setEditingBadgeConfig(null);
+                          setBadgeConfigForm({
+                            badgeName: "",
+                            badgeDescription: "",
+                            badgeImageUrl: "",
+                            enabled: true,
+                          });
+                          setBadgeImageFile(null);
+                          setBadgeImagePreview(null);
+                          setBadgeConfigDialogOpen(true);
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add Badge
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {badgeConfigs.map((config) => (
+                        <Card key={config.id}>
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4 flex-1">
+                                {config.badgeImageUrl && (
+                                  <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-border flex-shrink-0">
+                                    <Image
+                                      src={config.badgeImageUrl}
+                                      alt={config.badgeName}
+                                      fill
+                                      className="object-cover"
+                                      unoptimized
+                                    />
+                                  </div>
+                                )}
+                                <div className="flex-1">
+                                  <h3 className="font-semibold">{config.badgeName}</h3>
+                                  {config.badgeDescription && (
+                                    <p className="text-sm text-muted-foreground">
+                                      {config.badgeDescription}
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {config.enabled ? "(Enabled)" : "(Disabled)"}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setEditingBadgeConfig(config);
+                                    setBadgeConfigForm({
+                                      badgeName: config.badgeName,
+                                      badgeDescription: config.badgeDescription || "",
+                                      badgeImageUrl: config.badgeImageUrl || "",
+                                      enabled: config.enabled,
+                                    });
+                                    setBadgeImagePreview(config.badgeImageUrl || null);
+                                    setBadgeImageFile(null);
+                                    setBadgeConfigDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteBadgeConfig(config.id)}
+                                >
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      {badgeConfigs.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          No badge configurations yet. Add your first badge!
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               {/* Stats Tab */}
@@ -1983,7 +2171,7 @@ export default function AdminClassesPage() {
                     };
                     reader.onerror = () => {
                       console.error('Error reading file');
-                      setError('Failed to load image. Please try again.');
+                      toast.error("Image Load Failed", "Failed to load image. Please try again.");
                     };
                     reader.readAsDataURL(file);
                   }
@@ -2280,7 +2468,7 @@ export default function AdminClassesPage() {
                   await loadClassData(selectedClass.id);
                 } catch (error) {
                   console.error("Error saving module:", error);
-                  setError("Failed to save module.");
+                  toast.error("Save Failed", "Failed to save module.");
                 } finally {
                   setSaving(false);
                 }
@@ -2577,7 +2765,7 @@ export default function AdminClassesPage() {
                   // Use Auth Supabase for authentication
                   const authSupabase = createClient();
                   if (!authSupabase) {
-                    setError("Supabase client not configured.");
+                    toast.error("Configuration Error", "Supabase client not configured.");
                     setSaving(false);
                     return;
                   }
@@ -2587,7 +2775,7 @@ export default function AdminClassesPage() {
                   // Use Learning Supabase for database operations
                   const learningSupabase = createLearningClient();
                   if (!learningSupabase) {
-                    setError("Supabase client not configured.");
+                    toast.error("Configuration Error", "Supabase client not configured.");
                     setSaving(false);
                     return;
                   }
@@ -2623,9 +2811,9 @@ export default function AdminClassesPage() {
                     );
                     
                     if (updatedAssignment) {
-                      setSuccess("Assignment updated successfully!");
+                      toast.success("Assignment Updated", "Assignment updated successfully!");
                     } else {
-                      setError("Failed to update assignment.");
+                      toast.error("Update Failed", "Failed to update assignment.");
                     }
                   } else {
                     // Create new assignment
@@ -2691,7 +2879,7 @@ export default function AdminClassesPage() {
                   ]);
                 } catch (error) {
                   console.error("Error creating assignment:", error);
-                  setError("Failed to create assignment.");
+                  toast.error("Create Failed", "Failed to create assignment.");
                 } finally {
                   setSaving(false);
                 }
@@ -2784,7 +2972,7 @@ export default function AdminClassesPage() {
                 try {
                   const learningSupabase = createLearningClient();
                   if (!learningSupabase) {
-                    setError("Supabase client not configured.");
+                    toast.error("Configuration Error", "Supabase client not configured.");
                     setSaving(false);
                     return;
                   }
@@ -2795,7 +2983,7 @@ export default function AdminClassesPage() {
                     // Use Auth Supabase for authentication
                     const authSupabase = createClient();
                     if (!authSupabase) {
-                      setError("Supabase client not configured.");
+                      toast.error("Configuration Error", "Supabase client not configured.");
                       setSaving(false);
                       return;
                     }
@@ -2839,7 +3027,7 @@ export default function AdminClassesPage() {
                   }
                 } catch (error) {
                   console.error("Error saving announcement:", error);
-                  setError("Failed to save announcement.");
+                  toast.error("Save Failed", "Failed to save announcement.");
                 } finally {
                   setSaving(false);
                 }
@@ -2973,7 +3161,7 @@ export default function AdminClassesPage() {
                   // Use Auth Supabase for authentication
                   const authSupabase = createClient();
                   if (!authSupabase) {
-                    setError("Supabase client not configured.");
+                    toast.error("Configuration Error", "Supabase client not configured.");
                     setSaving(false);
                     return;
                   }
@@ -2983,7 +3171,7 @@ export default function AdminClassesPage() {
                   // Use Learning Supabase for database operations
                   const learningSupabase = createLearningClient();
                   if (!learningSupabase) {
-                    setError("Supabase client not configured.");
+                    toast.error("Configuration Error", "Supabase client not configured.");
                     setSaving(false);
                     return;
                   }
@@ -3023,7 +3211,7 @@ export default function AdminClassesPage() {
                   }
                 } catch (error) {
                   console.error("Error creating session:", error);
-                  setError("Failed to create session.");
+                  toast.error("Create Failed", "Failed to create session.");
                 } finally {
                   setSaving(false);
                 }
@@ -3341,6 +3529,148 @@ export default function AdminClassesPage() {
             </Button>
             <Button onClick={handleUpsertXPConfig}>
               Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Badge Config Dialog */}
+      <Dialog open={badgeConfigDialogOpen} onOpenChange={setBadgeConfigDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingBadgeConfig ? "Edit Badge Configuration" : "Create Badge Configuration"}
+            </DialogTitle>
+            <DialogDescription>
+              Configure a custom badge that will be awarded when students complete all modules
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Badge Name *</label>
+              <Input
+                value={badgeConfigForm.badgeName}
+                onChange={(e) =>
+                  setBadgeConfigForm({ ...badgeConfigForm, badgeName: e.target.value })
+                }
+                placeholder="e.g., Class Completion Badge"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Badge Description</label>
+              <Textarea
+                value={badgeConfigForm.badgeDescription}
+                onChange={(e) =>
+                  setBadgeConfigForm({ ...badgeConfigForm, badgeDescription: e.target.value })
+                }
+                placeholder="Optional description of the badge"
+                rows={3}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Badge Image</label>
+              <div className="space-y-2">
+                {(badgeImagePreview || badgeConfigForm.badgeImageUrl) && (
+                  <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-border">
+                    <Image
+                      src={badgeImagePreview || badgeConfigForm.badgeImageUrl || ""}
+                      alt="Badge preview"
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  id="badge-image-upload"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) {
+                      toast.error("File Too Large", "Image size must be less than 5MB");
+                      return;
+                    }
+                    setBadgeImageFile(file);
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setBadgeImagePreview(reader.result as string);
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                  disabled={uploadingBadgeImage}
+                />
+                <label
+                  htmlFor="badge-image-upload"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-border rounded-md cursor-pointer hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uploadingBadgeImage ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      {badgeImagePreview || badgeConfigForm.badgeImageUrl ? "Change Image" : "Upload Image"}
+                    </>
+                  )}
+                </label>
+                {badgeImagePreview && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setBadgeImageFile(null);
+                      setBadgeImagePreview(null);
+                    }}
+                    disabled={uploadingBadgeImage}
+                  >
+                    Remove Image
+                  </Button>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  JPG, PNG, GIF or WEBP. Max 5MB. Recommended: Square image (e.g., 512x512px)
+                </p>
+              </div>
+            </div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={badgeConfigForm.enabled}
+                onChange={(e) =>
+                  setBadgeConfigForm({ ...badgeConfigForm, enabled: e.target.checked })
+                }
+              />
+              <span className="text-sm">Enabled</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setBadgeConfigDialogOpen(false);
+                setBadgeImageFile(null);
+                setBadgeImagePreview(null);
+                setEditingBadgeConfig(null);
+                setBadgeConfigForm({
+                  badgeName: "",
+                  badgeDescription: "",
+                  badgeImageUrl: "",
+                  enabled: true,
+                });
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpsertBadgeConfig}
+              disabled={!badgeConfigForm.badgeName.trim() || saving || uploadingBadgeImage}
+            >
+              {saving ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>

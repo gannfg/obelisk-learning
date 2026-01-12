@@ -3,13 +3,17 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Users, BookOpen, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
+import { Calendar, Clock, Users, BookOpen, CheckCircle2, AlertCircle, ExternalLink, Trophy } from "lucide-react";
 import { format } from "date-fns";
 import type { ClassWithModules } from "@/lib/classes";
-import { getNextSession, getStudentProgress, getClassAnnouncements, getClassAssignments } from "@/lib/classroom";
+import { getNextSession, getStudentProgress, getClassAnnouncements, getClassAssignments, getOverallClassProgress, checkAndMarkClassCompletion } from "@/lib/classroom";
+import { getClassBadgeConfig, awardClassBadges } from "@/lib/classes";
 import { createLearningClient } from "@/lib/supabase/learning-client";
 import Link from "next/link";
 import { MarkdownContent } from "@/components/markdown-content";
+import { ProgressBar } from "./progress-bar";
+import type { ClassProgress, ClassBadgeConfig } from "@/types/classes";
+import Image from "next/image";
 
 interface ClassroomOverviewProps {
   classId: string;
@@ -26,8 +30,11 @@ export function ClassroomOverview({
 }: ClassroomOverviewProps) {
   const [nextSession, setNextSession] = useState<any>(null);
   const [progress, setProgress] = useState<any>(null);
+  const [classProgress, setClassProgress] = useState<ClassProgress | null>(null);
   const [latestAnnouncement, setLatestAnnouncement] = useState<any>(null);
   const [upcomingAssignment, setUpcomingAssignment] = useState<any>(null);
+  const [badgeConfigs, setBadgeConfigs] = useState<ClassBadgeConfig[]>([]);
+  const [earnedBadges, setEarnedBadges] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,6 +51,37 @@ export function ClassroomOverview({
         if (!isInstructor) {
           const prog = await getStudentProgress(classId, userId, supabase);
           setProgress(prog);
+
+          // Load detailed class progress
+          const classProg = await getOverallClassProgress(classId, userId, supabase);
+          setClassProgress(classProg);
+
+          // If progress is 100%, ensure enrollment is marked completed and badges are awarded
+          if (classProg && classProg.overall === 100) {
+            try {
+              // Mark enrollment as completed (idempotent)
+              await checkAndMarkClassCompletion(classId, userId, supabase);
+              // Ensure class badges are awarded (idempotent)
+              await awardClassBadges(classId, userId, supabase);
+            } catch (completionError) {
+              console.error("Error finalizing class completion state:", completionError);
+            }
+          }
+
+          // Load badge configs
+          const badges = await getClassBadgeConfig(classId, supabase);
+          setBadgeConfigs(badges.filter(b => b.enabled));
+
+          // Check which badges are earned
+          const { data: userBadges } = await supabase
+            .from("badges")
+            .select("badge_name")
+            .eq("user_id", userId)
+            .in("badge_name", badges.map(b => b.badgeName));
+
+          if (userBadges) {
+            setEarnedBadges(new Set(userBadges.map(b => b.badge_name)));
+          }
         }
 
         // Load latest announcement
@@ -124,8 +162,8 @@ export function ClassroomOverview({
         </Card>
       )}
 
-      {/* Student Progress Summary */}
-      {!isInstructor && progress && (
+      {/* Student Progress Dashboard */}
+      {!isInstructor && classProgress && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -133,33 +171,170 @@ export function ClassroomOverview({
               Your Progress
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Modules</p>
-                <p className="text-2xl font-bold">
-                  {progress.totalModules}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Attendance</p>
-                <p className="text-2xl font-bold">{progress.attendanceCount} weeks</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Assignments</p>
-                <p className="text-2xl font-bold">
-                  {progress.submittedAssignments} / {progress.totalAssignments}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Completion</p>
-                <p className="text-2xl font-bold">
-                  {progress.totalAssignments > 0
-                    ? Math.round((progress.submittedAssignments / progress.totalAssignments) * 100)
-                    : 0}%
-                </p>
+          <CardContent className="space-y-6">
+            {/* Overall Progress - Circular Indicator */}
+            <div className="flex flex-col items-center justify-center space-y-4 py-4">
+              <div className="relative w-32 h-32">
+                <svg className="w-32 h-32 transform -rotate-90">
+                  <circle
+                    cx="64"
+                    cy="64"
+                    r="56"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    fill="none"
+                    className="text-muted"
+                  />
+                  <circle
+                    cx="64"
+                    cy="64"
+                    r="56"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    fill="none"
+                    strokeDasharray={`${2 * Math.PI * 56}`}
+                    strokeDashoffset={`${2 * Math.PI * 56 * (1 - classProgress.overall / 100)}`}
+                    className="text-primary transition-all duration-500"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold">{classProgress.overall}%</p>
+                    <p className="text-xs text-muted-foreground">Complete</p>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* Breakdown Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Modules */}
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Modules</span>
+                      <span className="font-semibold">
+                        {classProgress.modules.completed} / {classProgress.modules.total}
+                      </span>
+                    </div>
+                    <ProgressBar value={classProgress.modules.percentage} max={100} size="sm" showLabel={false} />
+                    <p className="text-xs text-muted-foreground">{classProgress.modules.percentage}% complete</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Assignments */}
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Assignments</span>
+                      <span className="font-semibold">
+                        {classProgress.assignments.completed} / {classProgress.assignments.total}
+                      </span>
+                    </div>
+                    <ProgressBar value={classProgress.assignments.percentage} max={100} size="sm" showLabel={false} />
+                    <p className="text-xs text-muted-foreground">{classProgress.assignments.percentage}% complete</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Attendance */}
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Attendance</span>
+                      <span className="font-semibold">
+                        {classProgress.attendance.attended} / {classProgress.attendance.total}
+                      </span>
+                    </div>
+                    <ProgressBar value={classProgress.attendance.percentage} max={100} size="sm" showLabel={false} />
+                    <p className="text-xs text-muted-foreground">{classProgress.attendance.percentage}% complete</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Completion Timeline */}
+            {classItem.modules && classItem.modules.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold">Module Timeline</h4>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {classItem.modules.map((module, index) => {
+                    const isCompleted = classProgress.modules.completed > index;
+                    const isInProgress = classProgress.modules.completed === index;
+                    return (
+                      <div
+                        key={module.id}
+                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
+                          isCompleted
+                            ? "bg-green-500/10 text-green-700 dark:text-green-500 border border-green-500/20"
+                            : isInProgress
+                            ? "bg-yellow-500/10 text-yellow-700 dark:text-yellow-500 border border-yellow-500/20"
+                            : "bg-muted text-muted-foreground border border-border"
+                        }`}
+                      >
+                        {isCompleted ? (
+                          <CheckCircle2 className="h-3 w-3" />
+                        ) : (
+                          <div className="h-3 w-3 rounded-full border-2 border-current" />
+                        )}
+                        <span>Week {module.weekNumber}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Badge Preview */}
+            {badgeConfigs.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <Trophy className="h-4 w-4" />
+                  Class Badges
+                </h4>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {badgeConfigs.map((badge) => {
+                    const isEarned = earnedBadges.has(badge.badgeName);
+                    return (
+                      <div
+                        key={badge.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg border ${
+                          isEarned
+                            ? "bg-green-500/10 border-green-500/20"
+                            : "bg-muted border-border opacity-60"
+                        }`}
+                        title={badge.badgeDescription || badge.badgeName}
+                      >
+                        {badge.badgeImageUrl ? (
+                          <div className="relative h-8 w-8">
+                            <Image
+                              src={badge.badgeImageUrl}
+                              alt={badge.badgeName}
+                              fill
+                              className="object-contain"
+                              sizes="32px"
+                            />
+                          </div>
+                        ) : (
+                          <Trophy className={`h-6 w-6 ${isEarned ? "text-green-600" : "text-muted-foreground"}`} />
+                        )}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium">{badge.badgeName}</span>
+                          {isEarned && (
+                            <span className="text-xs text-green-600 dark:text-green-500">Earned</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
