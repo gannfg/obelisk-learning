@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Globe, Users, Bot, Sparkles } from "lucide-react";
@@ -27,6 +28,14 @@ export function CollaboratorCard({ user, onMessageClick }: CollaboratorCardProps
   const location = isAIMentor ? "Available 24/7" : (user.location || "Location not set");
   const languages = isAIMentor ? ["English"] : (user.languages || []);
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't open modal if clicking on a link
+    if ((e.target as HTMLElement).closest('a')) {
+      return;
+    }
+    setIsModalOpen(true);
+  };
+
   return (
     <>
       <Card
@@ -36,7 +45,7 @@ export function CollaboratorCard({ user, onMessageClick }: CollaboratorCardProps
             ? "hover:border-primary bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20"
             : "hover:border-primary/50"
         )}
-        onClick={() => setIsModalOpen(true)}
+        onClick={handleCardClick}
       >
         <CardContent className="p-3 sm:p-4 md:p-5 flex flex-col h-full">
           <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 flex-1 min-h-0">
@@ -68,9 +77,15 @@ export function CollaboratorCard({ user, onMessageClick }: CollaboratorCardProps
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-base sm:text-lg font-bold leading-tight">
-                    {displayName}
-                  </h3>
+                  <Link 
+                    href={`/profile/${user.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="hover:underline"
+                  >
+                    <h3 className="text-base sm:text-lg font-bold leading-tight">
+                      {displayName}
+                    </h3>
+                  </Link>
                   {isAIMentor && (
                     <Badge 
                       variant="default" 
