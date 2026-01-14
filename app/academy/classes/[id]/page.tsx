@@ -65,12 +65,33 @@ export default async function ClassPage({ params }: ClassPageProps) {
     })
   );
 
-  // Note: Mentor info would need to come from Auth Supabase users table
-  // For now, we'll just use the mentor ID
-  const mentor = {
-    id: classItem.mentorId,
-    name: "Mentor", // Would need to fetch from Auth Supabase
-  };
+  // Fetch mentor profile information
+  let mentor: { id: string; name: string; avatar?: string } | null = null;
+  if (classItem.mentorId) {
+    try {
+      const mentorProfile = await getUserProfile(classItem.mentorId, undefined, authSupabase);
+      if (mentorProfile) {
+        mentor = {
+          id: classItem.mentorId,
+          name: mentorProfile.first_name && mentorProfile.last_name
+            ? `${mentorProfile.first_name} ${mentorProfile.last_name}`.trim()
+            : mentorProfile.username || mentorProfile.email?.split('@')[0] || "Mentor",
+          avatar: mentorProfile.image_url || undefined,
+        };
+      } else {
+        mentor = {
+          id: classItem.mentorId,
+          name: "Mentor",
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching mentor profile:", error);
+      mentor = {
+        id: classItem.mentorId,
+        name: "Mentor",
+      };
+    }
+  }
 
   const totalModules = classItem.modules?.length || 0;
   const now = new Date();
@@ -353,9 +374,21 @@ export default async function ClassPage({ params }: ClassPageProps) {
                   </AccordionTrigger>
                   <AccordionContent className="pb-4">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Users className="h-4 w-4 text-primary" />
-                      </div>
+                      {mentor.avatar ? (
+                        <div className="relative h-8 w-8 rounded-full overflow-hidden border-2 border-background">
+                          <Image
+                            src={mentor.avatar}
+                            alt={mentor.name}
+                            fill
+                            className="object-cover"
+                            sizes="32px"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Users className="h-4 w-4 text-primary" />
+                        </div>
+                      )}
                       <span className="text-sm font-medium">{mentor.name}</span>
                     </div>
                   </AccordionContent>
@@ -459,9 +492,21 @@ export default async function ClassPage({ params }: ClassPageProps) {
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Mentor</p>
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="h-4 w-4 text-primary" />
-                    </div>
+                    {mentor.avatar ? (
+                      <div className="relative h-8 w-8 rounded-full overflow-hidden border-2 border-background">
+                        <Image
+                          src={mentor.avatar}
+                          alt={mentor.name}
+                          fill
+                          className="object-cover"
+                          sizes="32px"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Users className="h-4 w-4 text-primary" />
+                      </div>
+                    )}
                     <span className="text-sm font-medium">{mentor.name}</span>
                   </div>
                 </div>
