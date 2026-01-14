@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Globe, Users, Bot, Sparkles, ChevronRight } from "lucide-react";
 import { SocialUser } from "@/lib/social";
@@ -26,6 +27,14 @@ export function CollaboratorListItem({ user, onMessageClick }: CollaboratorListI
   const location = isAIMentor ? "Available 24/7" : (user.location || "Location not set");
   const languages = isAIMentor ? ["English"] : (user.languages || []);
 
+  const handleItemClick = (e: React.MouseEvent) => {
+    // Don't open modal if clicking on a link
+    if ((e.target as HTMLElement).closest('a')) {
+      return;
+    }
+    setIsModalOpen(true);
+  };
+
   return (
     <>
       <div
@@ -35,7 +44,7 @@ export function CollaboratorListItem({ user, onMessageClick }: CollaboratorListI
             ? "hover:border-primary/50 bg-gradient-to-r from-primary/5 to-primary/10"
             : ""
         )}
-        onClick={() => setIsModalOpen(true)}
+        onClick={handleItemClick}
       >
         {/* Avatar */}
         <div className="relative flex-shrink-0">
@@ -67,9 +76,15 @@ export function CollaboratorListItem({ user, onMessageClick }: CollaboratorListI
           {/* Name and Username */}
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <div className="flex items-center gap-1.5 min-w-0">
-              <h3 className="text-sm font-semibold leading-tight truncate">
-                {displayName}
-              </h3>
+              <Link 
+                href={`/profile/${user.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="hover:underline"
+              >
+                <h3 className="text-sm font-semibold leading-tight truncate">
+                  {displayName}
+                </h3>
+              </Link>
               {user.username && (
                 <span className="text-xs text-muted-foreground flex-shrink-0">
                   @{user.username}

@@ -6,6 +6,7 @@ import { MobileNav } from "@/components/mobile-nav";
 import { Footer } from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { UserSync } from "@/components/user-sync";
+import { ToastProvider } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "Superteam Study | Web3 Coding Academy",
@@ -43,13 +44,15 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <ThemeProvider>
-          <UserSync />
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1 pt-14 sm:pt-16 pb-16 md:pb-0">{children}</main>
-            <MobileNav />
-            <Footer />
-          </div>
+          <ToastProvider>
+            <UserSync />
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1 pt-14 sm:pt-16 pb-16 md:pb-0">{children}</main>
+              <MobileNav />
+              <Footer />
+            </div>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>
